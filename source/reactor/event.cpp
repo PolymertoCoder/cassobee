@@ -73,7 +73,7 @@ int common_event::handle_recv(void* param)
     {
         _rlength = len;
         _readbuf[len] = '\0';
-        //处理业务
+        //TODO 处理业务
         
         //printf("recv[fd=%d]:%s\n", _fd, _readbuf);
         memcpy(_writebuf, _readbuf, _rlength);

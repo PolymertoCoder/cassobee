@@ -70,6 +70,10 @@ thread_group::~thread_group()
 void thread_group::add_task(const std::function<void()>& task)
 {
     std::lock_guard<std::mutex> l(this->_queue_lock);
+    if(_task_queue.size() >= TASK_QUEUE_MAX)
+    {
+        throw std::runtime_error("task_queue is full!!!");
+    }
     if(_stop){ throw std::runtime_error("add task to a stopped thread group."); }
    _task_queue.push_back(task);
    _cond.notify_one();
@@ -82,9 +86,7 @@ bool thread_group::wait_for_all_done(TIMETYPE millsecond)
     if(_task_queue.empty()){ return true; }
     if(millsecond <= 0)
     {
-        printf("run here1.\n");
         _cond.wait(l, [this](){ return this->_task_queue.empty(); });
-        printf("run here2.\n");
         return true;
     }
     else

@@ -12,7 +12,7 @@
 
 #define THREAD_COUNT_PER_GROUP 4
 #define THREAD_GROUP_MAX 4
-#define TASK_QUEUE_MAX 2048
+#define TASK_QUEUE_MAX 524288
 
 class thread_group
 {

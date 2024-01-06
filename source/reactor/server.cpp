@@ -56,7 +56,7 @@ int main(int argc,char *argv[])
     }
     m_reactor->run();
     
-    for(int i = 0; i < 100; ++i)
+    for(int i = 0; i < listenfd_count; ++i)
     {
         close(lisfds[i]);
     }

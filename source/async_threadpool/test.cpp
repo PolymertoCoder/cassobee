@@ -37,19 +37,19 @@ int main()
             {
                 int temp = ress[i].get();
             }
-            GET_TIME_END()
 
             if( pool.wait_for_all_done(0) )
             {
                 pool.stop();
             }
-        }
-        {
-            GET_TIME_BEGIN()
-            for( size_t i = 0; i < 1000000; i++ )
-            {
-                int temp = add_test(i);
-            }
             GET_TIME_END()
         }
+        //{
+        //    GET_TIME_BEGIN()
+        //    for( size_t i = 0; i < 1000000; i++ )
+        //    {
+        //        int temp = add_test(i);
+        //    }
+        //    GET_TIME_END()
+        //}
 }

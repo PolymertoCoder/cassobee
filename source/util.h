@@ -1,6 +1,4 @@
 #pragma once
-#include <unistd.h>
-#include <stdio.h>
 #include <sys/time.h>
 
 #define GET_TIME_BEGIN() \
@@ -24,5 +22,5 @@ public:
 };
 
 int set_nonblocking(int fd, bool nonblocking);
-
 int rand(int min, int max);
+void set_process_affinity(int num);
