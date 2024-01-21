@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Wno-unused-function   CMakeFiles/main.dir/main.cpp.o  -o ../../bin/main -rdynamic -lpthread ../../debug/lib/libcassobee.so -Wl,-rpath,/home/qinchao/cassobee/debug/lib 

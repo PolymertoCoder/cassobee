@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/qinchao/cassobee/source/util.cpp
+unistd.h
+-
+stdio.h
+-
+stdlib.h
+-
+fcntl.h
+-
+ctime
+-
+sys/types.h
+-
+sys/syscall.h
+-
+sched.h
+-
+util.h
+/home/qinchao/cassobee/source/util.h
+
+/home/qinchao/cassobee/source/util.h
+sys/time.h
+-
+

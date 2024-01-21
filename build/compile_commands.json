@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/qinchao/cassobee/build/source",
+  "command": "/usr/bin/c++   -Dcassobee_EXPORTS -I/home/qinchao/cassobee/source/. -I/home/qinchao/cassobee/source/./reactor -I/home/qinchao/cassobee/source/./threadpool -I/home/qinchao/cassobee/source/./delegate   -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Wno-unused-function -fPIC   -o CMakeFiles/cassobee.dir/util.cpp.o -c /home/qinchao/cassobee/source/util.cpp",
+  "file": "/home/qinchao/cassobee/source/util.cpp"
+},
+{
+  "directory": "/home/qinchao/cassobee/build/source",
+  "command": "/usr/bin/c++    -I/home/qinchao/cassobee/source/. -I/home/qinchao/cassobee/source/./reactor -I/home/qinchao/cassobee/source/./threadpool -I/home/qinchao/cassobee/source/./delegate   -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Wno-unused-function   -o CMakeFiles/main.dir/main.cpp.o -c /home/qinchao/cassobee/source/main.cpp",
+  "file": "/home/qinchao/cassobee/source/main.cpp"
+}
+]
