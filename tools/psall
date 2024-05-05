@@ -1,0 +1,5 @@
+#!/bin/bash
+
+workdir=$(cd $(dirname $0); pwd)
+
+ps -eo lstart,etime,cmd,pid | grep start.sh | grep -v grep | grep -v psall

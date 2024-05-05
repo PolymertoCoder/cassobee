@@ -1,12 +1,11 @@
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -std=c++11 -Wall -Wno-deprecated -Wno-unused-function")
 
 include_directories(.)
-include_directories(./reactor)
-include_directories(./threadpool)
-include_directories(./delegate)
+include_directories(./common)
 
-set(LIB_SRC util.cpp)
+aux_source_directory(./common LIB_SRC)
+message(${LIB_SRC})
+
 add_library(cassobee SHARED ${LIB_SRC})
 
 set(LIB_LIB pthread cassobee)

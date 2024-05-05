@@ -1,8 +1,9 @@
 #include <set>
 #include <map>
 #include <vector>
-#include "../util.h"
-#include "objectpool.h"
+#include <cstdio>
+#include "../common/util.h"
+#include "../common/objectpool.h"
 
 class bigtestobj
 {

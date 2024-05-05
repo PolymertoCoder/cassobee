@@ -1,0 +1,8 @@
+#!/bin/bash
+
+workdir=$(cd $(dirname $0); pwd)
+
+cd $workdir/../build && make
+
+echo ./main > $workdir/../bin/start.sh
+chmod 777 $workdir/../bin/start.sh

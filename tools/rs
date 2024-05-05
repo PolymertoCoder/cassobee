@@ -1,0 +1,7 @@
+#!/bin/bash
+
+workdir=$(cd $(dirname $0); pwd)
+
+ks
+
+cd $workdir/../bin && nohup ./start.sh >> $workdir/../debug/logdir/output.txt 2>&1 &

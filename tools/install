@@ -1,0 +1,9 @@
+#!/bin/bash
+
+workdir=$(cd $(dirname $0); pwd)
+
+echo ${workdir}
+
+echo export PATH=$PATH:${workdir} > ~/.cassobee_config
+
+#echo source ~/.cassobee_config >> ~/.bash_profile
