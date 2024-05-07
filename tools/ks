@@ -2,4 +2,4 @@
 
 workdir=$(cd $(dirname $0); pwd)
 
-pkill -SIGUSR1 -f start.sh
+pkill -SIGUSR1 -f cassobee

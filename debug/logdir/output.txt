@@ -1,2 +1,0 @@
-./start.sh: 行 1:  7095 已终止               ./main
-./start.sh: 行 1:  7926 已终止               ./main

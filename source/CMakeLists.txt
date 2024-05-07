@@ -6,13 +6,13 @@ include_directories(./common)
 aux_source_directory(./common LIB_SRC)
 message(${LIB_SRC})
 
-add_library(cassobee SHARED ${LIB_SRC})
+add_library(bee SHARED ${LIB_SRC})
 
-set(LIB_LIB pthread cassobee)
+set(LIB_LIB pthread bee)
 
-add_executable(main main.cpp)
-add_dependencies(main cassobee)
-target_link_libraries(main ${LIB_LIB})
+add_executable(cassobee main.cpp)
+add_dependencies(cassobee bee)
+target_link_libraries(cassobee ${LIB_LIB})
 
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/debug)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/debug/lib)

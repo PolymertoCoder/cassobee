@@ -2,6 +2,6 @@
 
 workdir=$(cd $(dirname $0); pwd)
 
-ks
+#ks
 
-cd $workdir/../bin && nohup ./start.sh >> $workdir/../debug/logdir/output.txt 2>&1 &
+cd $workdir/../bin && ./start.sh
