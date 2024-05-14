@@ -1,5 +1,8 @@
 #!/bin/bash
 
-workdir=$(cd $(dirname $0); pwd)
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
+rootpath+=/debug/cassobee
 
-pkill -SIGUSR1 -f cassobee
+#pkill -SIGUSR1 -f $rootpath
+pkill -9 -f $rootpath
+#pgrep -f $rootpath | xargs kill -SIGUSR1

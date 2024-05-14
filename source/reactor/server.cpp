@@ -51,7 +51,7 @@ int main(int argc,char *argv[])
 
         listen(lisfd,20);
         event* evHanlde = new common_event(lisfd);
-        int ret = m_reactor->add_event(evHanlde,EVENT_ACCEPT);
+        int ret = m_reactor->add_event(evHanlde, EVENT_ACCEPT);
         printf("listenfd %d add accept event, ret=%d, port=%d.\n", lisfd, ret, port+i);
     }
     m_reactor->run();

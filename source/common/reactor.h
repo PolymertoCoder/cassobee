@@ -4,24 +4,37 @@
 #include "event.h"
 #include "demultiplexer.h"
 
+class demultiplexer;
+using SIG_HANDLER = void(*)(int);
+
 class epoller;
 
 class reactor : public singleton_support<reactor>
 {
 public:
     using EVENTS_MAP = std::map<int, event*>;
-    using TIMEEVENT_MAP = std::map<int, timer_event*>;
-    
-    reactor(epoller* ep) : _ep(ep) {}
-    int run();
-    int add_event(event* ev, int events);
+    using TIMEREVENT_MAP = std::multimap<TIMETYPE, event*>;
+
+    void init();
+    int  run();
+    void stop();
+    int  add_event(event* ev, int events);
     void del_event(event* ev);
 
     event* get_event(int fd);
-    bool use_timerevt() { return _use_timerevt; }
+    FORCE_INLINE bool& wakeup() { return _wakeup; }
+    FORCE_INLINE bool use_timerevt() { return _use_timerevt; }
+
 public:
-    epoller* _ep;
-    EVENTS_MAP _ep_events;
-    bool _use_timerevt;
-    TIMEEVENT_MAP _timer_events;
+    bool _stop = true;
+    demultiplexer* _dispatcher;
+    bool _wakeup = false;
+    bool _use_timerevt = false;
+
+    EVENTS_MAP _io_events;
+    EVENTS_MAP _signal_events;
+    TIMEREVENT_MAP _timer_events;
 };
+
+void set_signal(int signum, SIG_HANDLER handler);
+void add_signal(int signum, bool(*callback)(int));

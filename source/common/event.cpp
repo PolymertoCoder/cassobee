@@ -8,15 +8,57 @@
 #include "util.h"
 #include "event.h"
 
-int streamio_event::handle_accept(void* param)
+int control_event::_pipe[2] = {-1, -1};
+
+control_event::control_event()
+{
+    if(socketpair(AF_UNIX, SOCK_STREAM, 0, control_event::_pipe) == -1)
+    {
+        printf("sigio_event create failed.\n");
+        return;
+    }
+}
+
+int control_event::handle_event(int active_events)
+{
+    char buf[32];
+    size_t n = read(_pipe[0], buf, 1);
+    if(n == 0 || n > 32 || !_base) return -1;
+    return 0;
+}
+
+void control_event::wakeup(reactor* base)
+{
+    if(!base || base->wakeup()) return;
+    write(_pipe[1], "0", 1);
+    base->wakeup() = true;
+}
+
+int streamio_event::handle_event(int active_events)
+{
+    if(active_events & EVENT_ACCEPT)
+    {
+        return handle_accept();
+    }
+    else if(active_events & EVENT_RECV)
+    {
+        return handle_recv();
+    }
+    else if(active_events & EVENT_SEND)
+    {
+        return handle_send();
+    }
+    return 0;
+}
+
+int streamio_event::handle_accept()
 {
     //printf("handle_accept begin.\n");
-    reactor* base = (reactor*)param;
-    if(base == nullptr) return -1;
+    if(_base == nullptr) return -1;
 
     struct sockaddr_in sock_client;
     socklen_t len = sizeof(sock_client);
-    int clientfd = accept(_fd, (sockaddr*)&sock_client, &len);
+    int clientfd = accept(_handle, (sockaddr*)&sock_client, &len);
     if(clientfd == -1)
     {
         if(errno != EAGAIN || errno != EINTR)
@@ -29,18 +71,17 @@ int streamio_event::handle_accept(void* param)
     int ret = set_nonblocking(clientfd, true);
     if(ret < 0) return -1;
 
-    event* ev = new streamio_event(clientfd);
+    event* ev = (event*)new streamio_event(clientfd);
     if(ev == nullptr) return -1;
-    base->add_event(ev, EVENT_RECV);
+    _base->add_event(ev, EVENT_RECV);
     printf("accept clientid=%d.\n", clientfd);
 
     return 0;
 }
 
-int streamio_event::handle_recv(void* param)
+int streamio_event::handle_recv()
 {
-    reactor* base = (reactor*)param;
-    if(base == nullptr) return -1;
+    if(_base == nullptr) return -1;
 
     memset(_readbuf, 0, READ_BUFFER_SIZE);
     _rlength = 0;
@@ -71,7 +112,7 @@ int streamio_event::handle_recv(void* param)
     }
 
 #else //LT
-    int len = recv(_fd, _readbuf, READ_BUFFER_SIZE, 0);
+    int len = recv(_handle, _readbuf, READ_BUFFER_SIZE, 0);
     if(len > 0)
     {
         _rlength = len;
@@ -81,51 +122,92 @@ int streamio_event::handle_recv(void* param)
         //printf("recv[fd=%d]:%s\n", _fd, _readbuf);
         memcpy(_writebuf, _readbuf, _rlength);
         _wlength = _rlength;
-        base->add_event(this, EVENT_SEND);
+        _base->add_event(this, EVENT_SEND);
         _rlength = 0;
     }
     else if(len == 0)
     {
-        close(_fd);
+        close(_handle);
     }
     else
     {
-        printf("recv[fd=%d] len=%d error[%d]:%s\n", _fd, len, errno, strerror(errno));
-        close(_fd);
+        printf("recv[fd=%d] len=%d error[%d]:%s\n", _handle, len, errno, strerror(errno));
+        close(_handle);
     }
 #endif
     return len;
 }
 
-int streamio_event::handle_send(void* param)
+int streamio_event::handle_send()
 {
-    reactor* base = (reactor*)param;
-    if(base == nullptr) return -1;
+    if(_base == nullptr) return -1;
 
-    int len = send(_fd, _writebuf, _wlength, 0);
+    int len = send(_handle, _writebuf, _wlength, 0);
     if(len >= 0)
     {
         if(len == _wlength)
         {
             _wlength = 0;
-            base->add_event(this, EVENT_RECV);
+            _base->add_event(this, EVENT_RECV);
         }
         else
         {
             memcpy(_writebuf, _writebuf+len, _wlength-len);
             _wlength -= len;
-            base->add_event(this, EVENT_SEND);
+            _base->add_event(this, EVENT_SEND);
         }
     }
     else
     {
-        base->add_event(this, EVENT_SEND);
+        _base->add_event(this, EVENT_SEND);
     }
     return len;
 }
 
-
-void timer_event::handle(void* param)
+timer_event::timer_event(int repeats, int timeout, callback cbk)
+    : _repeats(repeats), _timeout(timeout), _callback(cbk)
 {
-    
+}
+
+int timer_event::handle_event(int active_events)
+{
+    if(!_callback(_param)) return -1;
+    return 0;
+}
+
+int sigio_event::_pipe[2] = { -1, -1 };
+
+sigio_event::sigio_event()
+{
+    if(socketpair(AF_UNIX, SOCK_STREAM, 0, sigio_event::_pipe) == -1)
+    {
+        printf("sigio_event create failed.\n");
+        return;
+    }
+}
+
+int sigio_event::handle_event(int active_events)
+{
+    //write(sigio_event::_pipe[1], (char*)&active_events, 1);
+    return 0;
+}
+
+void sigio_event::sigio_callback(int signum)
+{
+    write(sigio_event::_pipe[1], (char*)&signum, 1);
+}
+
+signal_event::signal_event(int signum, signal_callback callback)
+    : _callback(callback)
+{
+    set_signal(signum, sigio_event::sigio_callback);
+}
+
+int signal_event::handle_event(int active_events)
+{
+    char buf[32];
+    size_t n = read(sigio_event::_pipe[0], buf, 32);
+    if(n == 0 || n > 32 || !_base) return -1;
+    for(size_t i = 0; i < n; ++i){ if(!_callback(buf[i])) return -1; }
+    return 0;
 }

@@ -19,13 +19,13 @@ int epoller::add_event(event* ev, int events)
 
     struct epoll_event event = {0, {0}};
     event.data.ptr = ev;
-    event.data.fd = ev->get_fd();
+    event.data.fd = ev->get_handle();
 
     if(events & EVENT_ACCEPT)
     {
         event.events |= EPOLLIN;
-        _listenfds.insert(ev->get_fd());
-        printf("add accept event, listenfd is %d\n", ev->get_fd());
+        _listenfds.insert(ev->get_handle());
+        printf("add accept event, listenfd is %d\n", ev->get_handle());
     }
     if(events & EVENT_RECV)
     {
@@ -34,6 +34,14 @@ int epoller::add_event(event* ev, int events)
     if(events & EVENT_SEND)
     {
         event.events |= EPOLLOUT;
+    }
+    if(events & EVENT_HUP)
+    {
+        event.events |= EPOLLHUP;
+    }
+    if(events & EVENT_TIMER)
+    {
+        event.events |= EVENT_TIMER;
     }
 
     int op;
@@ -48,14 +56,14 @@ int epoller::add_event(event* ev, int events)
     }
     else
     {
-        printf("add_event failed %d, epfd=%d\n", ev->get_fd(), _epfd);
+        printf("add_event failed %d, epfd=%d\n", ev->get_handle(), _epfd);
         return -2;
     }
 
-    int ret = epoll_ctl(_epfd, op, ev->get_fd(), &event);
-    if( ret < 0)
+    int ret = epoll_ctl(_epfd, op, ev->get_handle(), &event);
+    if(ret < 0)
     {
-        printf("add_event failed %d, ret=%d epfd=%d\n", ev->get_fd(), ret, _epfd);
+        printf("add_event failed %d, ret=%d epfd=%d\n", ev->get_handle(), ret, _epfd);
         return -3;
     }
     return 0;
@@ -69,9 +77,9 @@ void epoller::del_event(event* ev)
     struct epoll_event event = {0, {0}};
     event.data.ptr = ev;
 
-    if(epoll_ctl(_epfd, EPOLL_CTL_DEL, ev->get_fd(), &event) < 0)
+    if(epoll_ctl(_epfd, EPOLL_CTL_DEL, ev->get_handle(), &event) < 0)
     {
-        printf("del_event failed %d\n", ev->get_fd());
+        printf("del_event failed %d\n", ev->get_handle());
         return;
     }
 }
@@ -89,17 +97,17 @@ void epoller::dispatch(reactor* base, int timeout)
         event* ev = base->get_event(events[i].data.fd);
         if(ev == nullptr) continue;
 
-        if(events[i].events & EPOLLIN)
-        {    
+        if(events[i].events & EPOLLIN || events[i].events & EPOLLOUT || events[i].events & EPOLLHUP)
+        {
             if(_listenfds.count(events[i].data.fd)) {
-                ev->handle_accept((void*)base);
+                ev->handle_event(EVENT_ACCEPT);
             } else {
-                ev->handle_recv((void*)base);
+                ev->handle_event(EVENT_RECV);
             }
         }
         if(events[i].events & EPOLLOUT)
         {
-            ev->handle_send((void*)base);
+            ev->handle_event(EVENT_SEND);
         }
     }
 }

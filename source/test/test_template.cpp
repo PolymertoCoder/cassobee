@@ -4,6 +4,9 @@
 #include <string>
 #include <type_traits>
 
+namespace cassobee
+{
+
 template<typename T>
 std::string ToString(const std::set<T>& val);
 template<typename T1, typename T2>
@@ -25,9 +28,9 @@ std::string ToString(const std::pair<T1, T2>& val)
 }
 
 template<typename STL_CONTAINER>
-std::string ContainerToString(const STL_CONTAINER& container, const std::string& prefix)
+std::string ContainerToString(const STL_CONTAINER& container, const std::string_view& prefix)
 {
-    std::string str(prefix + ":{");
+    std::string str(prefix.data(), prefix.size());
     size_t i = 0, sz = container.size();
     for(typename STL_CONTAINER::const_iterator iter = container.begin(); iter != container.end(); ++iter, ++i)
     {
@@ -40,12 +43,14 @@ std::string ContainerToString(const STL_CONTAINER& container, const std::string&
 template<typename T1, typename T2>
 std::string ToString(const std::map<T1, T2>& val)
 {
-    return ContainerToString(val, "std::map");
+    return ContainerToString(val, "std::map:{");
 }
 template<typename T>
 std::string ToString(const std::set<T>& val)
 {
-    return ContainerToString(val, "std::set");
+    return ContainerToString(val, "std::set:{");
+}
+
 }
 
 void test()

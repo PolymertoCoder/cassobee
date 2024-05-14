@@ -42,10 +42,8 @@ public:
     }
     threadpool(){ memset(_groups, 0, sizeof(_groups)); }
     void start();
-    void start_timer_thread();
     void stop();
 
-    FORCE_INLINE std::thread* get_timer_thread() { return timer_thread; }
     void add_task(int groupidx, const std::function<void()>& task);
 
 private:
@@ -56,5 +54,4 @@ private:
     
 private:
     thread_group* _groups[THREAD_GROUP_MAX];
-    std::thread* timer_thread = nullptr;
 };

@@ -1,7 +1,9 @@
 #!/bin/bash
 
-workdir=$(cd $(dirname $0); pwd)
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
-#ks
+ks
 
-cd $workdir/../bin && ./start.sh
+#rm rootpath/debug/cassobee.log
+
+cd $rootpath/bin && ./start.sh

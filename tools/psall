@@ -1,5 +1,5 @@
 #!/bin/bash
 
-workdir=$(cd $(dirname $0); pwd)
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
-ps -eo lstart:20,etime,cmd:45,pid | grep cassobee | grep -v grep | grep -v psall
+ps -eo lstart,etime,cmd:45,pid | grep $rootpath | grep -v grep | grep -v psall

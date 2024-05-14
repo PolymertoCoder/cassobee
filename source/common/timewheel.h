@@ -112,6 +112,7 @@ public:
     int  add_timer(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param);
     bool del_timer(int timerid);
     void run();
+    void stop();
 
     FORCE_INLINE uint64_t get_tickcount(){ return _tickcount; }
     FORCE_INLINE TIMETYPE get_ticktime() { return _ticktime;  }
@@ -131,6 +132,7 @@ private:
     FORCE_INLINE timerlist& get_back_changelist()  { return _changelist[!_frontidx]; }
 
 private:
+    bool _stop = true;
     timerlist _near_slots[NEAR_SLOTS];
     timerlist _hanging_slots;
 

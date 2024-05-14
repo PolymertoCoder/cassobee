@@ -6,6 +6,7 @@ void timewheel::init(TIMETYPE ticktime)
 {
     _ticktime = ticktime;
     _timerpool.init(TIMERPOOL_SIZE);
+    _stop = false;
 }
 
 int timewheel::add_timer(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)
@@ -180,9 +181,14 @@ void timewheel::tick()
 
 void timewheel::run()
 {
-    while(true)
+    while(!_stop)
     {
         tick();
         usleep(_ticktime * 1000);
     }
+}
+
+void timewheel::stop()
+{
+    _stop = true;
 }

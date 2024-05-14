@@ -11,32 +11,37 @@ bool timetask(void* param)
     return true;
 }
 
-void start_threadpool_and_timer()
+std::thread start_threadpool_and_timer()
 {
     threadpool::get_instance()->start();
-    threadpool::get_instance()->start_timer_thread();
+    return std::thread([]()
+    {
+        timewheel::get_instance()->init(10);
+        timewheel::get_instance()->run();
+    });
 }
 
-void sig_handler(int signum)
+void sigusr1_handler(int signum)
 {
+    timewheel::get_instance()->stop();
     threadpool::get_instance()->stop();
+    reactor::get_instance()->stop();
     printf("recv signal end process...\n");
 }
 
 int main()
 {
-    if(signal(SIGUSR1, sig_handler) == SIG_ERR)
-    {
-        printf("failed to register signal handler.\n");
-        return -1;
-    }
+    //add_signal(SIGUSR1, sigusr1_handler);
+    assert(signal(SIGUSR1, sigusr1_handler) != SIG_ERR);
 
-    start_threadpool_and_timer();
+    std::thread timer_thread = start_threadpool_and_timer();
     //timewheel::get_instance()->init(10);
     timewheel::get_instance()->add_timer(false, 5, -1, [](void*){ printf("nowtime1: %ld.\n", systemtime::get_time()); return true; }, nullptr);
     timewheel::get_instance()->add_timer(false, 5, 10, [](void*){ printf("nowtime2: %ld.\n", systemtime::get_time()); return true; }, nullptr);
     timewheel::get_instance()->add_timer(false, 5, -1, [](void*){ printf("nowtime3: %ld.\n", systemtime::get_time()); return false; }, nullptr);
+    while(true){ usleep(10); }
     //timewheel::get_instance()->run();
-    sleep(30000);
+    //reactor::get_instance()->run();
+    //timer_thread.join();
     return 0;
 }

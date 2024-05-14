@@ -8,6 +8,6 @@ cd $rootpath/build && cmake .. && make -j4
 
 echo use $outputfile as output file.
 
-echo 'nohup' $rootpath/debug/cassobee '>>' $outputfile '2>&1 &' > $rootpath/bin/start.sh
+echo nohup $rootpath/debug/cassobee '>>' $outputfile '2>&1 &' > $rootpath/bin/start.sh
 
 chmod 777 $rootpath/bin/start.sh

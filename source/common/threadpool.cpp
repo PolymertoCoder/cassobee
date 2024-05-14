@@ -111,15 +111,6 @@ void threadpool::start()
     }
 }
 
-void threadpool::start_timer_thread()
-{
-    timewheel::get_instance()->init(10);
-    timer_thread = new std::thread([]()
-    {
-        timewheel::get_instance()->run();
-    });
-}
-
 void threadpool::stop()
 {
     for(size_t i = 0 ; i < THREAD_GROUP_MAX; ++i)
@@ -130,12 +121,6 @@ void threadpool::stop()
         }
     }
     memset(_groups, 0, sizeof(_groups));
-
-    if(timer_thread && timer_thread->joinable())
-    {
-        timer_thread->join();
-        delete timer_thread;
-    }
 }
 
 void threadpool::add_task(int groupidx, const std::function<void()>& task)
