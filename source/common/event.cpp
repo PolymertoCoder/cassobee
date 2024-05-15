@@ -19,12 +19,12 @@ control_event::control_event()
     }
 }
 
-int control_event::handle_event(int active_events)
+bool control_event::handle_event(int active_events)
 {
     char buf[32];
-    size_t n = read(_pipe[0], buf, 1);
-    if(n == 0 || n > 32 || !_base) return -1;
-    return 0;
+    size_t n = read(_pipe[0], buf, 32);
+    if(n == 0 || n > 32 || !_base) return false;
+    return true;
 }
 
 void control_event::wakeup(reactor* base)
@@ -34,21 +34,21 @@ void control_event::wakeup(reactor* base)
     base->wakeup() = true;
 }
 
-int streamio_event::handle_event(int active_events)
+bool streamio_event::handle_event(int active_events)
 {
     if(active_events & EVENT_ACCEPT)
     {
-        return handle_accept();
+        handle_accept();
     }
     else if(active_events & EVENT_RECV)
     {
-        return handle_recv();
+        handle_recv();
     }
     else if(active_events & EVENT_SEND)
     {
-        return handle_send();
+        handle_send();
     }
-    return 0;
+    return true;
 }
 
 int streamio_event::handle_accept()
@@ -169,10 +169,10 @@ timer_event::timer_event(int repeats, int timeout, callback cbk)
 {
 }
 
-int timer_event::handle_event(int active_events)
+bool timer_event::handle_event(int active_events)
 {
-    if(!_callback(_param)) return -1;
-    return 0;
+    if(!_callback(_param)) return false;
+    return true;
 }
 
 int sigio_event::_pipe[2] = { -1, -1 };
@@ -186,10 +186,14 @@ sigio_event::sigio_event()
     }
 }
 
-int sigio_event::handle_event(int active_events)
+bool sigio_event::handle_event(int active_events)
 {
     //write(sigio_event::_pipe[1], (char*)&active_events, 1);
-    return 0;
+    char buf[32];
+    size_t n = read(sigio_event::_pipe[0], buf, 32);
+    if(n == 0 || n > 32 || !_base) return false;
+    for(size_t i = 0; i < n; ++i){ if(!_base->handle_signal_event(i)) return false; }
+    return true;
 }
 
 void sigio_event::sigio_callback(int signum)
@@ -198,16 +202,14 @@ void sigio_event::sigio_callback(int signum)
 }
 
 signal_event::signal_event(int signum, signal_callback callback)
-    : _callback(callback)
+    : _signum(signum), _callback(callback)
 {
     set_signal(signum, sigio_event::sigio_callback);
 }
 
-int signal_event::handle_event(int active_events)
+bool signal_event::handle_event(int active_events)
 {
-    char buf[32];
-    size_t n = read(sigio_event::_pipe[0], buf, 32);
-    if(n == 0 || n > 32 || !_base) return -1;
-    for(size_t i = 0; i < n; ++i){ if(!_callback(buf[i])) return -1; }
-    return 0;
+    if(active_events != EVENT_SIGNAL) return false;
+    if(!_callback(_signum)) return false;
+    return true;
 }

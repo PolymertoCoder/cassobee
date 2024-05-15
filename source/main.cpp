@@ -21,7 +21,7 @@ std::thread start_threadpool_and_timer()
     });
 }
 
-void sigusr1_handler(int signum)
+bool sigusr1_handler(int signum)
 {
     timewheel::get_instance()->stop();
     threadpool::get_instance()->stop();
@@ -31,17 +31,13 @@ void sigusr1_handler(int signum)
 
 int main()
 {
-    //add_signal(SIGUSR1, sigusr1_handler);
-    assert(signal(SIGUSR1, sigusr1_handler) != SIG_ERR);
-
+    add_signal(SIGUSR1, sigusr1_handler);
     std::thread timer_thread = start_threadpool_and_timer();
-    //timewheel::get_instance()->init(10);
+    timewheel::get_instance()->init(10);
     timewheel::get_instance()->add_timer(false, 5, -1, [](void*){ printf("nowtime1: %ld.\n", systemtime::get_time()); return true; }, nullptr);
     timewheel::get_instance()->add_timer(false, 5, 10, [](void*){ printf("nowtime2: %ld.\n", systemtime::get_time()); return true; }, nullptr);
     timewheel::get_instance()->add_timer(false, 5, -1, [](void*){ printf("nowtime3: %ld.\n", systemtime::get_time()); return false; }, nullptr);
-    while(true){ usleep(10); }
-    //timewheel::get_instance()->run();
-    //reactor::get_instance()->run();
-    //timer_thread.join();
+    reactor::get_instance()->run();
+    timer_thread.join();
     return 0;
 }

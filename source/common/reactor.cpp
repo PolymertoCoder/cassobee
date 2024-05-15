@@ -4,6 +4,7 @@
 #include <csignal>
 #include <cstdio>
 #include <cstring>
+#include <map>
 #include <sys/epoll.h>
 #include <utility>
 
@@ -43,22 +44,57 @@ void reactor::del_event(event* ev)
     delete temp;
 }
 
+bool reactor::handle_signal_event(int signum)
+{
+    if(auto iter = _signal_events.find(signum); iter != _signal_events.end())
+    {
+        return iter->second->handle_event(EVENT_SIGNAL);
+    }
+    return true;
+}
+
+void reactor::handle_timer_event()
+{
+    TIMETYPE nowtime = systemtime::get_time();
+    std::multimap<TIMETYPE, timer_event*> changelist;
+    for(auto iter = _timer_events.begin(); iter != _timer_events.end() && iter->first < nowtime;)
+    {
+        timer_event* tm = dynamic_cast<timer_event*>(iter->second);
+        if(tm->handle_event(EVENT_TIMER))
+        {
+            if(tm->_repeats > 0){ --tm->_repeats; }
+            if(tm->_repeats != 0)
+            {
+                changelist.insert(std::make_pair(nowtime+tm->_timeout, tm));
+            }
+        }
+        else{ break; }
+        iter = _timer_events.erase(iter);
+    }
+    for(auto& [expiretime, tm] : changelist)
+    {
+        _timer_events.insert(std::make_pair(expiretime, tm));
+    }
+}
+
 void reactor::init()
 {
     _dispatcher = new epoller();
     _dispatcher->init();
     _stop = false;
-    add_event(new sigio_event(), EVENT_SIGIO);
+    _timeout = 10;
+    add_event(new sigio_event(),   EVENT_RECV);
+    add_event(new control_event(), EVENT_RECV);
 }
 
 int reactor::run()
 {
     if(_dispatcher == nullptr) return -1;
 
-    add_event(new control_event(), EPOLLIN);
     while(_stop)
     {
-        _dispatcher->dispatch(this);
+        _dispatcher->dispatch(this, _timeout);
+        handle_timer_event();        
     }
     return 0;
 }

@@ -31,7 +31,7 @@ struct event
     event(int handle) : _handle(handle), _status(EVENT_STATUS_NONE) {}
     virtual ~event() {}
     virtual int get_handle() { return _handle; }
-    virtual int handle_event(int active_events) { return 0; };
+    virtual bool handle_event(int active_events) { return 0; };
     int  get_status() { return _status; }
     void set_status(int status) { _status = status; }
 
@@ -44,7 +44,7 @@ struct control_event : event
 {
     control_event();
     virtual int get_handle() override { return _pipe[0]; }
-    virtual int handle_event(int active_events) override;
+    virtual bool handle_event(int active_events) override;
     static void wakeup(reactor* base);
     static int _pipe[2];
 };
@@ -62,7 +62,7 @@ struct netio_event : event
 struct streamio_event : netio_event
 {
     streamio_event(int fd) : netio_event(fd) {}
-    virtual int handle_event(int active_events) override;
+    virtual bool handle_event(int active_events) override;
     int handle_accept();
     int handle_recv();
     int handle_send();
@@ -73,7 +73,7 @@ struct timer_event : event
     using callback = bool(*)(void* param);
     timer_event(int repeats, int timeout, callback);
     virtual int get_handle() override { return _timeout; }
-    virtual int handle_event(int active_events) override;
+    virtual bool handle_event(int active_events) override;
     int _repeats;
     int _timeout;
     callback _callback;
@@ -84,7 +84,8 @@ struct sigio_event : event
 {
     using signal_handler = void(*)(int);
     sigio_event();
-    virtual int handle_event(int active_events) override;
+    virtual int get_handle() override { return _pipe[0]; }
+    virtual bool handle_event(int active_events) override;
     static void sigio_callback(int signum);
     static int _pipe[2];
 };
@@ -93,6 +94,7 @@ struct signal_event : event
 {
     using signal_callback = bool(*)(int);
     signal_event(int signum, signal_callback callback);
-    virtual int handle_event(int active_events) override;
+    virtual bool handle_event(int active_events) override;
+    int _signum;
     signal_callback _callback;
 };

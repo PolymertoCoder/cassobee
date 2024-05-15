@@ -21,6 +21,9 @@ public:
     int  add_event(event* ev, int events);
     void del_event(event* ev);
 
+    bool handle_signal_event(int signum);
+    void handle_timer_event();
+
     event* get_event(int fd);
     FORCE_INLINE bool& wakeup() { return _wakeup; }
     FORCE_INLINE bool use_timerevt() { return _use_timerevt; }
@@ -30,6 +33,7 @@ public:
     demultiplexer* _dispatcher;
     bool _wakeup = false;
     bool _use_timerevt = false;
+    int  _timeout = 0;
 
     EVENTS_MAP _io_events;
     EVENTS_MAP _signal_events;
