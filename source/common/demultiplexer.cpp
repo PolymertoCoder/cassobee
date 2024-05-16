@@ -39,10 +39,6 @@ int epoller::add_event(event* ev, int events)
     {
         event.events |= EPOLLHUP;
     }
-    if(events & EVENT_TIMER)
-    {
-        event.events |= EVENT_TIMER;
-    }
 
     int op;
     if(ev->get_status() == EVENT_STATUS_NONE)
@@ -60,8 +56,7 @@ int epoller::add_event(event* ev, int events)
         return -2;
     }
 
-    int ret = epoll_ctl(_epfd, op, ev->get_handle(), &event);
-    if(ret < 0)
+    if(int ret = epoll_ctl(_epfd, op, ev->get_handle(), &event))
     {
         printf("add_event failed %d, ret=%d epfd=%d\n", ev->get_handle(), ret, _epfd);
         return -3;

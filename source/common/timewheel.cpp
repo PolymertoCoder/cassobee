@@ -2,9 +2,9 @@
 #include <unistd.h>
 #include "timewheel.h"
 
-void timewheel::init(TIMETYPE ticktime)
+void timewheel::init()
 {
-    _ticktime = ticktime;
+    _ticktime = 50;
     _timerpool.init(TIMERPOOL_SIZE);
     _stop = false;
 }
@@ -184,7 +184,7 @@ void timewheel::run()
     while(!_stop)
     {
         tick();
-        usleep(_ticktime * 1000);
+        usleep(_ticktime);
     }
 }
 

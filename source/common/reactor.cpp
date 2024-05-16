@@ -55,7 +55,7 @@ bool reactor::handle_signal_event(int signum)
 
 void reactor::handle_timer_event()
 {
-    TIMETYPE nowtime = systemtime::get_time();
+    TIMETYPE nowtime = systemtime::get_microseconds();
     std::multimap<TIMETYPE, timer_event*> changelist;
     for(auto iter = _timer_events.begin(); iter != _timer_events.end() && iter->first < nowtime;)
     {
@@ -71,7 +71,7 @@ void reactor::handle_timer_event()
         else{ break; }
         iter = _timer_events.erase(iter);
     }
-    for(auto& [expiretime, tm] : changelist)
+    for(const auto& [expiretime, tm] : changelist)
     {
         _timer_events.insert(std::make_pair(expiretime, tm));
     }

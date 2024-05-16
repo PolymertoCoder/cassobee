@@ -85,8 +85,15 @@ struct timerlist
     }
     void pop(timer_node* t)
     {
+        if(count == 1 && t == head)
+        {
+            head = nullptr;
+            count = 0;
+            return;
+        }
         if(t->_prev) t->_prev->_next = t->_next;
         if(t->_next) t->_next->_prev = t->_prev;
+        if(t->_next && t == head) head = t->_next;
         t->_prev = nullptr;
         t->_next = nullptr;
         --count;
@@ -108,8 +115,8 @@ struct timerlist
 class timewheel : public singleton_support<timewheel>
 {
 public:
-    void init(TIMETYPE ticktime);
-    int  add_timer(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param);
+    void init();
+    int  add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, callback handler, void* param);
     bool del_timer(int timerid);
     void run();
     void stop();
@@ -137,7 +144,7 @@ private:
     timerlist _hanging_slots;
 
     uint64_t _tickcount = 0;
-    TIMETYPE _ticktime  = 0; // ms
+    TIMETYPE _ticktime  = 0; // us
 
     cassobee::spinlock _changelist_locker;
     bool _frontidx = 0;
