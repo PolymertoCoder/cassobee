@@ -6,7 +6,7 @@
 #include "util.h"
 #include "objectpool.h"
 
-#define NEAR_SLOTS 1024
+#define NEAR_SLOTS 4096
 constexpr static size_t TIMERPOOL_SIZE = 1 << 12;
 
 using callback = std::function<bool(void*)>;
@@ -22,15 +22,15 @@ enum TIMER_OBJECT_STATE
 
 struct timer_node : public light_object_base<cassobee::spinlock>
 {
-    void assign(uint64_t id, TIMETYPE timeout, TIMETYPE nexttime, callback handler, void* param, int repeats, uint8_t state)
+    void assign()
     {
-        _id = id;
-        _timeout = timeout;
-        _nexttime = nexttime;
-        _handler = handler;
-        _param = param;
-        _repeats = repeats;
-        _state = state;
+        _id = 0;
+        _timeout = 0;
+        _nexttime = 0;
+        _handler = {};
+        _param = nullptr;
+        _repeats = 0;
+        _state = TIMER_STATE_NONE;
         _prev = nullptr;
         _next = nullptr;
     }
@@ -49,6 +49,7 @@ struct timer_node : public light_object_base<cassobee::spinlock>
 
 struct timerlist
 {
+    timerlist() : head(nullptr), count(0) {}
     void push_front(timer_node* t)
     {
         if(head)

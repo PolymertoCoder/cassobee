@@ -34,9 +34,10 @@ int main()
 {
     add_signal(SIGUSR1, sigusr1_handler);
     std::thread timer_thread = start_threadpool_and_timer();
-    timewheel::get_instance()->add_timer(false, 5000, -1, [](void*){ printf("nowtime1: %ld.\n", systemtime::get_time()); return true; }, nullptr);
-    timewheel::get_instance()->add_timer(false, 5000, 10, [](void*){ printf("nowtime2: %ld.\n", systemtime::get_time()); return true; }, nullptr);
-    timewheel::get_instance()->add_timer(false, 5000, -1, [](void*){ printf("nowtime3: %ld.\n", systemtime::get_time()); return false; }, nullptr);
+    sleep(5);
+    timewheel::get_instance()->add_timer(false, 500, -1, [](void*){ printf("nowtime1: %ld.\n", systemtime::get_time()); return true; }, nullptr);
+    timewheel::get_instance()->add_timer(false, 500, 10, [](void*){ printf("nowtime2: %ld.\n", systemtime::get_time()); return true; }, nullptr);
+    timewheel::get_instance()->add_timer(false, 500, -1, [](void*){ printf("nowtime3: %ld.\n", systemtime::get_time()); return false; }, nullptr);
     reactor::get_instance()->run();
     timer_thread.join();
     return 0;

@@ -7,14 +7,24 @@ void timewheel::init()
     _ticktime = 50;
     _timerpool.init(TIMERPOOL_SIZE);
     _stop = false;
+    for(size_t i = 0; i < NEAR_SLOTS; ++i){ _near_slots[i].clear(); }
+    _changelist[0].clear();
+    _changelist[1].clear();
 }
 
 int timewheel::add_timer(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)
 {
-    if(!handler) return -1;
+    if(_stop || !handler) return -1;
     auto [timerid, t] = _timerpool.alloc();
     if(!t) return -1;
-    t->assign(timerid, timeout * 1000 / _ticktime, delay ? _tickcount + t->_timeout : _tickcount, handler, param, repeats, TIMER_STATE_ADD);
+    t->assign();
+    t->_id = timerid;
+    t->_timeout = timeout * 1000 / _ticktime;
+    t->_nexttime = delay ? _tickcount + t->_timeout : _tickcount;
+    t->_handler = handler;
+    t->_param = param;
+    t->_repeats = repeats;
+    t->_state = TIMER_STATE_ADD;
     add_to_changelist(t);
     return timerid;
 }
