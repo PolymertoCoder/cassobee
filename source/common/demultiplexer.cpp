@@ -79,7 +79,7 @@ void epoller::del_event(event* ev)
     }
 }
 
-#define EPOLL_ITEM_MAX 10240
+#define EPOLL_ITEM_MAX 1024
 
 void epoller::dispatch(reactor* base, int timeout)
 {

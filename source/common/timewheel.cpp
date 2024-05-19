@@ -7,9 +7,9 @@ void timewheel::init()
     _ticktime = 50;
     _timerpool.init(TIMERPOOL_SIZE);
     _stop = false;
-    for(size_t i = 0; i < NEAR_SLOTS; ++i){ _near_slots[i].clear(); }
-    _changelist[0].clear();
-    _changelist[1].clear();
+    // for(size_t i = 0; i < NEAR_SLOTS; ++i){ _near_slots[i].clear(); }
+    // _changelist[0].clear();
+    // _changelist[1].clear();
 }
 
 int timewheel::add_timer(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)
@@ -17,9 +17,9 @@ int timewheel::add_timer(bool delay, TIMETYPE timeout, int repeats, callback han
     if(_stop || !handler) return -1;
     auto [timerid, t] = _timerpool.alloc();
     if(!t) return -1;
-    t->assign();
+    t->assign(); // 用的时候才清理上次使用时的内容
     t->_id = timerid;
-    t->_timeout = timeout * 1000 / _ticktime;
+    t->_timeout = timeout / _ticktime;
     t->_nexttime = delay ? _tickcount + t->_timeout : _tickcount;
     t->_handler = handler;
     t->_param = param;
@@ -53,7 +53,7 @@ void timewheel::readd_timer(timer_node* t)
     if(t->_nexttime - _tickcount >= NEAR_SLOTS)
     {
         _hanging_slots.push_back(t);
-        printf("readd_timer %lu _nexttime=%ld in _hanging_slots, _tickcount=%ld\n", t->_id, t->_nexttime, _tickcount);
+        printf("readd_timer %lu _timeout=%ld _nexttime=%ld in _hanging_slots, _tickcount=%ld\n", t->_id, t->_timeout, t->_nexttime, _tickcount);
     }
     else
     {
@@ -61,7 +61,7 @@ void timewheel::readd_timer(timer_node* t)
         if(t->_nexttime - _tickcount > 0)
             offset = t->_nexttime % NEAR_SLOTS;
         _near_slots[offset].push_back(t);
-        printf("readd_timer %lu _nexttime=%ld in _near_slots %d, _tickcount=%ld\n", t->_id, t->_nexttime, offset, _tickcount);
+        printf("readd_timer %lu  _timeout=%ld _nexttime=%ld in _near_slots %d, _tickcount=%ld\n", t->_id, t->_timeout, t->_nexttime, offset, _tickcount);
     }
     t->_state = TIMER_STATE_ACTIVE;
 }
@@ -170,8 +170,8 @@ void timewheel::regroup_timers()
             int offset = _tickcount % NEAR_SLOTS;
             if(t->_nexttime - _tickcount > 0)
                 offset = t->_nexttime % NEAR_SLOTS;
-            _near_slots[offset].push_back(t);
             _hanging_slots.pop(t);
+            _near_slots[offset].push_back(t);
         }
         t = next;
     }
@@ -194,7 +194,7 @@ void timewheel::run()
     while(!_stop)
     {
         tick();
-        usleep(_ticktime);
+        usleep(_ticktime*1000);
     }
 }
 

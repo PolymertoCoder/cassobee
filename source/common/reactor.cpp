@@ -1,6 +1,7 @@
 #include "reactor.h"
 #include "event.h"
 #include "systemtime.h"
+#include "timewheel.h"
 #include <csignal>
 #include <cstdio>
 #include <cstring>
@@ -15,18 +16,23 @@ int reactor::add_event(event* ev, int events)
     if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP)
     {
         _io_events.emplace(ev->get_handle(), ev);
+        return _dispatcher->add_event(ev, events);
     }
     else if(events & EVENT_TIMER)
     {
-        TIMETYPE expiretime = systemtime::get_time() + ev->get_handle();
+        timer_event* tm = dynamic_cast<timer_event*>(ev);
+        TIMETYPE nowtime = systemtime::get_millseconds();
+        TIMETYPE expiretime = tm->_delay ? (nowtime + tm->_timeout) : nowtime;
+        tm->_delay = true;
         _timer_events.insert(std::make_pair(expiretime, ev));
+        //printf("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.\n", nowtime, tm->_delay, tm->_timeout, expiretime);
     }
     else if(events & EVENT_SIGNAL)
     {
         _signal_events.emplace(ev->get_handle(), ev);
     }
-    
-    return _dispatcher->add_event(ev, events);
+    wakeup();
+    return 0;
 }
 
 void reactor::del_event(event* ev)
@@ -55,25 +61,22 @@ bool reactor::handle_signal_event(int signum)
 
 void reactor::handle_timer_event()
 {
-    TIMETYPE nowtime = systemtime::get_microseconds();
-    std::multimap<TIMETYPE, timer_event*> changelist;
-    for(auto iter = _timer_events.begin(); iter != _timer_events.end() && iter->first < nowtime;)
+    TIMETYPE nowtime = systemtime::get_millseconds();
+    std::vector<timer_event*> changelist;
+    for(auto iter = _timer_events.begin(); iter != _timer_events.end() && iter->first <= nowtime;)
     {
+        //printf("handle_timer_event expiretime=%ld nowtime=%ld end\n", iter->first, nowtime);
         timer_event* tm = dynamic_cast<timer_event*>(iter->second);
         if(tm->handle_event(EVENT_TIMER))
         {
-            if(tm->_repeats > 0){ --tm->_repeats; }
-            if(tm->_repeats != 0)
-            {
-                changelist.insert(std::make_pair(nowtime+tm->_timeout, tm));
-            }
+            changelist.push_back(tm);
         }
-        else{ break; }
         iter = _timer_events.erase(iter);
     }
-    for(const auto& [expiretime, tm] : changelist)
+    //printf("handle_timer_event end\n");
+    for(const auto tm: changelist)
     {
-        _timer_events.insert(std::make_pair(expiretime, tm));
+        add_event(tm, EVENT_TIMER);
     }
 }
 
@@ -82,7 +85,8 @@ void reactor::init()
     _dispatcher = new epoller();
     _dispatcher->init();
     _stop = false;
-    _timeout = 10;
+    _use_timer_thread = false;
+    _timeout = 1;
     add_event(new sigio_event(),   EVENT_RECV);
     add_event(new control_event(), EVENT_RECV);
 }
@@ -91,9 +95,17 @@ int reactor::run()
 {
     if(_dispatcher == nullptr) return -1;
 
-    while(_stop)
+    while(!_stop)
     {
-        _dispatcher->dispatch(this, _timeout);
+        int timeout = _timeout;
+        if(_timer_events.size())
+        {
+            TIMETYPE nowtime = systemtime::get_millseconds();
+            TIMETYPE diff = _timer_events.begin()->first - nowtime;
+            if(diff > _timeout) timeout = diff;
+            //printf("reactor::run nexttime=%ld nowtime=%ld timeout=%d\n", _timer_events.begin()->first, nowtime, timeout);
+        }
+        _dispatcher->dispatch(this, timeout);
         handle_timer_event();        
     }
     return 0;
@@ -102,6 +114,11 @@ int reactor::run()
 void reactor::stop()
 {
     _stop = true;
+}
+
+void reactor::wakeup()
+{
+    control_event::wakeup(this);
 }
 
 event* reactor::get_event(int fd)
@@ -127,4 +144,21 @@ void set_signal(int signum, SIG_HANDLER handler)
 void add_signal(int signum, bool(*callback)(int))
 {
     reactor::get_instance()->add_event(new signal_event(signum, callback), EVENT_SIGNAL);
+}
+
+int add_timer(TIMETYPE timeout, std::function<bool()> handler)
+{
+    return add_timer(true, timeout, -1, [handler](void*){ return handler(); }, nullptr);
+}
+
+int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool(void*)> handler, void* param)
+{
+    if(reactor::get_instance()->use_timer_thread())
+    {
+        return timewheel::get_instance()->add_timer(delay, timeout, repeats, handler, param);
+    }
+    else
+    {
+        return reactor::get_instance()->add_event(new timer_event(delay, timeout, repeats, handler, param), EVENT_TIMER);
+    }
 }

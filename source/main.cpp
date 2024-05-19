@@ -14,11 +14,15 @@ bool timetask(void* param)
 std::thread start_threadpool_and_timer()
 {
     threadpool::get_instance()->start();
-    return std::thread([]()
+    if(reactor::get_instance()->use_timer_thread())
     {
-        timewheel::get_instance()->init();
-        timewheel::get_instance()->run();
-    });
+        return std::thread([]()
+        {
+            timewheel::get_instance()->init();
+            timewheel::get_instance()->run();
+        });
+    }
+    return {};
 }
 
 bool sigusr1_handler(int signum)
@@ -33,12 +37,15 @@ bool sigusr1_handler(int signum)
 int main()
 {
     add_signal(SIGUSR1, sigusr1_handler);
-    std::thread timer_thread = start_threadpool_and_timer();
-    sleep(5);
-    timewheel::get_instance()->add_timer(false, 500, -1, [](void*){ printf("nowtime1: %ld.\n", systemtime::get_time()); return true; }, nullptr);
-    timewheel::get_instance()->add_timer(false, 500, 10, [](void*){ printf("nowtime2: %ld.\n", systemtime::get_time()); return true; }, nullptr);
-    timewheel::get_instance()->add_timer(false, 500, -1, [](void*){ printf("nowtime3: %ld.\n", systemtime::get_time()); return false; }, nullptr);
+    reactor::get_instance()->init();
+    // std::thread timer_thread = start_threadpool_and_timer();
+    // printf("nowtime1=%ld\n", systemtime::get_microseconds());
+    // sleep(5);
+    // printf("nowtime2=%ld\n", systemtime::get_microseconds());
+    add_timer(false, 5000, -1, [](void*){ printf("timer1 nowtime1: %ld.\n", systemtime::get_time()); return true; }, nullptr);
+    add_timer(false, 5000, 10, [](void*){ printf("timer2 nowtime2: %ld.\n", systemtime::get_time()); return true; }, nullptr);
+    add_timer(false, 5000, -1, [](void*){ printf("timer3 nowtime3: %ld.\n", systemtime::get_time()); return false; }, nullptr);
     reactor::get_instance()->run();
-    timer_thread.join();
+    // timer_thread.join();
     return 0;
 }

@@ -50,51 +50,45 @@ struct timer_node : public light_object_base<cassobee::spinlock>
 struct timerlist
 {
     timerlist() : head(nullptr), count(0) {}
-    void push_front(timer_node* t)
-    {
-        if(head)
-        {
-            t->_prev = head->_prev;
-            t->_next = head;
-            if(head->_prev) head->_prev->_next = t;
-            head->_prev = t;
-        }
-        else
-        {
-            t->_prev = t;
-            t->_next = head;
-        }
-        head = t;
-        ++count;
-    }
     void push_back(timer_node* t)
     {
         if(head)
         {
+            assert(head->_prev != nullptr);
             t->_prev = head->_prev;
+            assert(head != nullptr);
             t->_next = head;
-            if(head->_prev) head->_prev->_next = t;
+            assert(t);
+            head->_prev->_next = t;
             head->_prev = t;
         }
         else
         {
+            assert(t);
             t->_prev = t;
-            t->_next = head;
+            t->_next = t;
             head = t;
         }
         ++count;
     }
     void pop(timer_node* t)
     {
-        if(count == 1 && t == head)
+        assert(head);
+        if(t == head && count == 1)
         {
             head = nullptr;
             count = 0;
             return;
         }
-        if(t->_prev) t->_prev->_next = t->_next;
-        if(t->_next) t->_next->_prev = t->_prev;
-        if(t->_next && t == head) head = t->_next;
+        assert(t->_prev);
+        t->_next->_prev = t->_prev;
+        assert(t->_next);
+        t->_prev->_next = t->_next;
+        if(t == head)
+        {
+            assert(t->_next);
+            head = t->_next;
+        }
         t->_prev = nullptr;
         t->_next = nullptr;
         --count;
@@ -145,7 +139,7 @@ private:
     timerlist _hanging_slots;
 
     uint64_t _tickcount = 0;
-    TIMETYPE _ticktime  = 0; // us
+    TIMETYPE _ticktime  = 0; // ms
 
     cassobee::spinlock _changelist_locker;
     bool _frontidx = 0;

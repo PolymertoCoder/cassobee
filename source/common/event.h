@@ -1,6 +1,7 @@
 #pragma once
 #include "types.h"
 #include "reactor.h"
+#include <functional>
 
 #define READ_BUFFER_SIZE 4096
 #define WRITE_BUFFER_SIZE 4096
@@ -70,13 +71,13 @@ struct streamio_event : netio_event
 
 struct timer_event : event
 {
-    using callback = bool(*)(void* param);
-    timer_event(int repeats, int timeout, callback);
-    virtual int get_handle() override { return _timeout; }
+    using callback = std::function<bool(void*)>;
+    timer_event(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param);
     virtual bool handle_event(int active_events) override;
+    bool _delay;
+    TIMETYPE _timeout;
     int _repeats;
-    int _timeout;
-    callback _callback;
+    callback _handler;
     void* _param;
 };
 

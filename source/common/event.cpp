@@ -29,9 +29,9 @@ bool control_event::handle_event(int active_events)
 
 void control_event::wakeup(reactor* base)
 {
-    if(!base || base->wakeup()) return;
+    if(!base || base->get_wakeup()) return;
     write(_pipe[1], "0", 1);
-    base->wakeup() = true;
+    base->get_wakeup() = false;
 }
 
 bool streamio_event::handle_event(int active_events)
@@ -164,15 +164,19 @@ int streamio_event::handle_send()
     return len;
 }
 
-timer_event::timer_event(int repeats, int timeout, callback cbk)
-    : _repeats(repeats), _timeout(timeout), _callback(cbk)
+timer_event::timer_event(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)
+    : _delay(delay), _timeout(timeout), _repeats(repeats), _handler(handler), _param(param)
 {
 }
 
 bool timer_event::handle_event(int active_events)
 {
-    if(!_callback(_param)) return false;
-    return true;
+    if(_handler(_param))
+    {
+        if(_repeats > 0){ --_repeats; }
+        if(_repeats != 0) return true;
+    }
+    return false;
 }
 
 int sigio_event::_pipe[2] = { -1, -1 };
@@ -188,7 +192,6 @@ sigio_event::sigio_event()
 
 bool sigio_event::handle_event(int active_events)
 {
-    //write(sigio_event::_pipe[1], (char*)&active_events, 1);
     char buf[32];
     size_t n = read(sigio_event::_pipe[0], buf, 32);
     if(n == 0 || n > 32 || !_base) return false;

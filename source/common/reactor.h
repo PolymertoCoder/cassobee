@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <functional>
 #include "util.h"
 #include "event.h"
 #include "demultiplexer.h"
@@ -18,6 +19,7 @@ public:
     void init();
     int  run();
     void stop();
+    void wakeup();
     int  add_event(event* ev, int events);
     void del_event(event* ev);
 
@@ -25,15 +27,15 @@ public:
     void handle_timer_event();
 
     event* get_event(int fd);
-    FORCE_INLINE bool& wakeup() { return _wakeup; }
-    FORCE_INLINE bool use_timerevt() { return _use_timerevt; }
+    FORCE_INLINE bool& get_wakeup() { return _wakeup; }
+    FORCE_INLINE bool use_timer_thread() { return _use_timer_thread; }
 
 public:
     bool _stop = true;
     demultiplexer* _dispatcher;
     bool _wakeup = false;
-    bool _use_timerevt = false;
-    int  _timeout = 0;
+    bool _use_timer_thread = true;
+    int  _timeout = 0; // ms
 
     EVENTS_MAP _io_events;
     EVENTS_MAP _signal_events;
@@ -42,3 +44,6 @@ public:
 
 void set_signal(int signum, SIG_HANDLER handler);
 void add_signal(int signum, bool(*callback)(int));
+
+int add_timer(TIMETYPE timeout/*ms*/, std::function<bool(void*)> handler);
+int add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, std::function<bool(void*)> handler, void* param);
