@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <ctime>
+#include <cstdarg>
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <sched.h>
@@ -33,4 +34,13 @@ void set_process_affinity(int cpu_num)
     CPU_ZERO(&mask);
     CPU_SET(cpu_num, &mask);
     sched_setaffinity(self, sizeof(mask), &mask);
+}
+
+std::string format_string(const char* fmt, ...)
+{
+    char buf[1024];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <sys/time.h>
 
 #define GET_TIME_BEGIN() \
@@ -33,3 +34,4 @@ struct light_object_base
 int set_nonblocking(int fd, bool nonblocking);
 int rand(int min, int max);
 void set_process_affinity(int num);
+std::string format_string(const char* fmt, ...);

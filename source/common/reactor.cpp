@@ -42,11 +42,11 @@ void reactor::del_event(event* ev)
     _dispatcher->del_event(ev);
     
     int fd = ev->get_handle();
-    EVENTS_MAP::iterator itr = _io_events.find(fd);
-    if(itr == _io_events.end()) return;
+    auto iter = _io_events.find(fd);
+    if(iter == _io_events.end()) return;
 
-    event* temp = itr->second;
-    _io_events.erase(itr);
+    event* temp = iter->second;
+    _io_events.erase(iter);
     delete temp;
 }
 
@@ -62,21 +62,17 @@ bool reactor::handle_signal_event(int signum)
 void reactor::handle_timer_event()
 {
     TIMETYPE nowtime = systemtime::get_millseconds();
-    std::vector<timer_event*> changelist;
-    for(auto iter = _timer_events.begin(); iter != _timer_events.end() && iter->first <= nowtime;)
+    while(_timer_events.size())
     {
         //printf("handle_timer_event expiretime=%ld nowtime=%ld end\n", iter->first, nowtime);
-        timer_event* tm = dynamic_cast<timer_event*>(iter->second);
+        auto& [expiretime, ev] = *(_timer_events.begin());
+        _timer_events.erase(_timer_events.begin());
+        timer_event* tm = dynamic_cast<timer_event*>(ev);
+        if(expiretime <= nowtime) break;
         if(tm->handle_event(EVENT_TIMER))
         {
-            changelist.push_back(tm);
+            add_event(tm, EVENT_TIMER);
         }
-        iter = _timer_events.erase(iter);
-    }
-    //printf("handle_timer_event end\n");
-    for(const auto tm: changelist)
-    {
-        add_event(tm, EVENT_TIMER);
     }
 }
 

@@ -7,12 +7,12 @@
 namespace cassobee
 {
 
-class spinlock
+template<typename lock_type>
+class lock_support
 {
-public:
     struct scoped
     {
-        scoped(spinlock& locker) : _locker(locker)
+        scoped(lock_type& locker) : _locker(locker)
         {
             _locker.lock();
         }
@@ -20,8 +20,13 @@ public:
         {
             _locker.unlock();
         }
-        spinlock& _locker;
+        lock_type& _locker;
     };
+};
+
+class spinlock : public lock_support<spinlock>
+{
+public:
     spinlock() = default;
     spinlock(const spinlock&) = delete;
     spinlock& operator=(const spinlock&) = delete;
@@ -52,6 +57,12 @@ private:
     std::atomic_bool _atomic;
 };
 
+class mutex : public lock_support<spinlock>
+{
+public:
+
+
+};
 
 
 }
