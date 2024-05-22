@@ -18,16 +18,26 @@ enum LOG_LEVEL
 
 std::string to_string(LOG_LEVEL level);
 
+
+
 class log_formatter
 {
 public:
     log_formatter(const std::string pattern);
+
+    static constexpr char loglevel_fmt[] = "%ll";
+    static constexpr char message_fmt[]  = "%msg";
+    static constexpr char datetime_fmt[] = "%dt";
+    static constexpr char filename_fmt[] = "%fn";
+    static constexpr char fileline_fmt[] = "%fl";
+    static constexpr char elapse_fmt[]   = "%elp";
+    static constexpr char threadid_fmt[] = "%tid";
+    static constexpr char fiberid_fmt[]  = "%fid";
+
+    template<const char* fmt>
+    void format(std::ostream& os) {}
+
     std::string format(LOG_LEVEL level, const std::string& content);
-    class formatter_item
-    {
-    public:
-        virtual void format(std::ostream& os) = 0;
-    };
 
 private:
     std::string _pattern;

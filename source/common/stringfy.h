@@ -1,5 +1,6 @@
 #pragma once
 
+#include "log.h"
 #include <deque>
 #include <vector>
 #include <map>

@@ -22,9 +22,50 @@ log_formatter::log_formatter(const std::string pattern)
 {
 }
 
-std::string log_formatter::format(LOG_LEVEL level, const std::string& content)
+template<>
+void log_formatter::format<log_formatter::loglevel_fmt>(std::ostream& os)
+{
+    os << to_string();
+}
+template<>
+void log_formatter::format<log_formatter::message_fmt>(std::ostream& os)
 {
     
+}
+template<>
+void log_formatter::format<log_formatter::datetime_fmt>(std::ostream& os)
+{
+    
+}
+template<>
+void log_formatter::format<log_formatter::filename_fmt>(std::ostream& os)
+{
+    
+}
+template<>
+void log_formatter::format<log_formatter::fileline_fmt>(std::ostream& os)
+{
+    
+}
+template<>
+void log_formatter::format<log_formatter::elapse_fmt>(std::ostream& os)
+{
+    
+}
+template<>
+void log_formatter::format<log_formatter::threadid_fmt>(std::ostream& os)
+{
+    
+}
+template<>
+void log_formatter::format<log_formatter::fiberid_fmt>(std::ostream& os)
+{
+    
+}
+
+std::string log_formatter::format(LOG_LEVEL level, const std::string& content)
+{
+    return {};
 }
 
 file_appender::file_appender(const char* logdir, const char* filename)
