@@ -3,9 +3,12 @@
 #include "util.h"
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace cassobee
 {
+
+class logger;
 
 enum LOG_LEVEL
 {
@@ -18,29 +21,41 @@ enum LOG_LEVEL
 
 std::string to_string(LOG_LEVEL level);
 
-
+class log_event
+{
+public:
+    FORCE_INLINE std::string get_filename() { return _filename; }
+    FORCE_INLINE int get_line() { return _line; }
+    FORCE_INLINE TIMETYPE get_time() { return _time; }
+    FORCE_INLINE std::string get_content() { return _content; }
+    FORCE_INLINE std::string get_elapse() { return _elapse; }
+    FORCE_INLINE int get_threadid() { return _threadid; }
+    FORCE_INLINE int get_fiberid() { return _fiberid; }
+    
+private:
+    std::string _filename;
+    int _line;
+    TIMETYPE _time;
+    std::string _content;
+    std::string _elapse;
+    int _threadid;
+    int _fiberid;
+};
 
 class log_formatter
 {
 public:
     log_formatter(const std::string pattern);
-
-    static constexpr char loglevel_fmt[] = "%ll";
-    static constexpr char message_fmt[]  = "%msg";
-    static constexpr char datetime_fmt[] = "%dt";
-    static constexpr char filename_fmt[] = "%fn";
-    static constexpr char fileline_fmt[] = "%fl";
-    static constexpr char elapse_fmt[]   = "%elp";
-    static constexpr char threadid_fmt[] = "%tid";
-    static constexpr char fiberid_fmt[]  = "%fid";
-
-    template<const char* fmt>
-    void format(std::ostream& os) {}
-
     std::string format(LOG_LEVEL level, const std::string& content);
+    class format_item
+    {
+        virtual void format(std::ostream& os, LOG_LEVEL level, log_event* event) = 0;
+    };
 
 private:
+    bool _error = false;
     std::string _pattern;
+    std::vector<format_item*> _items;
 };
 
 class log_appender
@@ -78,7 +93,7 @@ public:
     void del_appender(const std::string& name);
     void clr_appender();
 private:
-    log_appender* _root_appender = nullptr;
+    log_appender*  _root_appender  = nullptr;
     std::unordered_map<std::string, log_appender*> _appenders;
 };
 

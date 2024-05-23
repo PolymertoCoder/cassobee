@@ -30,12 +30,12 @@ public:
         gettimeofday(&tv, NULL);
         return (tv.tv_sec*1000000 + tv.tv_usec);
     }
-    static std::string format_time(TIMETYPE now = -1, const char* fmt = "")
+    static std::string format_time(TIMETYPE now = -1, const char* fmt = "%Y-%m-%d %H:%M:%S")
     {
         thread_local char timestr[20];
         if(now == -1) now = time(NULL);
         struct tm* local_time = localtime(&now);
-        ::strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", local_time);
+        ::strftime(timestr, sizeof(timestr), fmt, local_time);
         return timestr;
     }
 };
