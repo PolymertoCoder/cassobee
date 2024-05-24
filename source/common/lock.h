@@ -10,6 +10,7 @@ namespace cassobee
 template<typename lock_type>
 class lock_support
 {
+public:
     struct scoped
     {
         scoped(lock_type& locker) : _locker(locker)

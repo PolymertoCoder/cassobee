@@ -1,4 +1,5 @@
 #include "log.h"
+#include "macros.h"
 #include "systemtime.h"
 #include <cstdarg>
 #include <functional>
@@ -24,6 +25,7 @@ std::string to_string(LOG_LEVEL level)
 class message_format_item : public log_formatter::format_item
 {
 public:
+    message_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
         os << event->get_content();
@@ -33,6 +35,7 @@ public:
 class loglevel_format_item : public log_formatter::format_item
 {
 public:
+    loglevel_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
         os << to_string(level);
@@ -42,6 +45,7 @@ public:
 class elapse_format_item : public log_formatter::format_item
 {
 public:
+    elapse_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
         os << event->get_elapse();
@@ -51,6 +55,7 @@ public:
 class threadid_format_item : public log_formatter::format_item
 {
 public:
+    threadid_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
         os << event->get_threadid();
@@ -60,6 +65,7 @@ public:
 class fiberid_format_item : public log_formatter::format_item
 {
 public:
+    fiberid_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
         os << event->get_fiberid();
@@ -69,15 +75,19 @@ public:
 class datetime_format_item : public log_formatter::format_item
 {
 public:
+    datetime_format_item(const std::string& str = "%Y-%m-%d %H:%M:%S") : _fmt(str) {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
         os << systemtime::format_time(event->get_time());
     }
+private:
+    std::string _fmt;
 };
 
 class filename_format_item : public log_formatter::format_item
 {
 public:
+    filename_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
         os << event->get_filename();
@@ -87,6 +97,7 @@ public:
 class line_format_item : public log_formatter::format_item
 {
 public:
+    line_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
         os << event->get_line();
@@ -96,6 +107,7 @@ public:
 class newline_format_item : public log_formatter::format_item
 {
 public:
+    newline_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
         os << std::endl;
@@ -117,6 +129,7 @@ private:
 class tab_format_item : public log_formatter::format_item
 {
 public:
+    tab_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
         os << "\t";
@@ -130,7 +143,7 @@ log_formatter::log_formatter(const std::string pattern)
 {
     // str, format, type
     // %xxx %xxx{xxx} %%
-    std::vector<std::tuple<std::string, std::string, int> > vec;
+    std::vector<std::tuple<std::string, std::string, bool>> vec;
     std::string nstr;
     for(size_t i = 0; i < _pattern.size(); ++i)
     {
@@ -142,7 +155,7 @@ log_formatter::log_formatter(const std::string pattern)
 
         if((i + 1) < _pattern.size())
         {
-            if(_pattern[i + 1] == '%')
+            if(_pattern[i + 1] == '%') // 处理"%%"的情况
             {
                 nstr.append(1, '%');
                 continue;
@@ -150,37 +163,37 @@ log_formatter::log_formatter(const std::string pattern)
         }
 
         size_t n = i + 1;
-        int fmt_status = 0;
+        bool parse_fmt = false; // 是否开始解析格式
         size_t fmt_begin = 0;
 
         std::string str;
         std::string fmt;
         while(n < _pattern.size())
         {
-            if(!fmt_status && (!isalpha(_pattern[n]) && _pattern[n] != '{' && _pattern[n] != '}'))
+            if(parse_fmt == false && (!isalpha(_pattern[n]) && _pattern[n] != '{' && _pattern[n] != '}'))
             { 
                 str = _pattern.substr(i + 1, n - i - 1);
                 break; 
             }
-            if(fmt_status == 0)
+            if(!parse_fmt)
             {
                 if(_pattern[n] == '{')
                 {
                     str = _pattern.substr(i + 1, n - i - 1);
                     //std::cout << "*" << str << std::endl;
-                    fmt_status = 1; // 解析格式
+                    parse_fmt = true; 
                     fmt_begin = n;
                     ++n;
                     continue;
                 }
-            }     
-            else if(fmt_status == 1)
+            }
+            else if(parse_fmt == true)
             {
                 if(_pattern[n] == '}')
                 {
                     fmt = _pattern.substr(fmt_begin + 1, n - fmt_begin - 1);
                     //std::cout << "#" << fmt << std::endl;
-                    fmt_status = 0;
+                    parse_fmt = false;
                     ++n;
                     break;
                 }
@@ -188,78 +201,78 @@ log_formatter::log_formatter(const std::string pattern)
             ++n;
             if(n == _pattern.size())
             {
-                if(str.empty())
+                if(str.empty()) // 如果到最后了，直接取完剩余部分
                 {
                     str = _pattern.substr(i + 1);
                 }
             }
         }
 
-        if(fmt_status == 0)
+        if(!parse_fmt)
         {
             if(!nstr.empty())
             {
-                vec.push_back(std::make_tuple(nstr, "", 0));
+                vec.push_back(std::make_tuple(nstr, "", true));
                 nstr.clear();
             }
-            vec.push_back(std::make_tuple(str, fmt, 1));
+            vec.push_back(std::make_tuple(str, fmt, false));
             i = n - 1;
         }
-        else if(fmt_status == 1)
+        else
         {
+            // 格式错误，可能是缺少'}'
             printf("pattern parse error: %s-%s\n", _pattern.data(), _pattern.substr(i).data());
             _error = true;
-            vec.push_back(std::make_tuple("<<pattern_error>>", fmt, 0)); 
+            vec.push_back(std::make_tuple("<<pattern_error>>", fmt, true)); 
         }
     }
 
     if(!nstr.empty())
     {
-        vec.push_back(std::make_tuple(nstr, "", 0));
+        vec.push_back(std::make_tuple(nstr, "", true));
     }
-    static std::map<std::string, std::function<format_item(const std::string&)> > format_items = {
-#define XX(str, C) \
+    static std::map<std::string, std::function<format_item*(const std::string&)>> format_items_creators =
+    {
+    #define creator(str, C) \
         { #str, [](const std::string& fmt) { return (format_item*)(new C(fmt)); } }
     
-    XX(m, message_format_item),
-    XX(p, loglevel_format_item),
-    XX(r, elapse_format_item),
-    XX(t, threadid_format_item),
-    XX(n, newline_format_item),
-    XX(d, datetime_format_item),
-    XX(f, filename_format_item),
-    XX(l, line_format_item),
-    XX(T, tab_format_item),
-    XX(F, fiberid_format_item),
-#undef XX
+        creator(m, message_format_item),
+        creator(p, loglevel_format_item),
+        creator(r, elapse_format_item),
+        creator(t, threadid_format_item),
+        creator(n, newline_format_item),
+        creator(d, datetime_format_item),
+        creator(f, filename_format_item),
+        creator(l, line_format_item),
+        creator(T, tab_format_item),
+        creator(F, fiberid_format_item)
+    #undef creator
     };
 
-    for(auto& i : vec)
+    for(auto& [key, fmt, isstr] : vec)
     {
-        if(std::get<2>(i) == 0)
+        if(isstr)
         {
-            _items.push_back(new string_format_item(std::get<0>(i)));
+            _items.push_back(new string_format_item(key));
         }
         else
         {
-            auto it = format_items.find(std::get<0>(i));
-            if(it == format_items.end())
+            auto iter = format_items_creators.find(key);
+            if(iter == format_items_creators.end())
             {
-                _items.push_back(new string_format_item("<<error_format %" + std::get<0>(i) + ">>"));
+                _items.push_back(new string_format_item("<<error_format %" + key + ">>"));
                 _error = true;
             }
             else
             {
-                _items.push_back(it->second(std::get<1>(i)));
+                _items.push_back(iter->second(fmt));
             }
         }
 
-        //std::cout << "(" << std::get<0>(i) << ") - (" << "-" << std::get<1>(i) << ") - (" << std::get<2>(i) << ")" << std::endl;
+        printf("(%s-%s-%s)\n", key.data(), fmt.data(), expr2boolstr(isstr));
     }
-    //std:: cout << m_items.size() << std::endl;
+    printf("format_items size:%zu", _items.size());
 }
-
-
 
 std::string log_formatter::format(LOG_LEVEL level, const std::string& content)
 {

@@ -1,6 +1,7 @@
 #pragma once
 #include "types.h"
 #include "util.h"
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -27,19 +28,21 @@ public:
     FORCE_INLINE std::string get_filename() { return _filename; }
     FORCE_INLINE int get_line() { return _line; }
     FORCE_INLINE TIMETYPE get_time() { return _time; }
-    FORCE_INLINE std::string get_content() { return _content; }
+    FORCE_INLINE std::string get_content() { return _content.str(); }
     FORCE_INLINE std::string get_elapse() { return _elapse; }
     FORCE_INLINE int get_threadid() { return _threadid; }
     FORCE_INLINE int get_fiberid() { return _fiberid; }
+
+    FORCE_INLINE std::stringstream& get_stream() { return _content; }
     
 private:
-    std::string _filename;
-    int _line;
-    TIMETYPE _time;
-    std::string _content;
-    std::string _elapse;
+    std::string _filename; // 文件名
+    int _line;             // 行号
+    TIMETYPE _time;        // 时间戳
+    std::string _elapse;   // 程序从启动到现在的毫秒数
     int _threadid;
     int _fiberid;
+    std::stringstream _content;
 };
 
 class log_formatter
