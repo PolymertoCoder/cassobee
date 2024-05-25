@@ -1,6 +1,8 @@
 #pragma once
+#include "systemtime.h"
 #include "types.h"
 #include "util.h"
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -22,9 +24,14 @@ enum LOG_LEVEL
 
 std::string to_string(LOG_LEVEL level);
 
+
 class log_event
 {
 public:
+    log_event(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string&& elapse, std::string&& content)
+        : _filename(std::move(filename)), _line(line), _time(time)
+        , _threadid(threadid), _fiberid(fiberid), _elapse(std::move(elapse))
+        , _content(std::move(content)) {}
     FORCE_INLINE std::string get_filename() { return _filename; }
     FORCE_INLINE int get_line() { return _line; }
     FORCE_INLINE TIMETYPE get_time() { return _time; }
@@ -36,14 +43,20 @@ public:
     FORCE_INLINE std::stringstream& get_stream() { return _content; }
     
 private:
-    std::string _filename; // 文件名
-    int _line;             // 行号
-    TIMETYPE _time;        // 时间戳
-    std::string _elapse;   // 程序从启动到现在的毫秒数
-    int _threadid;
-    int _fiberid;
-    std::stringstream _content;
+    std::string _filename;      // 文件名
+    int _line;                  // 行号
+    TIMETYPE _time;             // 时间戳
+    int _threadid;              // 线程id
+    int _fiberid;               // 协程id
+    std::string _elapse;        // 程序从启动到现在的毫秒数
+    std::stringstream _content; // 日志内容
 };
+
+inline void test()
+{
+    std::string content;
+    log_event* evt = new log_event(__FILE__, __LINE__, systemtime::get_time(), gettid(), 0, std::to_string(get_process_elapse()), std::move(content));
+}
 
 class log_formatter
 {
@@ -79,11 +92,17 @@ public:
 class file_appender : public log_appender
 {
 public:
-    file_appender(const char* logdir, const char* filename);
+    file_appender(std::string logdir, std::string filename);
+    bool init();
+    static uint64_t get_days_suffix();
+    static uint64_t get_hours_suffix();
     virtual void log(LOG_LEVEL level, const std::string& content) override;
 private:
-    std::string _logdir;
-    std::string _filename;
+    std::string  _filedir;
+    std::string  _filename;
+    std::string  _filepath;
+    std::fstream _filestream;
+    TIMETYPE _now_suffix_time;
 };
 
 class logger

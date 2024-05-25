@@ -6,6 +6,7 @@
 #include <cstdarg>
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include <sys/times.h>
 #include <sched.h>
 
 #include "util.h"
@@ -27,6 +28,20 @@ pid_t gettid()
     return syscall(SYS_gettid);
 }
 
+TIMETYPE get_process_elapse()
+{
+    static struct tms start_tms;
+    const static long start_time = times(&start_tms);
+    const static long sc_clk_tck = syscall(_SC_CLK_TCK);
+    
+    struct tms now_tms;
+    long now_time = times(&now_tms);
+    // TIMETYPE realtime = (now_time - start_time) / sc_clk_tck;
+    // TIMETYPE usertime = (now_tms.tms_utime - start_tms.tms_utime) / sc_clk_tck;
+    // TIMETYPE systime  = (now_tms.tms_stime - start_tms.tms_stime) / sc_clk_tck;
+    return (now_time - start_time) / sc_clk_tck;
+}
+
 void set_process_affinity(int cpu_num)
 {
     pid_t self = gettid();
@@ -41,6 +56,7 @@ std::string format_string(const char* fmt, ...)
     char buf[1024];
     va_list args;
     va_start(args, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, args);
+    int n = vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
+    return std::string(buf, n);
 }

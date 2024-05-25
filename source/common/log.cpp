@@ -1,6 +1,10 @@
 #include "log.h"
 #include "macros.h"
 #include "systemtime.h"
+#include <cerrno>
+#include <cstring>
+#include <ios>
+#include <sys/stat.h>
 #include <cstdarg>
 #include <functional>
 #include <map>
@@ -75,10 +79,10 @@ public:
 class datetime_format_item : public log_formatter::format_item
 {
 public:
-    datetime_format_item(const std::string& str = "%Y-%m-%d %H:%M:%S") : _fmt(str) {}
+    datetime_format_item(const std::string& fmt = "%Y-%m-%d %H:%M:%S") : _fmt(fmt) {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
-        os << systemtime::format_time(event->get_time());
+        os << systemtime::format_time(event->get_time(), _fmt.data());
     }
 private:
     std::string _fmt;
@@ -279,9 +283,42 @@ std::string log_formatter::format(LOG_LEVEL level, const std::string& content)
     return {};
 }
 
-file_appender::file_appender(const char* logdir, const char* filename)
-    : _logdir(logdir), _filename(filename)
+file_appender::file_appender(std::string filedir, std::string filename)
+    : _filedir(filedir), _filename(filename)
 {
+    if(_filedir.empty())
+    {
+        _filedir = ".";
+    }
+    _filepath = _filedir + '/' + filename;
+}
+
+bool file_appender::init()
+{
+    int ret = mkdir(_filedir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if(ret != 0 && errno != EEXIST)
+    {
+        printf("mkdir failed, dir:%s err:%s", _filedir.data(), strerror(errno));
+        return false;
+    }
+    _filestream.open(_filepath, std::fstream::out | std::fstream::app);
+    return true;
+}
+
+uint64_t file_appender::get_days_suffix()
+{
+    // 按自然日分割日志并命名 yyyymmdd
+    tm* tm_val = systemtime::get_local_time();
+    return static_cast<uint64_t>(tm_val->tm_year + 1900) * 10000 + static_cast<uint64_t>(tm_val->tm_mon + 1) * 100 +
+           static_cast<uint64_t>(tm_val->tm_mday);
+}
+
+uint64_t file_appender::get_hours_suffix()
+{
+    // 按小时分割日志并命名 yyyymmddhh
+    tm* tm_val = systemtime::get_local_time();
+    return static_cast<uint64_t>(tm_val->tm_year + 1900) * 1000000 + static_cast<uint64_t>(tm_val->tm_mon + 1) * 10000 +
+           static_cast<uint64_t>(tm_val->tm_mday) * 100 + static_cast<uint64_t>(tm_val->tm_hour);
 }
 
 void file_appender::log(LOG_LEVEL level, const std::string& content)
@@ -291,7 +328,7 @@ void file_appender::log(LOG_LEVEL level, const std::string& content)
 
 logger::logger()
 {
-    _root_appender = new file_appender("/home/cassobee/debug/logdir/", "log.h");
+    _root_appender = new file_appender("/home/cassobee/debug/logdir", "trace");
 }
 
 void logger::log(LOG_LEVEL level, const std::string& content)

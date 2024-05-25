@@ -1,4 +1,5 @@
 #pragma once
+#include "types.h"
 #include <string>
 #include <sys/time.h>
 
@@ -32,6 +33,8 @@ struct light_object_base
 };
 
 int set_nonblocking(int fd, bool nonblocking);
+pid_t gettid();
+TIMETYPE get_process_elapse();
 int rand(int min, int max);
 void set_process_affinity(int num);
 std::string format_string(const char* fmt, ...);
