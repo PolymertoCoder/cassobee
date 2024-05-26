@@ -1,4 +1,5 @@
 #pragma once
+#include "objectpool.h"
 #include "systemtime.h"
 #include "types.h"
 #include "util.h"
@@ -7,6 +8,9 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#define LOG(loglevel, fmt, ...) \
+    log_manager::get_instance()->log_event
 
 namespace cassobee
 {
@@ -24,14 +28,15 @@ enum LOG_LEVEL
 
 std::string to_string(LOG_LEVEL level);
 
-
 class log_event
 {
 public:
-    log_event(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string&& elapse, std::string&& content)
+    log_event();
+    log_event(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string elapse, std::string content)
         : _filename(std::move(filename)), _line(line), _time(time)
         , _threadid(threadid), _fiberid(fiberid), _elapse(std::move(elapse))
         , _content(std::move(content)) {}
+    void assign(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string elapse, std::string content);
     FORCE_INLINE std::string get_filename() { return _filename; }
     FORCE_INLINE int get_line() { return _line; }
     FORCE_INLINE TIMETYPE get_time() { return _time; }
@@ -62,9 +67,10 @@ class log_formatter
 {
 public:
     log_formatter(const std::string pattern);
-    std::string format(LOG_LEVEL level, const std::string& content);
+    std::string format(LOG_LEVEL level, log_event* event);
     class format_item
     {
+    public:
         virtual void format(std::ostream& os, LOG_LEVEL level, log_event* event) = 0;
     };
 
@@ -77,16 +83,16 @@ private:
 class log_appender
 {
 public:
-    virtual void log(LOG_LEVEL level, const std::string& content) = 0;
+    virtual void log(LOG_LEVEL level, log_event* event) = 0;
     FORCE_INLINE void set_formatter(log_formatter* formatter) { _formatter = formatter; }
-private:
+protected:
     log_formatter* _formatter;
 };
 
 class console_appender : public log_appender
 {
 public:
-    virtual void log(LOG_LEVEL level, const std::string& content) override;
+    virtual void log(LOG_LEVEL level, log_event* event) override;
 };
 
 class file_appender : public log_appender
@@ -96,7 +102,7 @@ public:
     bool init();
     static uint64_t get_days_suffix();
     static uint64_t get_hours_suffix();
-    virtual void log(LOG_LEVEL level, const std::string& content) override;
+    virtual void log(LOG_LEVEL level, log_event* event) override;
 private:
     std::string  _filedir;
     std::string  _filename;
@@ -109,7 +115,7 @@ class logger
 {
 public:
     logger();
-    void log(LOG_LEVEL level, const std::string& content);
+    void log(LOG_LEVEL level, log_event* event);
 
     void add_appender(const std::string& name, log_appender* appender);
     void del_appender(const std::string& name);
@@ -119,11 +125,18 @@ private:
     std::unordered_map<std::string, log_appender*> _appenders;
 };
 
+#define LOG_EVENT_POOLSIZE 1024
+
 class log_manager : public singleton_support<logger>
 {
 public:
     void init();
     void log(LOG_LEVEL level, const char* fmt, ...);
+    template<typename ...params_type>
+    void log(params_type... params)
+    {
+        _eventpool.alloc();
+    }
 
     void get_logger(std::string name);
     void add_logger(std::string name, logger* logger);
@@ -131,6 +144,7 @@ public:
 private:
     logger* _root_logger = nullptr;
     std::unordered_map<std::string, logger*> _loggers;
+    objectpool<log_event> _eventpool;
 };
 
 }

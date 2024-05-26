@@ -3,7 +3,6 @@
 #include "systemtime.h"
 #include <cerrno>
 #include <cstring>
-#include <ios>
 #include <sys/stat.h>
 #include <cstdarg>
 #include <functional>
@@ -24,6 +23,17 @@ std::string to_string(LOG_LEVEL level)
         case LOG_LEVEL_FATAL: { return "FATAL"; } break;
         default:{ return "UNKNOWN"; } break;
     }
+}
+
+void log_event::assign(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string elapse, std::string content)
+{
+    _filename = std::move(filename);
+    _line = line;
+    _time = time;
+    _threadid = threadid;
+    _fiberid = fiberid;
+    _elapse = std::move(elapse);
+    _content = content;
 }
 
 class message_format_item : public log_formatter::format_item
@@ -278,9 +288,14 @@ log_formatter::log_formatter(const std::string pattern)
     printf("format_items size:%zu", _items.size());
 }
 
-std::string log_formatter::format(LOG_LEVEL level, const std::string& content)
+std::string log_formatter::format(LOG_LEVEL level, log_event* event)
 {
-    return {};
+    std::stringstream os;
+    for(format_item* item : _items)
+    {
+        item->format(os, level, event);
+    }
+    return os.str();
 }
 
 file_appender::file_appender(std::string filedir, std::string filename)
@@ -321,9 +336,9 @@ uint64_t file_appender::get_hours_suffix()
            static_cast<uint64_t>(tm_val->tm_mday) * 100 + static_cast<uint64_t>(tm_val->tm_hour);
 }
 
-void file_appender::log(LOG_LEVEL level, const std::string& content)
+void file_appender::log(LOG_LEVEL level, log_event* event)
 {
-    
+    _formatter->format(level, event);
 }
 
 logger::logger()
@@ -331,14 +346,15 @@ logger::logger()
     _root_appender = new file_appender("/home/cassobee/debug/logdir", "trace");
 }
 
-void logger::log(LOG_LEVEL level, const std::string& content)
+void logger::log(LOG_LEVEL level, log_event* event)
 {
-    _root_appender->log(level, content);
+    _root_appender->log(level, event);
 }
 
 void log_manager::init()
 {
     _root_logger = new logger;
+    _eventpool.init(LOG_EVENT_POOLSIZE);
 }
 
 void log_manager::log(LOG_LEVEL level, const char* fmt, ...)
