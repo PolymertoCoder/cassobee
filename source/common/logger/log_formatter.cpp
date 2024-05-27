@@ -1,40 +1,11 @@
-#include "log.h"
-#include "macros.h"
-#include "systemtime.h"
-#include <cerrno>
-#include <cstring>
-#include <sys/stat.h>
-#include <cstdarg>
+
 #include <functional>
 #include <map>
-#include <ostream>
+
+#include "log_formatter.h"
 
 namespace cassobee
 {
-
-std::string to_string(LOG_LEVEL level)
-{
-    switch(level)
-    {
-        case LOG_LEVEL_DEBUG: { return "DEBUG"; } break;
-        case LOG_LEVEL_INFO:  { return "INFO";  } break;
-        case LOG_LEVEL_WARN:  { return "WARN";  } break;
-        case LOG_LEVEL_ERROR: { return "ERROR"; } break;
-        case LOG_LEVEL_FATAL: { return "FATAL"; } break;
-        default:{ return "UNKNOWN"; } break;
-    }
-}
-
-void log_event::assign(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string elapse, std::string content)
-{
-    _filename = std::move(filename);
-    _line = line;
-    _time = time;
-    _threadid = threadid;
-    _fiberid = fiberid;
-    _elapse = std::move(elapse);
-    _content = content;
-}
 
 class message_format_item : public log_formatter::format_item
 {
@@ -296,75 +267,6 @@ std::string log_formatter::format(LOG_LEVEL level, log_event* event)
         item->format(os, level, event);
     }
     return os.str();
-}
-
-file_appender::file_appender(std::string filedir, std::string filename)
-    : _filedir(filedir), _filename(filename)
-{
-    if(_filedir.empty())
-    {
-        _filedir = ".";
-    }
-    _filepath = _filedir + '/' + filename;
-}
-
-bool file_appender::init()
-{
-    int ret = mkdir(_filedir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if(ret != 0 && errno != EEXIST)
-    {
-        printf("mkdir failed, dir:%s err:%s", _filedir.data(), strerror(errno));
-        return false;
-    }
-    _filestream.open(_filepath, std::fstream::out | std::fstream::app);
-    return true;
-}
-
-uint64_t file_appender::get_days_suffix()
-{
-    // 按自然日分割日志并命名 yyyymmdd
-    tm* tm_val = systemtime::get_local_time();
-    return static_cast<uint64_t>(tm_val->tm_year + 1900) * 10000 + static_cast<uint64_t>(tm_val->tm_mon + 1) * 100 +
-           static_cast<uint64_t>(tm_val->tm_mday);
-}
-
-uint64_t file_appender::get_hours_suffix()
-{
-    // 按小时分割日志并命名 yyyymmddhh
-    tm* tm_val = systemtime::get_local_time();
-    return static_cast<uint64_t>(tm_val->tm_year + 1900) * 1000000 + static_cast<uint64_t>(tm_val->tm_mon + 1) * 10000 +
-           static_cast<uint64_t>(tm_val->tm_mday) * 100 + static_cast<uint64_t>(tm_val->tm_hour);
-}
-
-void file_appender::log(LOG_LEVEL level, log_event* event)
-{
-    _formatter->format(level, event);
-}
-
-logger::logger()
-{
-    _root_appender = new file_appender("/home/cassobee/debug/logdir", "trace");
-}
-
-void logger::log(LOG_LEVEL level, log_event* event)
-{
-    _root_appender->log(level, event);
-}
-
-void log_manager::init()
-{
-    _root_logger = new logger;
-    _eventpool.init(LOG_EVENT_POOLSIZE);
-}
-
-void log_manager::log(LOG_LEVEL level, const char* fmt, ...)
-{
-    char buf[2048];
-    va_list args;
-    va_start(args, fmt);
-    int n = vsnprintf(buf, sizeof(buf), fmt, args);
-    va_end(args);
-    _root_logger->log(level, std::string(buf, n));
 }
 
 }

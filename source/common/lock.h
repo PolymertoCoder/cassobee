@@ -1,5 +1,7 @@
 #pragma once
+#include "types.h"
 #include <atomic>
+#include <mutex>
 #include <thread>
 #include <unistd.h>
 #include <immintrin.h>
@@ -61,8 +63,21 @@ private:
 class mutex : public lock_support<spinlock>
 {
 public:
+    FORCE_INLINE void lock()
+    {
+        _locker.lock();
+    }
+    FORCE_INLINE bool try_lock()
+    {
+        return _locker.try_lock();
+    }
+    FORCE_INLINE void unlock()
+    {
+        _locker.unlock();
+    }
 
-
+private:
+    std::mutex _locker;
 };
 
 

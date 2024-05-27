@@ -1,13 +1,14 @@
 #pragma once
-#include "objectpool.h"
-#include "systemtime.h"
-#include "types.h"
-#include "util.h"
-#include <fstream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "objectpool.h"
+#include "systemtime.h"
+#include "types.h"
+#include "util.h"
+#include "macros.h"
 
 #define LOG(loglevel, fmt, ...) \
     log_manager::get_instance()->log_event
@@ -15,16 +16,8 @@
 namespace cassobee
 {
 
+class log_appender;
 class logger;
-
-enum LOG_LEVEL
-{
-    LOG_LEVEL_DEBUG,
-    LOG_LEVEL_INFO,
-    LOG_LEVEL_WARN,
-    LOG_LEVEL_ERROR,
-    LOG_LEVEL_FATAL,
-};
 
 std::string to_string(LOG_LEVEL level);
 
@@ -61,69 +54,8 @@ inline void test()
 {
     std::string content;
     log_event* evt = new log_event(__FILE__, __LINE__, systemtime::get_time(), gettid(), 0, std::to_string(get_process_elapse()), std::move(content));
+    UNUSE(evt);
 }
-
-class log_formatter
-{
-public:
-    log_formatter(const std::string pattern);
-    std::string format(LOG_LEVEL level, log_event* event);
-    class format_item
-    {
-    public:
-        virtual void format(std::ostream& os, LOG_LEVEL level, log_event* event) = 0;
-    };
-
-private:
-    bool _error = false;
-    std::string _pattern;
-    std::vector<format_item*> _items;
-};
-
-class log_appender
-{
-public:
-    virtual void log(LOG_LEVEL level, log_event* event) = 0;
-    FORCE_INLINE void set_formatter(log_formatter* formatter) { _formatter = formatter; }
-protected:
-    log_formatter* _formatter;
-};
-
-class console_appender : public log_appender
-{
-public:
-    virtual void log(LOG_LEVEL level, log_event* event) override;
-};
-
-class file_appender : public log_appender
-{
-public:
-    file_appender(std::string logdir, std::string filename);
-    bool init();
-    static uint64_t get_days_suffix();
-    static uint64_t get_hours_suffix();
-    virtual void log(LOG_LEVEL level, log_event* event) override;
-private:
-    std::string  _filedir;
-    std::string  _filename;
-    std::string  _filepath;
-    std::fstream _filestream;
-    TIMETYPE _now_suffix_time;
-};
-
-class logger
-{
-public:
-    logger();
-    void log(LOG_LEVEL level, log_event* event);
-
-    void add_appender(const std::string& name, log_appender* appender);
-    void del_appender(const std::string& name);
-    void clr_appender();
-private:
-    log_appender*  _root_appender  = nullptr;
-    std::unordered_map<std::string, log_appender*> _appenders;
-};
 
 #define LOG_EVENT_POOLSIZE 1024
 
@@ -131,12 +63,13 @@ class log_manager : public singleton_support<logger>
 {
 public:
     void init();
-    void log(LOG_LEVEL level, const char* fmt, ...);
-    template<typename ...params_type>
-    void log(params_type... params)
-    {
-        _eventpool.alloc();
-    }
+    // template<typename ...params_type>
+    // void log(LOG_LEVEL level, params_type... params)
+    // {
+    //     auto [id, evt] = _eventpool.alloc();
+    //     evt->assign(params...);
+    //     _root_logger->log(level, evt);
+    // }
 
     void get_logger(std::string name);
     void add_logger(std::string name, logger* logger);

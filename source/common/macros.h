@@ -1,3 +1,4 @@
+#pragma once
 
 #define PREDICT_TRUE(x)  __builtin_expect(!!(x), 1)
 #define PREDICT_FALSE(x) __builtin_expect(!!(x), 0)
@@ -23,3 +24,14 @@ if(!expr) \
     dosth; \
 }
 #endif
+
+#define UNUSE(x) ((void)x)
+
+enum LOG_LEVEL
+{
+    LOG_LEVEL_DEBUG,
+    LOG_LEVEL_INFO,
+    LOG_LEVEL_WARN,
+    LOG_LEVEL_ERROR,
+    LOG_LEVEL_FATAL,
+};
