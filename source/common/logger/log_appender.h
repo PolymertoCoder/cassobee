@@ -29,7 +29,7 @@ class rotate_log_support
 public:
     virtual bool is_rotate() = 0;
     FORCE_INLINE const char* get_suffix() { return _suffix.c_str(); }
-private:
+protected:
     std::string _suffix;
 };
 
@@ -46,7 +46,7 @@ public:
     virtual bool is_rotate() override;
 private:
     ROTATE_TYPE _rotate_type;
-    TIMETYPE    _next_cut_time; // 下一次分割日志的时间
+    TIMETYPE    _next_rotate_time; // 下一次分割日志的时间
 };
 
 class file_appender : public log_appender
@@ -55,6 +55,7 @@ public:
     file_appender(std::string logdir, std::string filename);
     ~file_appender();
     bool init();
+    bool reopen();
     
     virtual void log(LOG_LEVEL level, log_event* event) override;
 private:

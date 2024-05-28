@@ -38,14 +38,14 @@ int main()
 {
     add_signal(SIGUSR1, sigusr1_handler);
     reactor::get_instance()->init();
-    // std::thread timer_thread = start_threadpool_and_timer();
+    std::thread timer_thread = start_threadpool_and_timer();
     // printf("nowtime1=%ld\n", systemtime::get_microseconds());
-    // sleep(5);
+    sleep(3);
     // printf("nowtime2=%ld\n", systemtime::get_microseconds());
     add_timer(false, 5000, -1, [](void*){ printf("timer1 nowtime1: %ld.\n", systemtime::get_time()); return true; }, nullptr);
     add_timer(false, 5000, 10, [](void*){ printf("timer2 nowtime2: %ld.\n", systemtime::get_time()); return true; }, nullptr);
     add_timer(false, 5000, -1, [](void*){ printf("timer3 nowtime3: %ld.\n", systemtime::get_time()); return false; }, nullptr);
     reactor::get_instance()->run();
-    // timer_thread.join();
+    timer_thread.join();
     return 0;
 }

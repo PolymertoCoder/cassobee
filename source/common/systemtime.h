@@ -13,10 +13,12 @@ public:
         gettimeofday(&tv, NULL);
         return tv.tv_sec;
     }
-    static tm* get_local_time()
+    static struct tm get_local_time()
     {
         time_t t = time(NULL);
-        return localtime(&t);
+        struct tm tm;
+        localtime_r(&t, &tm);
+        return tm;
     }
     static TIMETYPE get_millseconds()
     {
@@ -34,8 +36,21 @@ public:
     {
         thread_local char timestr[20];
         if(now == -1) now = time(NULL);
-        struct tm* local_time = localtime(&now);
-        ::strftime(timestr, sizeof(timestr), fmt, local_time);
+        struct tm tm;
+        localtime_r(&now, &tm);
+        ::strftime(timestr, sizeof(timestr), fmt, &tm);
         return timestr;
+    }
+    static TIMETYPE get_nextday_time()
+    {
+        time_t t = time(NULL);
+        struct tm tm1;
+        localtime_r(&t, &tm1);
+
+        struct tm tm2;
+        tm2.tm_year = tm1.tm_year;
+        tm2.tm_mon  = tm1.tm_mon;
+        tm2.tm_mday = tm1.tm_mday + 1;
+        return mktime(&tm2);
     }
 };
