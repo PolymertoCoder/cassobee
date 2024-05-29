@@ -2,7 +2,10 @@
 #include <ctime>
 #include <sys/time.h>
 #include <string>
+#include "macros.h"
 #include "types.h"
+
+#define INVAL_TIME -1
 
 class systemtime
 {
@@ -32,25 +35,48 @@ public:
         gettimeofday(&tv, NULL);
         return (tv.tv_sec*1000000 + tv.tv_usec);
     }
-    static std::string format_time(TIMETYPE now = -1, const char* fmt = "%Y-%m-%d %H:%M:%S")
+    static std::string format_time(TIMETYPE now = INVAL_TIME, const char* fmt = "%Y-%m-%d %H:%M:%S")
     {
         thread_local char timestr[20];
-        if(now == -1) now = time(NULL);
+        if(now == INVAL_TIME) now = time(NULL);
         struct tm tm;
         localtime_r(&now, &tm);
         ::strftime(timestr, sizeof(timestr), fmt, &tm);
         return timestr;
     }
-    static TIMETYPE get_nextday_time()
+    static TIMETYPE get_today_start(TIMETYPE curtime = INVAL_TIME)
     {
-        time_t t = time(NULL);
+        if(curtime == INVAL_TIME) curtime = time(NULL);
         struct tm tm1;
-        localtime_r(&t, &tm1);
+        localtime_r(&curtime, &tm1);
 
         struct tm tm2;
         tm2.tm_year = tm1.tm_year;
         tm2.tm_mon  = tm1.tm_mon;
-        tm2.tm_mday = tm1.tm_mday + 1;
+        tm2.tm_mday = tm1.tm_mday;
         return mktime(&tm2);
+    }
+    static TIMETYPE get_nextday_start(TIMETYPE curtime = INVAL_TIME)
+    {
+        TIMETYPE today_start = get_today_start(curtime);
+        return today_start + ONEDAY;
+    }
+    static TIMETYPE get_curhour_start(TIMETYPE curtime = INVAL_TIME)
+    {
+        if(curtime == INVAL_TIME) curtime = time(NULL);
+        struct tm tm1;
+        localtime_r(&curtime, &tm1);
+
+        struct tm tm2;
+        tm2.tm_year = tm1.tm_year;
+        tm2.tm_mon  = tm1.tm_mon;
+        tm2.tm_mday = tm1.tm_mday;
+        tm2.tm_hour = tm1.tm_hour;
+        return mktime(&tm2);
+    }
+    static TIMETYPE get_nexthour_start(TIMETYPE curtime = INVAL_TIME)
+    {
+        TIMETYPE curhour_start = get_curhour_start(curtime);
+        return curhour_start + ONEHOUR;
     }
 };

@@ -1,5 +1,5 @@
 #pragma once
-
+#include <vector>
 #include "log.h"
 
 namespace cassobee
@@ -20,20 +20,6 @@ private:
     bool _error = false;
     std::string _pattern;
     std::vector<format_item*> _items;
-};
-
-class logger
-{
-public:
-    logger();
-    void log(LOG_LEVEL level, log_event* event);
-
-    void add_appender(const std::string& name, log_appender* appender);
-    void del_appender(const std::string& name);
-    void clr_appender();
-private:
-    log_appender*  _root_appender  = nullptr;
-    std::unordered_map<std::string, log_appender*> _appenders;
 };
 
 }

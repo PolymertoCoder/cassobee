@@ -32,7 +32,15 @@ void log_event::assign(std::string filename, int line, TIMETYPE time, int thread
 logger::logger()
 {
     _root_appender = new file_appender("/home/cassobee/debug/logdir", "trace");
-    _root_appender = new async_appender("/home/cassobee/debug/logdir", "trace");
+    //_root_appender = new async_appender("/home/cassobee/debug/logdir", "trace");
+}
+
+logger::~logger()
+{
+    if(_root_appender)
+    {
+        delete _root_appender;
+    }
 }
 
 void logger::log(LOG_LEVEL level, log_event* event)

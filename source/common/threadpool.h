@@ -23,6 +23,7 @@ public:
     ~thread_group();
     void add_task(const std::function<void()>& task);
     bool wait_for_all_done(TIMETYPE millsecond);
+
 private:
     std::atomic_bool _stop;
     std::atomic_int _busy;

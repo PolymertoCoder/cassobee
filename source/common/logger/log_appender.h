@@ -11,12 +11,15 @@ namespace cassobee
 class log_appender
 {
 public:
+    log_appender();
+    virtual ~log_appender() = default;
     virtual void log(LOG_LEVEL level, log_event* event) = 0;
     FORCE_INLINE void set_formatter(log_formatter* formatter) { _formatter = formatter; }
 protected:
-    log_formatter* _formatter;
+    log_formatter* _formatter = nullptr;
 };
 
+// 日志输出到终端
 class console_appender : public log_appender
 {
 public:
@@ -27,6 +30,7 @@ public:
 class rotate_log_support
 {
 public:
+    virtual ~rotate_log_support() = default;
     virtual bool is_rotate() = 0;
     FORCE_INLINE const char* get_suffix() { return _suffix.c_str(); }
 protected:
@@ -46,9 +50,10 @@ public:
     virtual bool is_rotate() override;
 private:
     ROTATE_TYPE _rotate_type;
-    TIMETYPE    _next_rotate_time; // 下一次分割日志的时间
+    TIMETYPE    _next_rotate_time = 0; // 下一次分割日志的时间
 };
 
+// 日志输出到文件
 class file_appender : public log_appender
 {
 public:

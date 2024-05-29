@@ -2,7 +2,6 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 #include "objectpool.h"
 #include "systemtime.h"
@@ -56,6 +55,21 @@ inline void test()
     log_event* evt = new log_event(__FILE__, __LINE__, systemtime::get_time(), gettid(), 0, std::to_string(get_process_elapse()), std::move(content));
     UNUSE(evt);
 }
+
+class logger
+{
+public:
+    logger();
+    ~logger();
+    void log(LOG_LEVEL level, log_event* event);
+
+    void add_appender(const std::string& name, log_appender* appender);
+    void del_appender(const std::string& name);
+    void clr_appender();
+private:
+    log_appender*  _root_appender  = nullptr;
+    std::unordered_map<std::string, log_appender*> _appenders;
+};
 
 #define LOG_EVENT_POOLSIZE 1024
 
