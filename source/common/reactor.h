@@ -45,5 +45,5 @@ public:
 void set_signal(int signum, SIG_HANDLER handler);
 void add_signal(int signum, bool(*callback)(int));
 
-int add_timer(TIMETYPE timeout/*ms*/, std::function<bool(void*)> handler);
+int add_timer(TIMETYPE timeout/*ms*/, std::function<bool()> handler);
 int add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, std::function<bool(void*)> handler, void* param);

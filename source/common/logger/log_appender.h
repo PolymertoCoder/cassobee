@@ -47,6 +47,8 @@ public:
         ROTATE_TYPE_DAY,
     };
     time_rotater(ROTATE_TYPE rotate_type);
+    virtual ~time_rotater() = default;
+    bool update(TIMETYPE curtime);
     virtual bool is_rotate() override;
 private:
     ROTATE_TYPE _rotate_type;
@@ -59,7 +61,6 @@ class file_appender : public log_appender
 public:
     file_appender(std::string logdir, std::string filename);
     ~file_appender();
-    bool init();
     bool reopen();
     
     virtual void log(LOG_LEVEL level, log_event* event) override;

@@ -256,7 +256,7 @@ log_formatter::log_formatter(const std::string pattern)
 
         printf("(%s-%s-%s)\n", key.data(), fmt.data(), expr2boolstr(isstr));
     }
-    printf("format_items size:%zu", _items.size());
+    printf("format_items size:%zu\n", _items.size());
 }
 
 std::string log_formatter::format(LOG_LEVEL level, log_event* event)

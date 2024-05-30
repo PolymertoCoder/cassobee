@@ -30,12 +30,3 @@ if(!expr) \
 #define ONEHOUR 3600   // 60*60
 #define ONEDAY  86400  // 3600*24
 #define ONEWEEK 604800 // 3600*24*7
-
-enum LOG_LEVEL
-{
-    LOG_LEVEL_DEBUG,
-    LOG_LEVEL_INFO,
-    LOG_LEVEL_WARN,
-    LOG_LEVEL_ERROR,
-    LOG_LEVEL_FATAL,
-};

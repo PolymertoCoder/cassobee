@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdarg>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -9,21 +10,39 @@
 #include "util.h"
 #include "macros.h"
 
-#define LOG(loglevel, fmt, ...) \
-    log_manager::get_instance()->log_event
+#define GLOG(loglevel, fmt, ...) \
+    cassobee::glog(loglevel, __FILE__, __LINE__, gettid(), 0, std::to_string(get_process_elapse()), fmt, __VA_ARGS__)
+
+#define DEBUGLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_DEBUG, fmt, __VA_ARGS__)
+#define INFOLOG(fmt,  ...) GLOG(cassobee::LOG_LEVEL_INFO,  fmt, __VA_ARGS__)
+#define WARNLOG(fmt,  ...) GLOG(cassobee::LOG_LEVEL_WARN,  fmt, __VA_ARGS__)
+#define ERRORLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_ERROR, fmt, __VA_ARGS__)
+#define FATALLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_FATAL, fmt, __VA_ARGS__)
 
 namespace cassobee
 {
 
 class log_appender;
 class logger;
+class log_manager;
+
+enum LOG_LEVEL
+{
+    LOG_LEVEL_DEBUG,
+    LOG_LEVEL_INFO,
+    LOG_LEVEL_WARN,
+    LOG_LEVEL_ERROR,
+    LOG_LEVEL_FATAL,
+};
+
+void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...);
 
 std::string to_string(LOG_LEVEL level);
 
 class log_event
 {
 public:
-    log_event();
+    log_event() = default;
     log_event(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string elapse, std::string content)
         : _filename(std::move(filename)), _line(line), _time(time)
         , _threadid(threadid), _fiberid(fiberid), _elapse(std::move(elapse))
@@ -41,10 +60,10 @@ public:
     
 private:
     std::string _filename;      // 文件名
-    int _line;                  // 行号
-    TIMETYPE _time;             // 时间戳
-    int _threadid;              // 线程id
-    int _fiberid;               // 协程id
+    int _line = 0;              // 行号
+    TIMETYPE _time = 0;         // 时间戳
+    int _threadid = 0;          // 线程id
+    int _fiberid = 0;           // 协程id
     std::string _elapse;        // 程序从启动到现在的毫秒数
     std::stringstream _content; // 日志内容
 };
@@ -73,17 +92,17 @@ private:
 
 #define LOG_EVENT_POOLSIZE 1024
 
-class log_manager : public singleton_support<logger>
+class log_manager : public singleton_support<log_manager>
 {
 public:
     void init();
-    // template<typename ...params_type>
-    // void log(LOG_LEVEL level, params_type... params)
-    // {
-    //     auto [id, evt] = _eventpool.alloc();
-    //     evt->assign(params...);
-    //     _root_logger->log(level, evt);
-    // }
+    template<typename ...params_type>
+    void log(LOG_LEVEL level, params_type... params)
+    {
+        auto [id, evt] = _eventpool.alloc();
+        evt->assign(params...);
+        _root_logger->log(level, evt);
+    }
 
     void get_logger(std::string name);
     void add_logger(std::string name, logger* logger);

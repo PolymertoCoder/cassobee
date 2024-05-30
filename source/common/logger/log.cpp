@@ -1,9 +1,19 @@
 #include "log.h"
-#include "macros.h"
 #include "log_appender.h"
+#include <sstream>
 
 namespace cassobee
 {
+
+void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...)
+{
+    char content[1024];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(content, sizeof(content), fmt, args);
+    va_end(args);
+    log_manager::get_instance()->log(level, filename, line, systemtime::get_time(), gettid(), 0, std::to_string(get_process_elapse()), content);
+}
 
 std::string to_string(LOG_LEVEL level)
 {
@@ -26,13 +36,13 @@ void log_event::assign(std::string filename, int line, TIMETYPE time, int thread
     _threadid = threadid;
     _fiberid = fiberid;
     _elapse = std::move(elapse);
-    //_content = content;
+    _content = std::stringstream(std::move(content));
 }
 
 logger::logger()
 {
-    _root_appender = new file_appender("/home/cassobee/debug/logdir", "trace");
-    //_root_appender = new async_appender("/home/cassobee/debug/logdir", "trace");
+    _root_appender = new file_appender("/home/qinchao/cassobee/debug/logdir", "trace");
+    //_root_appender = new async_appender("/home/qinchao/cassobee/debug/logdir", "trace");
 }
 
 logger::~logger()
@@ -40,6 +50,7 @@ logger::~logger()
     if(_root_appender)
     {
         delete _root_appender;
+        _root_appender = nullptr;
     }
 }
 

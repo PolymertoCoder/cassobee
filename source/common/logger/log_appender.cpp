@@ -21,11 +21,8 @@ time_rotater::time_rotater(ROTATE_TYPE rotate_type)
     is_rotate();
 }
 
-bool time_rotater::is_rotate()
+bool time_rotater::update(TIMETYPE curtime)
 {
-    TIMETYPE curtime = systemtime::get_time();
-    if(curtime < _next_rotate_time) return false;
-
     tm tm_val = systemtime::get_local_time();
     if(_rotate_type == ROTATE_TYPE_HOUR)
     {
@@ -52,6 +49,13 @@ bool time_rotater::is_rotate()
     return false;
 }
 
+bool time_rotater::is_rotate()
+{
+    TIMETYPE curtime = systemtime::get_time();
+    if(curtime < _next_rotate_time) return false;
+    return update(curtime);
+}
+
 file_appender::file_appender(std::string filedir, std::string filename)
     : _filedir(filedir), _filename(filename)
 {
@@ -61,7 +65,13 @@ file_appender::file_appender(std::string filedir, std::string filename)
         _filedir = ".";
     }
     _filepath = _filedir + format_string("/%s.%s.log", _filename.data(), _rotater->get_suffix());
-    init();
+    int ret = mkdir(_filedir.data(), 0777/*S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH*/);
+    if(ret != 0 && errno != EEXIST)
+    {
+        printf("mkdir failed, dir:%s err:%s\n", _filedir.data(), strerror(errno));
+        return;
+    }
+    reopen();
 }
 
 file_appender::~file_appender()
@@ -73,18 +83,8 @@ file_appender::~file_appender()
     if(_rotater)
     {
         delete _rotater;
+        _rotater = nullptr;
     }
-}
-
-bool file_appender::init()
-{
-    int ret = mkdir(_filedir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if(ret != 0 && errno != EEXIST)
-    {
-        printf("mkdir failed, dir:%s err:%s", _filedir.data(), strerror(errno));
-        return false;
-    }
-    return reopen();
 }
 
 bool file_appender::reopen()
@@ -94,12 +94,12 @@ bool file_appender::reopen()
         _filestream.close();
     }
     _filestream.open(_filepath, std::fstream::out | std::fstream::app);
+    printf("open filestream %s\n", _filepath.data());
     return true;
 }
 
 void file_appender::log(LOG_LEVEL level, log_event* event)
 {
-    if(!init()) return;
     std::string msg = _formatter->format(level, event);
     if(_rotater->is_rotate())
     {
