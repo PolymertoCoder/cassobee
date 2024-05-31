@@ -1,5 +1,6 @@
 #pragma once
 #include <fstream>
+#include "fixed_buffer.h"
 #include "log.h"
 #include "lock.h"
 #include "log_formatter.h"
@@ -64,7 +65,7 @@ public:
     bool reopen();
     
     virtual void log(LOG_LEVEL level, log_event* event) override;
-private:
+protected:
     cassobee::mutex     _locker;
     rotate_log_support* _rotater; 
 
@@ -81,7 +82,8 @@ public:
     async_appender(std::string logdir, std::string filename);
     virtual void log(LOG_LEVEL level, log_event* event) override;
 private:
-    std::thread _thread;
+    std::thread* _thread = nullptr;
+    cassobee::fixed_buffer<4096> _buf;
 };
 
 }

@@ -37,6 +37,16 @@ public:
     }
 };
 
+class procname_format_item : public log_formatter::format_item
+{
+public:
+    procname_format_item(const std::string& str = "") {}
+    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    {
+        os << log_manager::get_process_name();
+    }
+};
+
 class threadid_format_item : public log_formatter::format_item
 {
 public:
@@ -123,6 +133,24 @@ private:
     std::string m_string;
 };
 
+
+
+/**
+ * @description: 
+ * @param {string} pattern
+ *                 m：日志内容
+ *                 p：日志等级
+ *                 r：程序运行时间
+ *                 c：程序名字，需要手动设置
+ *                 t：线程号
+ *                 n：换行符
+ *                 d：时间
+ *                 f：文件名
+ *                 l：行号
+ *                 T：tab缩进
+ *                 F：协程号
+ * @return {*}
+ */
 log_formatter::log_formatter(const std::string pattern)
     : _pattern(pattern)
 {
@@ -224,6 +252,7 @@ log_formatter::log_formatter(const std::string pattern)
         creator(m, message_format_item),
         creator(p, loglevel_format_item),
         creator(r, elapse_format_item),
+        creator(c, procname_format_item),
         creator(t, threadid_format_item),
         creator(n, newline_format_item),
         creator(d, datetime_format_item),

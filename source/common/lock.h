@@ -2,6 +2,7 @@
 #include "types.h"
 #include <atomic>
 #include <mutex>
+#include <pthread.h>
 #include <thread>
 #include <unistd.h>
 #include <immintrin.h>
@@ -60,7 +61,7 @@ private:
     std::atomic_bool _atomic;
 };
 
-class mutex : public lock_support<spinlock>
+class mutex : public lock_support<mutex>
 {
 public:
     FORCE_INLINE void lock()
@@ -80,5 +81,65 @@ private:
     std::mutex _locker;
 };
 
+class rwlock
+{
+public:
+    struct rdscoped
+    {
+        rdscoped(rwlock& locker) : _locker(locker)
+        {
+            _locker.rdlock();
+        }
+        ~rdscoped()
+        {
+            _locker.unlock();
+        }
+        rwlock& _locker;
+    };
+    struct wrscoped
+    {
+        wrscoped(rwlock& locker) : _locker(locker)
+        {
+            _locker.wrlock();
+        }
+        ~wrscoped()
+        {
+            _locker.unlock();
+        }
+        rwlock& _locker;
+    };
+
+    rwlock()
+    {
+        pthread_rwlock_init(&_locker, NULL);
+    }
+    ~rwlock()
+    {
+        pthread_rwlock_destroy(&_locker);
+    }
+    FORCE_INLINE void rdlock()
+    {
+        pthread_rwlock_rdlock(&_locker);
+    }
+    FORCE_INLINE void try_rdlock()
+    {
+        pthread_rwlock_tryrdlock(&_locker);
+    }
+    FORCE_INLINE void wrlock()
+    {
+        pthread_rwlock_wrlock(&_locker);
+    }
+    FORCE_INLINE void try_wrlock()
+    {
+        pthread_rwlock_trywrlock(&_locker);
+    }
+    FORCE_INLINE void unlock()
+    {
+        pthread_rwlock_unlock(&_locker);
+    }
+
+private:
+    pthread_rwlock_t _locker;
+};
 
 }

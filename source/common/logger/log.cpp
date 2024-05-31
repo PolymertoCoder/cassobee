@@ -4,6 +4,7 @@
 
 namespace cassobee
 {
+std::string log_manager::_process_name;
 
 void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...)
 {

@@ -113,6 +113,17 @@ void file_appender::log(LOG_LEVEL level, log_event* event)
 async_appender::async_appender(std::string logdir, std::string filename)
     : file_appender(logdir, filename)
 {
+    _thread = new std::thread([this]()
+    {
+        thread_local char buffer[4096];
+        while(true)
+        {
+            if(_buf.size())
+            {
+                size_t length = _buf.read(buffer, sizeof(buffer));
+            }
+        }
+    });
 }
 
 void async_appender::log(LOG_LEVEL level, log_event* event)

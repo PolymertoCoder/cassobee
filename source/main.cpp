@@ -42,6 +42,7 @@ int main()
     reactor::get_instance()->init();
     std::thread timer_thread = start_threadpool_and_timer();
     cassobee::log_manager::get_instance()->init();
+    cassobee::log_manager::set_process_name("cassobee");
     // printf("nowtime1=%ld\n", systemtime::get_microseconds());
     sleep(3);
     // printf("nowtime2=%ld\n", systemtime::get_microseconds());
@@ -50,11 +51,15 @@ int main()
     // add_timer(false, 5000, -1, [](void*){ printf("timer3 nowtime3: %ld.\n", systemtime::get_time()); return false; }, nullptr);
 
     DEBUGLOG("a=%d", 10);
-    add_timer(1000, [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
-    add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
-    add_timer(3000, [](){ WARNLOG("WARN=%d", 10);   return true; });
-    add_timer(4000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
-    add_timer(5000, [](){ FATALLOG("ATAL=%d", 10);  return true; });
+    INFOLOG("a=%d", 10);
+    WARNLOG("a=%d", 10);
+    ERRORLOG("a=%d", 10);
+    FATALLOG("a=%d", 10);
+    // add_timer(1000, [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
+    // add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
+    // add_timer(3000, [](){ WARNLOG("WARN=%d", 10);   return true; });
+    // add_timer(4000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
+    // add_timer(5000, [](){ FATALLOG("FATAL=%d", 10); return true; });
     reactor::get_instance()->run();
     timer_thread.join();
     return 0;
