@@ -11,8 +11,15 @@ namespace cassobee
 
 log_appender::log_appender()
 {
-    std::string format_pattern = "%d{%Y-%m-%d %H:%M:%S}%T%t%T%F%T[%p]%T[%c]%T%f:%l%T%m%n";
+    std::string format_pattern = "[%d{%Y-%m-%d %H:%M:%S}]%T[%p]%T[%c]%T%t%T%f:%l%T%m%n";
     _formatter = new log_formatter(format_pattern);
+}
+
+void console_appender::log(LOG_LEVEL level, log_event* event)
+{
+    std::unique_lock<std::mutex> lock(_locker);
+    std::string msg = _formatter->format(level, event);
+    printf("%s", msg.data());
 }
 
 time_rotater::time_rotater(ROTATE_TYPE rotate_type)
@@ -65,13 +72,14 @@ file_appender::file_appender(std::string filedir, std::string filename)
         _filedir = ".";
     }
     _filepath = _filedir + format_string("/%s.%s.log", _filename.data(), _rotater->get_suffix());
-    int ret = mkdir(_filedir.data(), 0777/*S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH*/);
+    int ret = mkdir(_filedir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if(ret != 0 && errno != EEXIST)
     {
         printf("mkdir failed, dir:%s err:%s\n", _filedir.data(), strerror(errno));
         return;
     }
     reopen();
+    _running = true;
 }
 
 file_appender::~file_appender()
@@ -87,19 +95,10 @@ file_appender::~file_appender()
     }
 }
 
-bool file_appender::reopen()
-{
-    if(_filestream.is_open())
-    {
-        _filestream.close();
-    }
-    _filestream.open(_filepath, std::fstream::out | std::fstream::app);
-    printf("open filestream %s\n", _filepath.data());
-    return true;
-}
-
 void file_appender::log(LOG_LEVEL level, log_event* event)
 {
+    std::unique_lock<std::mutex> lock(_locker);
+    if(!_running) return;
     std::string msg = _formatter->format(level, event);
     if(_rotater->is_rotate())
     {
@@ -110,25 +109,84 @@ void file_appender::log(LOG_LEVEL level, log_event* event)
     _filestream.flush();
 }
 
+bool file_appender::reopen() // no lock
+{
+    if(_filestream.is_open())
+    {
+        _filestream.close();
+    }
+    _filestream.open(_filepath, std::fstream::out | std::fstream::app);
+    printf("open filestream %s\n", _filepath.data());
+    return true;
+}
+
 async_appender::async_appender(std::string logdir, std::string filename)
     : file_appender(logdir, filename)
 {
+    _timeout   = 5000;
+    _threshold = 1024;
+    start();
+}
+
+async_appender::~async_appender()
+{
+    stop();
+}
+
+void async_appender::log(LOG_LEVEL level, log_event* event)
+{
+    std::unique_lock<std::mutex> lock(_locker);
+    if(!_running) return;
+    std::string msg = _formatter->format(level, event);
+    size_t length = _buf.write(msg.data(), sizeof(msg.size()));
+    if(PREDICT_FALSE(length != msg.size()))
+    {
+        printf("write length:%zu is not equal to message size:%zu.\n", length, msg.size());
+    }
+    if(_buf.size() >= _threshold)
+    {
+        _cond.notify_one();
+    }
+}
+
+void async_appender::start()
+{
+    _running = true;
     _thread = new std::thread([this]()
     {
-        thread_local char buffer[4096];
-        while(true)
+        while(_running)
         {
-            if(_buf.size())
+            std::unique_lock<std::mutex> lock(_locker);
+            while(_buf.empty())
             {
-                size_t length = _buf.read(buffer, sizeof(buffer));
+                _cond.wait_for(lock, std::chrono::milliseconds(_timeout),
+                    [this](){ return  _buf.size() >= _threshold || !_running; });
+            }
+
+            if(_rotater->is_rotate())
+            {
+                _filepath = _filedir + format_string("/%s.%s.log", _filename.data(), _rotater->get_suffix());
+                reopen();
+            }
+            if(size_t length = _buf.read(_filestream, _buf.size()); length > 0)
+            {
+                _filestream.flush();
+                printf("async_appender write log...\n");
             }
         }
     });
 }
 
-void async_appender::log(LOG_LEVEL level, log_event* event)
+void async_appender::stop()
 {
-
+    if(!_running) return;
+    _running = false;
+    _cond.notify_one();
+    if(_thread->joinable())
+    {
+        _thread->join();
+    }
+    delete _thread;
 }
 
 }

@@ -5,10 +5,8 @@
 #include <unordered_map>
 
 #include "objectpool.h"
-#include "systemtime.h"
 #include "types.h"
 #include "util.h"
-#include "macros.h"
 
 #define GLOG(loglevel, fmt, ...) \
     cassobee::glog(loglevel, __FILE__, __LINE__, gettid(), 0, std::to_string(get_process_elapse()), fmt, __VA_ARGS__)
@@ -36,8 +34,6 @@ enum LOG_LEVEL
 };
 
 void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...);
-
-std::string to_string(LOG_LEVEL level);
 
 class log_event
 {
@@ -68,13 +64,6 @@ private:
     std::stringstream _content; // 日志内容
 };
 
-inline void test()
-{
-    std::string content;
-    log_event* evt = new log_event(__FILE__, __LINE__, systemtime::get_time(), gettid(), 0, std::to_string(get_process_elapse()), std::move(content));
-    UNUSE(evt);
-}
-
 class logger
 {
 public:
@@ -86,11 +75,11 @@ public:
     void del_appender(const std::string& name);
     void clr_appender();
 private:
-    log_appender*  _root_appender  = nullptr;
+    log_appender* _root_appender  = nullptr;
     std::unordered_map<std::string, log_appender*> _appenders;
 };
 
-#define LOG_EVENT_POOLSIZE 1024
+#define LOG_EVENT_POOLSIZE 4096
 
 class log_manager : public singleton_support<log_manager>
 {
@@ -103,6 +92,7 @@ public:
         auto [id, evt] = _eventpool.alloc();
         evt->assign(params...);
         _root_logger->log(level, evt);
+        _eventpool.free(id);
     }
 
     void get_logger(std::string name);

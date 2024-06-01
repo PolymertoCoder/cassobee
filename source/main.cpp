@@ -20,6 +20,7 @@ std::thread start_threadpool_and_timer()
     {
         return std::thread([]()
         {
+            printf("timer thread tid:%d.", gettid());
             timewheel::get_instance()->init();
             timewheel::get_instance()->run();
         });
@@ -43,23 +44,26 @@ int main()
     std::thread timer_thread = start_threadpool_and_timer();
     cassobee::log_manager::get_instance()->init();
     cassobee::log_manager::set_process_name("cassobee");
-    // printf("nowtime1=%ld\n", systemtime::get_microseconds());
+    //printf("nowtime1=%ld\n", systemtime::get_microseconds());
     sleep(3);
-    // printf("nowtime2=%ld\n", systemtime::get_microseconds());
+    //printf("nowtime2=%ld\n", systemtime::get_microseconds());
     // add_timer(false, 5000, -1, [](void*){ printf("timer1 nowtime1: %ld.\n", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, 10, [](void*){ printf("timer2 nowtime2: %ld.\n", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, -1, [](void*){ printf("timer3 nowtime3: %ld.\n", systemtime::get_time()); return false; }, nullptr);
 
-    DEBUGLOG("a=%d", 10);
-    INFOLOG("a=%d", 10);
-    WARNLOG("a=%d", 10);
-    ERRORLOG("a=%d", 10);
-    FATALLOG("a=%d", 10);
-    // add_timer(1000, [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
-    // add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
-    // add_timer(3000, [](){ WARNLOG("WARN=%d", 10);   return true; });
-    // add_timer(4000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
-    // add_timer(5000, [](){ FATALLOG("FATAL=%d", 10); return true; });
+    add_timer(500,  [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
+    add_timer(1000, [](){ INFOLOG("INFO=%d", 10);   return true; });
+    add_timer(1500, [](){ WARNLOG("WARN=%d", 10);   return true; });
+    add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
+    add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
+    while(true)
+    {
+        threadpool::get_instance()->add_task(rand(0, 3), [](){ DEBUGLOG("DEBUG=%s", "多线程测试"); });
+        threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+        threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+        threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+        usleep(1000);
+    }
     reactor::get_instance()->run();
     timer_thread.join();
     return 0;

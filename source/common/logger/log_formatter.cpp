@@ -3,6 +3,7 @@
 #include <map>
 
 #include "log_formatter.h"
+#include "systemtime.h"
 
 namespace cassobee
 {
@@ -23,7 +24,15 @@ public:
     loglevel_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
-        os << to_string(level);
+        switch(level)
+        {
+            case LOG_LEVEL_DEBUG: { os << "DEBUG"; } break;
+            case LOG_LEVEL_INFO:  { os << "INFO";  } break;
+            case LOG_LEVEL_WARN:  { os << "WARN";  } break;
+            case LOG_LEVEL_ERROR: { os << "ERROR"; } break;
+            case LOG_LEVEL_FATAL: { os << "FATAL"; } break;
+            default:{ os << "UNKNOWN"; } break;
+        }
     }
 };
 

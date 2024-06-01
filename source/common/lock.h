@@ -47,6 +47,7 @@ public:
                 if(!_atomic.load(std::memory_order_relaxed)) break;
             }
         }
+        //printf("spinlock %p lock.\n", this);
     }
     bool try_lock()
     {
@@ -55,10 +56,11 @@ public:
     void unlock()
     {
         _atomic.store(false, std::memory_order_release);
+        //printf("spinlock %p lock.\n", this);
     }
 
 private:
-    std::atomic_bool _atomic;
+    std::atomic_bool _atomic = false;
 };
 
 class mutex : public lock_support<mutex>

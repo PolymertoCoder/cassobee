@@ -1,5 +1,6 @@
 #include "log.h"
 #include "log_appender.h"
+#include "systemtime.h"
 #include <sstream>
 
 namespace cassobee
@@ -14,19 +15,6 @@ void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fib
     vsnprintf(content, sizeof(content), fmt, args);
     va_end(args);
     log_manager::get_instance()->log(level, filename, line, systemtime::get_time(), gettid(), 0, std::to_string(get_process_elapse()), content);
-}
-
-std::string to_string(LOG_LEVEL level)
-{
-    switch(level)
-    {
-        case LOG_LEVEL_DEBUG: { return "DEBUG"; } break;
-        case LOG_LEVEL_INFO:  { return "INFO";  } break;
-        case LOG_LEVEL_WARN:  { return "WARN";  } break;
-        case LOG_LEVEL_ERROR: { return "ERROR"; } break;
-        case LOG_LEVEL_FATAL: { return "FATAL"; } break;
-        default:{ return "UNKNOWN"; } break;
-    }
 }
 
 void log_event::assign(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string elapse, std::string content)

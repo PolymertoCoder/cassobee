@@ -81,7 +81,7 @@ void reactor::init()
     _dispatcher = new epoller();
     _dispatcher->init();
     _stop = false;
-    _use_timer_thread = false;
+    _use_timer_thread = true;
     _timeout = 1;
     add_event(new sigio_event(),   EVENT_RECV);
     add_event(new control_event(), EVENT_RECV);
