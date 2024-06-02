@@ -38,3 +38,6 @@ TIMETYPE get_process_elapse();
 int rand(int min, int max);
 void set_process_affinity(int num);
 std::string format_string(const char* fmt, ...);
+
+// 去掉字符串首尾的空格
+std::string trim(const std::string_view& str);

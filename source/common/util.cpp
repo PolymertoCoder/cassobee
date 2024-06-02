@@ -60,3 +60,13 @@ std::string format_string(const char* fmt, ...)
     va_end(args);
     return buf;
 }
+
+std::string trim(const std::string_view& str)
+{
+    size_t begin = str.find_first_not_of(' ');
+    if(begin == std::string::npos) return "";
+
+    size_t end = str.find_last_not_of(' ');
+    if(end == std::string::npos) return "";
+    return std::string(str.substr(begin, end - begin + 1));
+}

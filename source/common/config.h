@@ -7,8 +7,8 @@ class config : public singleton_support<config>
 {
 public:
     void init(const char* config_path);
-    bool parse(const char* filename);
-    bool reload(const char* filename);
+    bool parse(std::ifstream& filestream);
+    bool reload();
     std::string get(const std::string section, const std::string item);
 
     template<typename return_type = std::string>
@@ -38,6 +38,7 @@ public:
     }
 
 private:
+    std::string _config_path;
     using ITEM_MAP    = std::map<std::string, std::string>;
     using SECTION_MAP = std::map<std::string, ITEM_MAP>;
     SECTION_MAP _sections;
