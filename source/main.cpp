@@ -1,4 +1,4 @@
-#include "macros.h"
+#include "config.h"
 #include "reactor.h"
 #include "threadpool.h"
 #include "delegate.h"
@@ -39,6 +39,7 @@ bool sigusr1_handler(int signum)
 
 int main()
 {
+    config::get_instance()->init("/home/qinchao/cassobee/config");
     add_signal(SIGUSR1, sigusr1_handler);
     reactor::get_instance()->init();
     std::thread timer_thread = start_threadpool_and_timer();
@@ -51,11 +52,11 @@ int main()
     // add_timer(false, 5000, 10, [](void*){ printf("timer2 nowtime2: %ld.\n", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, -1, [](void*){ printf("timer3 nowtime3: %ld.\n", systemtime::get_time()); return false; }, nullptr);
 
-    add_timer(500,  [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
-    add_timer(1000, [](){ INFOLOG("INFO=%d", 10);   return true; });
-    add_timer(1500, [](){ WARNLOG("WARN=%d", 10);   return true; });
-    add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
-    add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
+    //add_timer(1000,  [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
+    //add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
+    //add_timer(1500, [](){ WARNLOG("WARN=%d", 10);   return true; });
+    //add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
+    //add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
     while(true)
     {
         threadpool::get_instance()->add_task(rand(0, 3), [](){ DEBUGLOG("DEBUG=%s", "多线程测试"); });

@@ -124,7 +124,7 @@ async_appender::async_appender(std::string logdir, std::string filename)
     : file_appender(logdir, filename)
 {
     _timeout   = 5000;
-    _threshold = 1024;
+    _threshold = 4096;
     start();
 }
 
@@ -138,10 +138,10 @@ void async_appender::log(LOG_LEVEL level, log_event* event)
     std::unique_lock<std::mutex> lock(_locker);
     if(!_running) return;
     std::string msg = _formatter->format(level, event);
-    size_t length = _buf.write(msg.data(), sizeof(msg.size()));
+    size_t length = _buf.write(msg.data(), msg.size());
     if(PREDICT_FALSE(length != msg.size()))
     {
-        printf("write length:%zu is not equal to message size:%zu.\n", length, msg.size());
+        printf("log lost!!! message size:%zu real write size:%zu.\n", msg.size(), length);
     }
     if(_buf.size() >= _threshold)
     {
@@ -171,7 +171,7 @@ void async_appender::start()
             if(size_t length = _buf.read(_filestream, _buf.size()); length > 0)
             {
                 _filestream.flush();
-                printf("async_appender write log...\n");
+                //printf("async_appender write log %zu...\n", length);
             }
         }
     });

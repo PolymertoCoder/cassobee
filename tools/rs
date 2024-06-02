@@ -4,6 +4,6 @@ rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
 ks
 
-#rm rootpath/debug/cassobee.log
+rm -f $rootpath/debug/cassobee.log
 
 cd $rootpath/bin && ./start.sh

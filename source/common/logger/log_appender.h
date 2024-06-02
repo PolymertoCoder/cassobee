@@ -3,8 +3,8 @@
 #include <fstream>
 #include "fixed_buffer.h"
 #include "log.h"
-#include "lock.h"
 #include "log_formatter.h"
+#include "ring_buffer.h"
 
 namespace cassobee
 {
@@ -97,7 +97,8 @@ private:
     size_t   _threshold = 0;
     std::condition_variable _cond;
     std::thread* _thread = nullptr;
-    cassobee::fixed_buffer<4096*4> _buf;
+    cassobee::ring_buffer<4096*8> _buf;
+    //cassobee::fixed_buffer<4096*8> _buf;
 };
 
 }
