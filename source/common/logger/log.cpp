@@ -1,6 +1,7 @@
 #include "log.h"
 #include "log_appender.h"
 #include "systemtime.h"
+#include "config.h"
 #include <sstream>
 
 namespace cassobee
@@ -30,8 +31,19 @@ void log_event::assign(std::string filename, int line, TIMETYPE time, int thread
 
 logger::logger()
 {
-    _root_appender = new file_appender("/home/qinchao/cassobee/debug/logdir", "trace");
-    //_root_appender = new async_appender("/home/qinchao/cassobee/debug/logdir", "trace");
+    auto cfg = config::get_instance();
+    std::string logdir   = cfg->get("log", "dir");
+    std::string filename = cfg->get("log", "filename");
+
+    bool asynclog = cfg->get<bool>("log", "asynclog");
+    if(asynclog)
+    {
+        _root_appender = new async_appender(logdir, filename);
+    }
+    else
+    {
+        _root_appender = new file_appender(logdir, filename);
+    }
 }
 
 logger::~logger()

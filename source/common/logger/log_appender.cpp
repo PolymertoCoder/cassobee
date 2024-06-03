@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 
 #include "log_appender.h"
+#include "config.h"
 #include "log_formatter.h"
 #include "macros.h"
 #include "systemtime.h"
@@ -11,7 +12,7 @@ namespace cassobee
 
 log_appender::log_appender()
 {
-    std::string format_pattern = "[%d{%Y-%m-%d %H:%M:%S}]%T[%p]%T[%c]%T%t%T%f:%l%T%m%n";
+    std::string format_pattern = config::get_instance()->get("log", "pattern");
     _formatter = new log_formatter(format_pattern);
 }
 

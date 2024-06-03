@@ -33,8 +33,9 @@ public:
             {
                 return false;
             }
+            return false;
         }
-        return value;
+        return return_type();
     }
 
 private:

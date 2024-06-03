@@ -1,13 +1,14 @@
 #include <assert.h>
 #include <stdexcept>
 #include "threadpool.h"
-#include "timewheel.h"
+#include "config.h"
 
-thread_group::thread_group()
+thread_group::thread_group(size_t maxsize, size_t threadcnt)
+    : _maxsize(maxsize), _threadcnt(threadcnt)
 {
     memset(_threads, 0, sizeof(_threads));
     _stop = false;
-    for(size_t i = 0; i < THREAD_COUNT_PER_GROUP; ++i)
+    for(size_t i = 0; i < _threadcnt; ++i)
     {
         _threads[i] = (new std::thread([this]
         {
@@ -58,7 +59,7 @@ thread_group::~thread_group()
         _stop = true;
     }
     _cond.notify_all();
-    for(size_t i = 0 ; i < THREAD_COUNT_PER_GROUP; ++i)
+    for(size_t i = 0 ; i < _threadcnt; ++i)
     {
         if(_threads[i]->joinable())
         {
@@ -71,7 +72,7 @@ thread_group::~thread_group()
 void thread_group::add_task(const std::function<void()>& task)
 {
     std::lock_guard<std::mutex> l(this->_queue_lock);
-    if(_task_queue.size() >= TASK_QUEUE_MAX)
+    if(_task_queue.size() >= _maxsize)
     {
         throw std::runtime_error("task_queue is full!!!");
     }
@@ -98,29 +99,35 @@ bool thread_group::wait_for_all_done(TIMETYPE millsecond)
 
 void threadpool::start()
 {
-    for(size_t i = 0 ; i < THREAD_GROUP_MAX; ++i)
+    std::string str = config::get_instance()->get("threadpool", "group");
+    std::vector<std::pair<int, int>> groups;
+
+    std::vector<std::string> result = split(str, "(,) ");
+    assert(result.size() > 0 && result.size() % 2 == 0);
+    for(size_t i = 0; i < result.size(); i += 2)
     {
-        if(_groups[i] == nullptr)
-        {
-            _groups[i] = new thread_group();
-        }
-        else
-        {
-            printf("thread_group %d already start!!!", (int)i);
-        }
+        groups.emplace_back(std::stoi(result[i]), std::stoi(result[i + 1]));
+    }
+    _groups.resize(groups.size());
+    size_t i = 0;
+    for(const auto& [maxsize, threadcnt] : groups)
+    {
+        _groups[i] = new thread_group(maxsize, threadcnt);
+        ++i;
     }
 }
 
 void threadpool::stop()
 {
-    for(size_t i = 0 ; i < THREAD_GROUP_MAX; ++i)
+    for(auto group : _groups)
     {
-        if(_groups[i] && _groups[i]->wait_for_all_done(0))
+        if(group && group->wait_for_all_done(0))
         {
-            delete _groups[i];
+            delete group;
         }
     }
-    memset(_groups, 0, sizeof(_groups));
+    _groups.clear();
+    _groups.shrink_to_fit();
 }
 
 void threadpool::add_task(int groupidx, const std::function<void()>& task)

@@ -1,3 +1,4 @@
+#include <cstring>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +54,7 @@ void set_process_affinity(int cpu_num)
 
 std::string format_string(const char* fmt, ...)
 {
-    char buf[1024];
+    thread_local char buf[1024];
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);
@@ -61,12 +62,27 @@ std::string format_string(const char* fmt, ...)
     return buf;
 }
 
-std::string trim(const std::string_view& str)
+std::string trim(const std::string_view& str, char c)
 {
-    size_t begin = str.find_first_not_of(' ');
+    size_t begin = str.find_first_not_of(c);
     if(begin == std::string::npos) return "";
 
-    size_t end = str.find_last_not_of(' ');
+    size_t end = str.find_last_not_of(c);
     if(end == std::string::npos) return "";
     return std::string(str.substr(begin, end - begin + 1));
+}
+
+std::vector<std::string> split(const std::string_view& str, const char* delim)
+{
+    thread_local char data[1024];
+    str.copy(data, sizeof(data));
+    std::vector<std::string> result;
+
+    char* token = strtok(data, delim);
+    while(token != NULL)
+    {
+        result.push_back(token);
+        token = strtok(NULL, delim);
+    }
+    return result;
 }

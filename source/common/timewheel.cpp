@@ -1,16 +1,15 @@
 #include <cstdio>
 #include <unistd.h>
 #include "timewheel.h"
+#include "config.h"
 
 void timewheel::init()
 {
-    _ticktime = 50;
-    _timerpool.init(TIMERPOOL_SIZE);
+    auto cfg = config::get_instance();
+    _ticktime = cfg->get<TIMETYPE>("timer", "interval");
+    _timerpool.init(cfg->get<size_t>("timer", "poolsize"));
     _stop = false;
     printf("timewheel init finished...\n");
-    // for(size_t i = 0; i < NEAR_SLOTS; ++i){ _near_slots[i].clear(); }
-    // _changelist[0].clear();
-    // _changelist[1].clear();
 }
 
 int timewheel::add_timer(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)
@@ -196,7 +195,7 @@ void timewheel::run()
     while(!_stop)
     {
         tick();
-        usleep(_ticktime*1000);
+        usleep(_ticktime * 1000);
     }
 }
 

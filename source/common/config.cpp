@@ -18,7 +18,7 @@ void config::init(const char* config_path)
         std::ifstream ifs(filepath);
         if(!ifs.is_open())
         {
-            printf("config file %s cannot open???!!!\n", filepath.data());
+            printf("config file %s cannot open?!\n", filepath.data());
             continue;
         }
         if(!parse(ifs))
@@ -44,7 +44,7 @@ bool config::parse(std::ifstream& filestream)
         {
             std::string key   = trim(line.substr(0, pos));
             std::string value = trim(line.substr(pos + 1));
-            assert(_sections.emplace(key, value).second);
+            assert(_sections[section].emplace(key, value).second);
         }
     }
     return true;

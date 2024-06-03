@@ -7,7 +7,6 @@
 #include "objectpool.h"
 
 #define NEAR_SLOTS 4096
-constexpr static size_t TIMERPOOL_SIZE = 1 << 12;
 
 using callback = std::function<bool(void*)>;
 

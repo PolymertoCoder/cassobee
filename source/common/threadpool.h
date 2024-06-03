@@ -8,6 +8,7 @@
 #include <condition_variable>
 
 #include "types.h"
+#include "util.h"
 
 #define THREAD_COUNT_PER_GROUP 4
 #define THREAD_GROUP_MAX 4
@@ -19,12 +20,15 @@ class thread_group
 {
 public:
     using TASK_QUEUE = std::deque<std::function<void()>>;
-    thread_group();
+    thread_group(size_t maxsize, size_t threadcnt);
     ~thread_group();
     void add_task(const std::function<void()>& task);
     bool wait_for_all_done(TIMETYPE millsecond);
 
 private:
+    const size_t _maxsize   = 0;
+    const size_t _threadcnt = 0;
+
     std::atomic_bool _stop;
     std::atomic_int _busy;
     std::mutex _queue_lock;
@@ -33,15 +37,10 @@ private:
     TASK_QUEUE _task_queue;
 };
 
-class threadpool
+class threadpool : public singleton_support<threadpool>
 {
 public:
-    static threadpool* get_instance()
-    {
-        static threadpool _instance;
-        return &_instance;
-    }
-    threadpool(){ memset(_groups, 0, sizeof(_groups)); }
+    threadpool() = default;
     void start();
     void stop();
 
@@ -54,5 +53,5 @@ private:
     threadpool& operator=(const threadpool&&) = delete;
     
 private:
-    thread_group* _groups[THREAD_GROUP_MAX];
+    std::vector<thread_group*> _groups;
 };

@@ -2,6 +2,7 @@
 #include "types.h"
 #include <string>
 #include <sys/time.h>
+#include <vector>
 
 #define GET_TIME_BEGIN() \
 struct timeval begintime; \
@@ -39,5 +40,7 @@ int rand(int min, int max);
 void set_process_affinity(int num);
 std::string format_string(const char* fmt, ...);
 
-// 去掉字符串首尾的空格
-std::string trim(const std::string_view& str);
+// 去掉字符串首尾的字符
+std::string trim(const std::string_view& str, char c = ' ');
+// 按delim分割字符串
+std::vector<std::string> split(const std::string_view& str, const char* delim);
