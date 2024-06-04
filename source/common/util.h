@@ -41,6 +41,6 @@ void set_process_affinity(int num);
 std::string format_string(const char* fmt, ...);
 
 // 去掉字符串首尾的字符
-std::string trim(const std::string_view& str, char c = ' ');
+std::string trim(const std::string_view& str, const char c = ' ');
 // 按delim分割字符串
 std::vector<std::string> split(const std::string_view& str, const char* delim);

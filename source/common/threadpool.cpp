@@ -6,7 +6,7 @@
 thread_group::thread_group(size_t maxsize, size_t threadcnt)
     : _maxsize(maxsize), _threadcnt(threadcnt)
 {
-    memset(_threads, 0, sizeof(_threads));
+    _threads.resize(threadcnt);
     _stop = false;
     for(size_t i = 0; i < _threadcnt; ++i)
     {
@@ -99,7 +99,7 @@ bool thread_group::wait_for_all_done(TIMETYPE millsecond)
 
 void threadpool::start()
 {
-    std::string str = config::get_instance()->get("threadpool", "group");
+    std::string str = config::get_instance()->get("threadpool", "groups");
     std::vector<std::pair<int, int>> groups;
 
     std::vector<std::string> result = split(str, "(,) ");
@@ -108,12 +108,20 @@ void threadpool::start()
     {
         groups.emplace_back(std::stoi(result[i]), std::stoi(result[i + 1]));
     }
-    _groups.resize(groups.size());
-    size_t i = 0;
-    for(const auto& [maxsize, threadcnt] : groups)
+
+    _groups.resize(groups.size(), nullptr);
+    for(size_t i = 0; i < groups.size() ; ++i)
     {
-        _groups[i] = new thread_group(maxsize, threadcnt);
-        ++i;
+        const auto& [maxsize, threadcnt] = groups[i];
+        if(_groups[i] == nullptr)
+        {
+            _groups[i] = new thread_group(maxsize, threadcnt);
+            printf("thread group %d run %d threads, task queue maxsize:%d.\n", i, threadcnt, maxsize);
+        }
+        else
+        {
+            printf("thread group %d already start.\n", (int)i);
+        }
     }
 }
 
@@ -132,6 +140,6 @@ void threadpool::stop()
 
 void threadpool::add_task(int groupidx, const std::function<void()>& task)
 {
-    assert(groupidx >= 0 && groupidx < THREAD_GROUP_MAX);
+    assert(groupidx >= 0 && groupidx < _groups.size());
     _groups[groupidx]->add_task(task);
 }

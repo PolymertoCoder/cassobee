@@ -62,7 +62,7 @@ std::string format_string(const char* fmt, ...)
     return buf;
 }
 
-std::string trim(const std::string_view& str, char c)
+std::string trim(const std::string_view& str, const char c)
 {
     size_t begin = str.find_first_not_of(c);
     if(begin == std::string::npos) return "";

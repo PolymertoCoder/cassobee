@@ -1,0 +1,16 @@
+#!/bin/bash
+
+source bash_color
+
+echo $#
+
+i=0
+while [ $i -le $# ]; do
+    ADD_COLOR $1 $2
+
+    shift 2
+    i=$((i+2))
+    echo $i
+done
+
+echo $i

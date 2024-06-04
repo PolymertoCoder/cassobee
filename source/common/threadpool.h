@@ -10,10 +10,6 @@
 #include "types.h"
 #include "util.h"
 
-#define THREAD_COUNT_PER_GROUP 4
-#define THREAD_GROUP_MAX 4
-#define TASK_QUEUE_MAX 524288
-
 // TODO 线程本地任务
 
 class thread_group
@@ -33,7 +29,7 @@ private:
     std::atomic_int _busy;
     std::mutex _queue_lock;
     std::condition_variable _cond;
-    std::thread* _threads[THREAD_COUNT_PER_GROUP];
+    std::vector<std::thread*> _threads;
     TASK_QUEUE _task_queue;
 };
 

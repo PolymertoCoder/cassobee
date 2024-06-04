@@ -11,38 +11,38 @@ ADD_COLOR()
     YELLOW_COLOR='\E[1;33m'
     BLUE_COLOR='\E[1;34m'
     PINK_COLOR='\E[1;35m'
-    RES='\E[0m'
+    NONE='\E[0m'
 
 #这里判断传入的参数是否不等于2个，如果不等于2个就提示并退出
 
     if [ $# -ne 2  ];then
-        echo "Usage $0 content {red|yellow|blue|green|pink}"
+        echo "Usage: $0 {content} {red|yellow|blue|green|pink}"
         exit
     fi
 
     case "$2" in
         red|RED)
-            echo -e "${RED_COLOR}$1${RES}"
+            echo -e "${RED_COLOR}$1${NONE}"
             ;;
         yellow|YELLOW)
-            echo -e "${YELLOW_COLOR}$1${RES}"
+            echo -e "${YELLOW_COLOR}$1${NONE}"
             ;;
         green|GREEN)
-            echo -e "${GREEN_COLOR}$1${RES}"
+            echo -e "${GREEN_COLOR}$1${NONE}"
             ;;
         blue|BLUE)
-            echo -e "${BLUE_COLOR}$1${RES}"
+            echo -e "${BLUE_COLOR}$1${NONE}"
             ;;
         pink|PINK)
-            echo -e "${PINK_COLOR}$1${RES}"
+            echo -e "${PINK_COLOR}$1${NONE}"
             ;;
         *)
             echo -e "请输入指定的颜色代码：{red|yellow|blue|green|pink}"
     esac
 }
 
-ADD_COLOR "程序安装报错！" red
+#ADD_COLOR "程序安装报错！" red
 
-ADD_COLOR "程序安装成功！" green
+#ADD_COLOR "程序安装成功！" green
 
-ADD_COLOR "输出相关注释信息" blue
+#ADD_COLOR "输出相关注释信息" blue
