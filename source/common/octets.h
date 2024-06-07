@@ -33,16 +33,34 @@ public:
 
     octets dup();
 
-    FORCE_INLINE size_t size() const { return _size; }
+    FORCE_INLINE size_t size() const { return _len; }
     FORCE_INLINE size_t capacity() const { return _cap; }
-    FORCE_INLINE size_t free_space() const { return _cap - _size; }
+    FORCE_INLINE size_t free_space() const { return _cap - _len; }
 
 public:
-    void create(const char* data, size_t size);
-    void destroy();
+    void create(const char* data, size_t size)
+    {
+        if(_data)
+        {
+            delete[] _data;
+        }
+        _data = new char[size];
+        _len = 0;
+        _cap  = size;
+    }
+    void destroy()
+    {
+        if(_data)
+        {
+            delete[] _data;
+            _data = nullptr;
+        }
+        _len = 0;
+        _cap  = 0;
+    }
 
 private:
     char* _data  = nullptr;
-    size_t _size = 0;
+    size_t _len = 0;
     size_t _cap  = 0;
 };
