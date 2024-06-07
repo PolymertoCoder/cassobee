@@ -7,8 +7,8 @@ class octetsstream;
 class marshal
 {
 public:
-    virtual void pack(octetsstream&)   = 0;
-    virtual void unpack(octetsstream&) = 0;
+    virtual octetsstream& pack(octetsstream&)   = 0;
+    virtual octetsstream& unpack(octetsstream&) = 0;
 };
 
 class octetsstream
@@ -20,4 +20,5 @@ public:
 private:
     octets _data;
     size_t _pos = 0;
+    size_t _trans;
 };

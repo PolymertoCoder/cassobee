@@ -9,10 +9,10 @@ public:
     void init(const char* config_path);
     bool parse(std::ifstream& filestream);
     bool reload();
-    std::string get(const std::string section, const std::string item);
+    std::string get(const std::string section, const std::string item, const std::string& default_value = "");
 
     template<typename return_type = std::string>
-    return_type get(const std::string section, const std::string item)
+    return_type get(const std::string section, const std::string item, return_type default_value = {})
     {
         std::string value = get(section, item);
         if constexpr(std::is_integral_v<return_type>)
@@ -35,7 +35,7 @@ public:
             }
             return false;
         }
-        return return_type();
+        return default_value;
     }
 
 private:

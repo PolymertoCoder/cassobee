@@ -116,7 +116,7 @@ void threadpool::start()
         if(_groups[i] == nullptr)
         {
             _groups[i] = new thread_group(maxsize, threadcnt);
-            printf("thread group %d run %d threads, task queue maxsize:%d.\n", i, threadcnt, maxsize);
+            printf("thread group %d run %d threads, task queue maxsize:%d.\n", (int)i, threadcnt, maxsize);
         }
         else
         {
@@ -140,6 +140,6 @@ void threadpool::stop()
 
 void threadpool::add_task(int groupidx, const std::function<void()>& task)
 {
-    assert(groupidx >= 0 && groupidx < _groups.size());
+    assert(groupidx >= 0 && groupidx < (int)_groups.size());
     _groups[groupidx]->add_task(task);
 }

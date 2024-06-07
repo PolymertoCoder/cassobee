@@ -6,26 +6,10 @@
 void config::init(const char* config_path)
 {
     _config_path = config_path;
-
-    for(const auto& entry : std::filesystem::directory_iterator(_config_path))
+    if(!reload())
     {
-        std::string filepath = entry.path().string();
-        if(!entry.is_regular_file())
-        {
-            printf("config file %s is not a regular file\n", filepath.data());
-            continue;
-        }
-        std::ifstream ifs(filepath);
-        if(!ifs.is_open())
-        {
-            printf("config file %s cannot open?!\n", filepath.data());
-            continue;
-        }
-        if(!parse(ifs))
-        {
-            printf("parse config file:%s failed, an error occured!!!\n", filepath.data());
-        }
-        ifs.close();
+        printf("load config %s failed...\n", _config_path.data());
+        assert(false);
     }
     printf("load config %s finished...\n", _config_path.data());
 }
@@ -52,10 +36,30 @@ bool config::parse(std::ifstream& filestream)
 
 bool config::reload()
 {
+    for(const auto& entry : std::filesystem::directory_iterator(_config_path))
+    {
+        std::string filepath = entry.path().string();
+        if(!entry.is_regular_file())
+        {
+            printf("config file %s is not a regular file\n", filepath.data());
+            continue;
+        }
+        std::ifstream ifs(filepath);
+        if(!ifs.is_open())
+        {
+            printf("config file %s cannot open?!\n", filepath.data());
+            continue;
+        }
+        if(!parse(ifs))
+        {
+            printf("parse config file:%s failed, an error occured!!!\n", filepath.data());
+        }
+        ifs.close();
+    }
     return true;
 }
     
-std::string config::get(const std::string section, const std::string item)
+std::string config::get(const std::string section, const std::string item, const std::string& default_value)
 {
     if(auto section_iter = _sections.find(section); section_iter != _sections.end())
     {
@@ -64,5 +68,5 @@ std::string config::get(const std::string section, const std::string item)
             return item_iter->second;
         }
     }
-    return "";
+    return default_value;
 }
