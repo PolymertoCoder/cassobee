@@ -7,15 +7,14 @@
 
 inline size_t frob_size(size_t n)
 {
-    if(n == 0) return 0;
-    n = n - 1;
+    --n;
     n = n | (n >> 1);
     n = n | (n >> 2);
     n = n | (n >> 4);
     n = n | (n >> 8);
     n = n | (n >> 16);
-    n = n + 1;
-    return n;
+    ++n;
+    return n < 16 ? 16 : n;
 }
 
 class octets
@@ -25,24 +24,23 @@ public:
     {
         create(data, sizeof(data), sizeof(data));
     }
+    octets(const char* begin, const char* end)
+    {
+        size_t len = end - begin;
+        create(begin, len, len);
+    }
     octets(const char* data, size_t len)
     {
         create(data, len, len);
     }
     octets(const std::string& str)
     {
-        create(str.data(), str.size(), str.size());
-    }
-    octets(const std::string& str, size_t len)
-    {
+        size_t len = str.size();
         create(str.data(), len, len);
     }
     octets(const std::string_view& view)
     {
-        create(view.data(), view.size(), view.size());
-    }
-    octets(const std::string_view& view, size_t len)
-    {
+        size_t len = view.size();
         create(view.data(), len, len);
     }
     octets(const octets& oct)
@@ -93,10 +91,32 @@ public:
     {
         return std::string_view(_buf, _len);
     }
+    char* operator[](size_t pos)
+    {
+        if(pos >= _len) return nullptr;
+        return _buf + pos;
+    }
+
+    void swap(octets& rhs)
+    {
+        std::swap(_buf, rhs._buf);
+        std::swap(_len, rhs._len);
+        std::swap(_cap, rhs._cap);
+    }
+    void insert(size_t pos, const char* data, size_t len)
+    {
+        pos = std::min(_len, pos);
+        reserve(frob_size(_len + len));
+        memmove(_buf + pos + len, _buf + pos, len);
+        memcpy(_buf + pos, data, len);
+        _len += len;
+    }
     void append(const char* data, size_t len)
     {
+        if(len == 0) return;
         reserve(frob_size(_len + len));
-        strncat(_buf, data, len);
+        memcpy(_buf + _len, data, len);
+        _len += len;
     }
     void reserve(size_t cap)
     {

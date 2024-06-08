@@ -1,16 +1,20 @@
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-include_directories(.)
-include_directories(./common)
-include_directories(./common/logger)
-include_directories(./common/utility)
+include_directories(.
+                    ./common
+                    ./common/io
+                    ./common/logger
+                    ./common/utility
+)
 
 aux_source_directory(./common LIBBEE_SRC)
-message(${LIBBEE_SRC})
+aux_source_directory(./common/io LIBBEE_SRC)
+aux_source_directory(./common/utility LIBBEE_SRC)
+message("libbee source: " ${LIBBEE_SRC})
 add_library(bee SHARED ${LIBBEE_SRC})
 
 aux_source_directory(./common/logger LIBLOG_SRC)
-message(${LIBLOG_SRC})
+message("liblog source: " ${LIBLOG_SRC})
 add_library(log SHARED ${LIBLOG_SRC})
 
 set(LIB_LIB pthread bee log)

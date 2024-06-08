@@ -7,7 +7,7 @@ set(CMAKE_BUILD_TYPE debug)
 
 set(CMAKE_CXX_COMPILER "/usr/local/bin/c++")
 
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -g -std=c++17 -Wall -Wno-deprecated -Wno-unused-function -D_REENTRANT")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -g -std=c++20 -Wall -Wno-deprecated -Wno-unused-function -D_REENTRANT")
 
 # include(CheckCXXCompilerFlag)
 # CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
