@@ -5,6 +5,7 @@
 #include <vector>
 #include <functional>
 #include <algorithm>
+#include "log.h"
 
 template<typename lock_type>
 class delegate_base;
@@ -195,7 +196,7 @@ public:
             }
             catch(...)
             {
-                printf("multicast_delegate broadcast throw exception!!!\n");
+                ERRORLOG("multicast_delegate broadcast throw exception!!!");
             }
         }
     }

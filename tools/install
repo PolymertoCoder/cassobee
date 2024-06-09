@@ -1,9 +1,16 @@
 #!/bin/bash
 
-workdir=$(cd $(dirname $0); pwd)
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
-echo ${workdir}
+echo ${rootpath}
 
-echo export PATH=$PATH:${workdir} > ~/.cassobee_config
+echo export PATH=$PATH:${rootpath}/tool           > ~/.cassobee_config
+echo ''                                          >> ~/.cassobee_config
+echo alias ca=\"cd ${rootpath}\"                 >> ~/.cassobee_config
+echo alias tt=\"cd ${rootpath}/tools\"           >> ~/.cassobee_config
+echo alias ss=\"cd ${rootpath}/source\"          >> ~/.cassobee_config
+echo alias uu=\"cd ${rootpath}/common\"          >> ~/.cassobee_config
+echo alias dd=\"cd ${rootpath}/debug\"           >> ~/.cassobee_config
+echo alias trace=\"cd ${rootpath}/debug/logdir\" >> ~/.cassobee_config
 
 #echo source ~/.cassobee_config >> ~/.bash_profile

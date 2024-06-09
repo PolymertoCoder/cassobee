@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <string>
 #include <sys/stat.h>
 
@@ -21,6 +22,7 @@ void console_appender::log(LOG_LEVEL level, log_event* event)
     std::unique_lock<std::mutex> lock(_locker);
     std::string msg = _formatter->format(level, event);
     printf("%s", msg.data());
+    fflush(stdout);
 }
 
 time_rotater::time_rotater(ROTATE_TYPE rotate_type)

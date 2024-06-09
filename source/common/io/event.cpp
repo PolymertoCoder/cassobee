@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include "reactor.h"
 #include "event.h"
+#include "log.h"
 
 int control_event::_pipe[2] = {-1, -1};
 
@@ -10,7 +11,7 @@ control_event::control_event()
 {
     if(socketpair(AF_UNIX, SOCK_STREAM, 0, control_event::_pipe) == -1)
     {
-        printf("sigio_event create failed.\n");
+        local_log("sigio_event create failed.");
         return;
     }
 }
@@ -51,7 +52,7 @@ sigio_event::sigio_event()
 {
     if(socketpair(AF_UNIX, SOCK_STREAM, 0, sigio_event::_pipe) == -1)
     {
-        printf("sigio_event create failed.\n");
+        local_log("sigio_event create failed.");
         return;
     }
 }

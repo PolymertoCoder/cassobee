@@ -2,6 +2,7 @@
 #include "log_appender.h"
 #include "systemtime.h"
 #include "config.h"
+#include <cstdarg>
 #include <sstream>
 
 namespace cassobee
@@ -18,6 +19,16 @@ void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fib
     log_manager::get_instance()->log(level, filename, line, systemtime::get_time(), gettid(), 0, std::to_string(get_process_elapse()), content);
 }
 
+void console_log(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...)
+{
+    char content[1024];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(content, sizeof(content), fmt, args);
+    va_end(args);
+    log_manager::get_instance()->console_log(level, filename, line, systemtime::get_time(), gettid(), 0, std::to_string(get_process_elapse()), content);
+}
+
 void log_event::assign(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string elapse, std::string content)
 {
     _filename = std::move(filename);
@@ -29,7 +40,55 @@ void log_event::assign(std::string filename, int line, TIMETYPE time, int thread
     _content = std::stringstream(std::move(content));
 }
 
-logger::logger()
+logger::logger(log_appender* appender)
+    : _root_appender(appender)
+{    
+}
+
+logger::~logger()
+{
+    delete _root_appender;
+    _root_appender = nullptr;
+    clr_appender();
+}
+
+void logger::log(LOG_LEVEL level, log_event* event)
+{
+    _root_appender->log(level, event);
+}
+
+log_appender* logger::get_appender(const std::string& name)
+{
+    auto iter = _appenders.find(name);
+    return iter != _appenders.end() ? iter->second : nullptr;
+}
+
+bool logger::add_appender(const std::string& name, log_appender* appender)
+{
+    return _appenders.emplace(name, appender).second;
+}
+
+bool logger::del_appender(const std::string& name)
+{
+    if(auto iter = _appenders.find(name); iter != _appenders.end())
+    {
+        delete iter->second;
+        return true;
+    }
+    return false;
+}
+
+void logger::clr_appender()
+{
+    for(auto& [name, appender] : _appenders)
+    {
+        delete appender;
+        appender = nullptr;
+    }
+    _appenders.clear();
+}
+
+void log_manager::init()
 {
     auto cfg = config::get_instance();
     std::string logdir   = cfg->get("log", "dir");
@@ -38,32 +97,38 @@ logger::logger()
     bool asynclog = cfg->get<bool>("log", "asynclog");
     if(asynclog)
     {
-        _root_appender = new async_appender(logdir, filename);
+        _file_logger = new logger(new async_appender(logdir, filename));
     }
     else
     {
-        _root_appender = new file_appender(logdir, filename);
+        _file_logger = new logger(new file_appender(logdir, filename));
     }
+
+    _console_logger = new logger(new console_appender());
+
+    size_t poolsize = cfg->get<int>("log", "poolsize");
+    _eventpool.init(poolsize);
 }
 
-logger::~logger()
+logger* log_manager::get_logger(std::string name)
 {
-    if(_root_appender)
+    auto iter = _loggers.find(name);
+    return iter != _loggers.end() ? iter->second : nullptr;
+}
+    
+bool log_manager::add_logger(std::string name, logger* logger)
+{
+    return _loggers.emplace(name, logger).second;
+}
+    
+bool log_manager::del_logger(std::string name)
+{
+    if(auto iter = _loggers.find(name); iter != _loggers.end())
     {
-        delete _root_appender;
-        _root_appender = nullptr;
+        delete iter->second;
+        return true;
     }
-}
-
-void logger::log(LOG_LEVEL level, log_event* event)
-{
-    _root_appender->log(level, event);
-}
-
-void log_manager::init()
-{
-    _root_logger = new logger;
-    _eventpool.init(LOG_EVENT_POOLSIZE);
+    return false;
 }
 
 }

@@ -6,4 +6,10 @@ ks
 
 rm -f $rootpath/debug/cassobee.log
 
+echo 'wait process exit...'
+
+sleep 5
+
+echo 'start process...'
+
 cd $rootpath/bin && ./start.sh

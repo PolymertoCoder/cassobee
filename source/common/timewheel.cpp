@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include "timewheel.h"
 #include "config.h"
+#include "log.h"
 
 void timewheel::init()
 {
@@ -9,7 +10,7 @@ void timewheel::init()
     _ticktime = cfg->get<TIMETYPE>("timer", "interval");
     _timerpool.init(cfg->get<size_t>("timer", "poolsize"));
     _stop = false;
-    printf("timewheel init finished...\n");
+    local_log("timewheel init finished...");
 }
 
 int timewheel::add_timer(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)
@@ -26,7 +27,7 @@ int timewheel::add_timer(bool delay, TIMETYPE timeout, int repeats, callback han
     t->_repeats = repeats;
     t->_state = TIMER_STATE_ADD;
     add_to_changelist(t);
-    //printf("timer %d spinlock:%p.\n", timerid, &t->_locker);
+    //local_log("timer %d spinlock:%p.", timerid, &t->_locker);
     return timerid;
 }
 
@@ -38,7 +39,7 @@ bool timewheel::del_timer(int timerid)
         if(t->_state != TIMER_STATE_ACTIVE) return false; // 只支持删除active状态的定时器
         t->_state = TIMER_STATE_DEL;
         add_to_changelist(t);
-        printf("del_timer %lu\n", t->_id);
+        local_log("del_timer %lu", t->_id);
     }
     return false;
 }
@@ -54,7 +55,7 @@ void timewheel::readd_timer(timer_node* t)
     if(t->_nexttime - _tickcount >= NEAR_SLOTS)
     {
         _hanging_slots.push_back(t);
-        //printf("readd_timer %lu _timeout=%ld _nexttime=%ld in _hanging_slots, _tickcount=%ld\n", t->_id, t->_timeout, t->_nexttime, _tickcount);
+        //local_log("readd_timer %lu _timeout=%ld _nexttime=%ld in _hanging_slots, _tickcount=%ld", t->_id, t->_timeout, t->_nexttime, _tickcount);
     }
     else
     {
@@ -62,7 +63,7 @@ void timewheel::readd_timer(timer_node* t)
         if(t->_nexttime - _tickcount > 0)
             offset = t->_nexttime % NEAR_SLOTS;
         _near_slots[offset].push_back(t);
-        //printf("readd_timer %lu  _timeout=%ld _nexttime=%ld in _near_slots %d, _tickcount=%ld\n", t->_id, t->_timeout, t->_nexttime, offset, _tickcount);
+        //local_log("readd_timer %lu  _timeout=%ld _nexttime=%ld in _near_slots %d, _tickcount=%ld", t->_id, t->_timeout, t->_nexttime, offset, _tickcount);
     }
     t->_state = TIMER_STATE_ACTIVE;
 }
@@ -72,7 +73,7 @@ void timewheel::remove_timer(timer_node* t)
     if(t->_nexttime - _tickcount >= NEAR_SLOTS)
     {
         _hanging_slots.pop(t);
-        printf("remove_timer %lu in _hanging_slots\n", t->_id);
+        local_log("remove_timer %lu in _hanging_slots", t->_id);
     }
     else
     {
@@ -80,7 +81,7 @@ void timewheel::remove_timer(timer_node* t)
         if(t->_nexttime - _tickcount > 0)
             offset = (t->_nexttime - _tickcount) % NEAR_SLOTS;
         _near_slots[offset].pop(t);
-        printf("remove_timer %lu in _near_slots %d\n", t->_id, offset);
+        local_log("remove_timer %lu in _near_slots %d", t->_id, offset);
     }
     free_timer(t);
 }
@@ -89,7 +90,7 @@ void timewheel::free_timer(timer_node* t)
 {
     t->_state = TIMER_STATE_NONE;
     _timerpool.free(t->_id);
-    printf("free_timer %lu\n", t->_id);
+    local_log("free_timer %lu", t->_id);
 }
 
 void timewheel::load_timers()
@@ -120,7 +121,7 @@ void timewheel::load_timers()
 void timewheel::handle_timer()
 {
     int offset = _tickcount % NEAR_SLOTS;
-    //printf("handle_timer offset=%d\n", offset);
+    //local_log("handle_timer offset=%d", offset);
     timerlist active_list;
     active_list.swap(_near_slots[offset]);
     size_t i = 0, count = active_list.count;

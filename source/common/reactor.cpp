@@ -2,6 +2,7 @@
 #include "event.h"
 #include "systemtime.h"
 #include "timewheel.h"
+#include "log.h"
 #include <csignal>
 #include <cstdio>
 #include <cstring>
@@ -25,7 +26,7 @@ int reactor::add_event(event* ev, int events)
         TIMETYPE expiretime = tm->_delay ? (nowtime + tm->_timeout) : nowtime;
         tm->_delay = true;
         _timer_events.insert(std::make_pair(expiretime, ev));
-        //printf("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.\n", nowtime, tm->_delay, tm->_timeout, expiretime);
+        local_log("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.", nowtime, tm->_delay, tm->_timeout, expiretime);
     }
     else if(events & EVENT_SIGNAL)
     {
@@ -64,7 +65,7 @@ void reactor::handle_timer_event()
     TIMETYPE nowtime = systemtime::get_millseconds();
     while(_timer_events.size())
     {
-        //printf("handle_timer_event expiretime=%ld nowtime=%ld end\n", iter->first, nowtime);
+        //local_log("handle_timer_event expiretime=%ld nowtime=%ld end", iter->first, nowtime);
         auto& [expiretime, ev] = *(_timer_events.begin());
         _timer_events.erase(_timer_events.begin());
         timer_event* tm = dynamic_cast<timer_event*>(ev);
@@ -99,7 +100,7 @@ int reactor::run()
             TIMETYPE nowtime = systemtime::get_millseconds();
             TIMETYPE diff = _timer_events.begin()->first - nowtime;
             if(diff > _timeout) timeout = diff;
-            //printf("reactor::run nexttime=%ld nowtime=%ld timeout=%d\n", _timer_events.begin()->first, nowtime, timeout);
+            //local_log("reactor::run nexttime=%ld nowtime=%ld timeout=%d", _timer_events.begin()->first, nowtime, timeout);
         }
         _dispatcher->dispatch(this, timeout);
         handle_timer_event();        
@@ -133,7 +134,7 @@ void set_signal(int signum, SIG_HANDLER handler)
 
     if(sigaction(signum, &act, NULL) == -1)
     {
-        printf("capture %d signal, but to deal with failure\n", signum);
+        local_log("capture %d signal, but to deal with failure", signum);
     }
 }
 
@@ -142,9 +143,9 @@ void add_signal(int signum, bool(*callback)(int))
     reactor::get_instance()->add_event(new signal_event(signum, callback), EVENT_SIGNAL);
 }
 
-int add_timer(TIMETYPE timeout, std::function<bool()> handler)
+int add_timer(TIMETYPE timeout, std::function<void()> handler)
 {
-    return add_timer(true, timeout, -1, [handler](void*){ return handler(); }, nullptr);
+    return add_timer(true, timeout, -1, [handler](void*){ handler(); return false; }, nullptr);
 }
 
 int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool(void*)> handler, void* param)

@@ -4,18 +4,26 @@
 #include <string>
 #include <unordered_map>
 
+#include "macros.h"
 #include "objectpool.h"
 #include "types.h"
 #include "util.h"
 
-#define GLOG(loglevel, fmt, ...) \
-    cassobee::glog(loglevel, __FILE__, __LINE__, gettid(), 0, std::to_string(get_process_elapse()), fmt, __VA_ARGS__)
+#ifndef __FILE_NAME__
+#define __FILE_NAME__ __FILE__
+#endif
 
-#define DEBUGLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_DEBUG, fmt, __VA_ARGS__)
-#define INFOLOG(fmt,  ...) GLOG(cassobee::LOG_LEVEL_INFO,  fmt, __VA_ARGS__)
-#define WARNLOG(fmt,  ...) GLOG(cassobee::LOG_LEVEL_WARN,  fmt, __VA_ARGS__)
-#define ERRORLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_ERROR, fmt, __VA_ARGS__)
-#define FATALLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_FATAL, fmt, __VA_ARGS__)
+#define GLOG(loglevel, fmt, ...) \
+    cassobee::glog(loglevel, __FILE_NAME__, __LINE__, gettid(), 0, std::to_string(get_process_elapse()), fmt, ##__VA_ARGS__)
+
+#define DEBUGLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_DEBUG, fmt, ##__VA_ARGS__)
+#define INFOLOG(fmt,  ...) GLOG(cassobee::LOG_LEVEL_INFO,  fmt, ##__VA_ARGS__)
+#define WARNLOG(fmt,  ...) GLOG(cassobee::LOG_LEVEL_WARN,  fmt, ##__VA_ARGS__)
+#define ERRORLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_ERROR, fmt, ##__VA_ARGS__)
+#define FATALLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_FATAL, fmt, ##__VA_ARGS__)
+
+#define local_log(fmt, ...) \
+    cassobee::console_log(cassobee::LOG_LEVEL_INFO, __FILE_NAME__, __LINE__, gettid(), 0, std::to_string(get_process_elapse()), fmt, ##__VA_ARGS__)
 
 namespace cassobee
 {
@@ -34,6 +42,7 @@ enum LOG_LEVEL
 };
 
 void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...);
+void console_log(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...);
 
 class log_event
 {
@@ -67,19 +76,18 @@ private:
 class logger
 {
 public:
-    logger();
+    logger(log_appender* appender);
     ~logger();
     void log(LOG_LEVEL level, log_event* event);
 
-    void add_appender(const std::string& name, log_appender* appender);
-    void del_appender(const std::string& name);
+    log_appender* get_appender(const std::string& name);
+    bool add_appender(const std::string& name, log_appender* appender);
+    bool del_appender(const std::string& name);
     void clr_appender();
 private:
     log_appender* _root_appender  = nullptr;
     std::unordered_map<std::string, log_appender*> _appenders;
 };
-
-#define LOG_EVENT_POOLSIZE 4096
 
 class log_manager : public singleton_support<log_manager>
 {
@@ -90,21 +98,40 @@ public:
     void log(LOG_LEVEL level, params_type... params)
     {
         auto [id, evt] = _eventpool.alloc();
+        if(PREDICT_FALSE(!evt))
+        {
+            printf("logevent pool is full or not initialize\n");
+            return;
+        }
         evt->assign(params...);
-        _root_logger->log(level, evt);
+        _file_logger->log(level, evt);
+        _eventpool.free(id);
+    }
+    template<typename ...params_type>
+    void console_log(LOG_LEVEL level, params_type... params)
+    {
+        auto [id, evt] = _eventpool.alloc();
+        if(PREDICT_FALSE(!evt))
+        {
+            printf("logevent pool is full or not initialize\n");
+            return;
+        }
+        evt->assign(params...);
+        _console_logger->log(level, evt);
         _eventpool.free(id);
     }
 
-    void get_logger(std::string name);
-    void add_logger(std::string name, logger* logger);
-    void del_logger(std::string name);
+    logger* get_logger(std::string name);
+    bool add_logger(std::string name, logger* logger);
+    bool del_logger(std::string name);
 
     static void set_process_name(const char* name) { _process_name = name; }
     static const char* get_process_name() { return _process_name.data(); }
     
 private:
     static std::string _process_name;
-    logger* _root_logger = nullptr;
+    logger* _file_logger = nullptr;
+    logger* _console_logger = nullptr;
     std::unordered_map<std::string, logger*> _loggers;
     objectpool<log_event> _eventpool;
 };

@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include "threadpool.h"
 #include "config.h"
+#include "log.h"
 
 thread_group::thread_group(size_t maxsize, size_t threadcnt)
     : _maxsize(maxsize), _threadcnt(threadcnt)
@@ -36,7 +37,7 @@ thread_group::thread_group(size_t maxsize, size_t threadcnt)
                 catch(...)
                 {
                     --_busy;
-                    printf("thread_task run throw exception!!!");
+                    local_log("thread_task run throw exception!!!");
                 }
                 --_busy;
 
@@ -116,11 +117,11 @@ void threadpool::start()
         if(_groups[i] == nullptr)
         {
             _groups[i] = new thread_group(maxsize, threadcnt);
-            printf("thread group %d run %d threads, task queue maxsize:%d.\n", (int)i, threadcnt, maxsize);
+            local_log("thread group %d run %d threads, task queue maxsize:%d.", (int)i, threadcnt, maxsize);
         }
         else
         {
-            printf("thread group %d already start.\n", (int)i);
+            local_log("thread group %d already start.", (int)i);
         }
     }
 }

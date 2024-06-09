@@ -1,8 +1,8 @@
 #!/bin/bash
 
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
-rootpath+=/debug/cassobee
+procpath=$rootpath/debug/cassobee
 
-#pkill -SIGUSR1 -f $rootpath
-pkill -9 -f $rootpath
-#pgrep -f $rootpath | xargs kill -SIGUSR1
+pkill -SIGUSR1 -f $procpath
+#pkill -9 -f $procpath
+#pgrep -f $procpath | xargs kill -SIGUSR1

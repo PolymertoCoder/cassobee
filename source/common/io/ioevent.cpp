@@ -2,6 +2,7 @@
 #include <cstring>
 #include <unistd.h>
 #include "ioevent.h"
+#include "log.h"
 
 bool streamio_event::handle_event(int active_events)
 {
@@ -22,7 +23,7 @@ bool streamio_event::handle_event(int active_events)
 
 int streamio_event::handle_accept()
 {
-    //printf("handle_accept begin.\n");
+    //local_log("handle_accept begin.");
     if(_base == nullptr) return -1;
 
     struct sockaddr_in sock_client;
@@ -32,7 +33,7 @@ int streamio_event::handle_accept()
     {
         if(errno != EAGAIN || errno != EINTR)
         {
-            printf("accept: %s\n", strerror(errno));
+            local_log("accept: %s", strerror(errno));
             return -1;
         }
     }
@@ -43,7 +44,7 @@ int streamio_event::handle_accept()
     event* ev = (event*)new streamio_event(clientfd);
     if(ev == nullptr) return -1;
     _base->add_event(ev, EVENT_RECV);
-    printf("accept clientid=%d.\n", clientfd);
+    local_log("accept clientid=%d.", clientfd);
 
     return 0;
 }
@@ -62,7 +63,7 @@ int streamio_event::handle_recv()
         len = recv(_fd, _readbuf+idx, READ_BUFFER_SIZE-idx, 0);
         if(len > 0) {
             idx += len;
-            printf("recv[%d]:%s\n", len, _readbuf);
+            local_log("recv[%d]:%s", len, _readbuf);
         }
         else if(len == 0) {
             close(_fd);
@@ -88,7 +89,7 @@ int streamio_event::handle_recv()
         _readbuf[len] = '\0';
         //TODO 处理业务
         
-        //printf("recv[fd=%d]:%s\n", _fd, _readbuf);
+        //local_log("recv[fd=%d]:%s", _fd, _readbuf);
         memcpy(_writebuf, _readbuf, _rlength);
         _wlength = _rlength;
         _base->add_event(this, EVENT_SEND);
@@ -100,7 +101,7 @@ int streamio_event::handle_recv()
     }
     else
     {
-        printf("recv[fd=%d] len=%d error[%d]:%s\n", _handle, len, errno, strerror(errno));
+        local_log("recv[fd=%d] len=%d error[%d]:%s", _handle, len, errno, strerror(errno));
         close(_handle);
     }
 #endif

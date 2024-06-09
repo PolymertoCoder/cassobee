@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <sys/epoll.h>
 #include "demultiplexer.h"
+#include "log.h"
 
 bool epoller::init()
 {
@@ -25,7 +26,7 @@ int epoller::add_event(event* ev, int events)
     {
         event.events |= EPOLLIN;
         _listenfds.insert(ev->get_handle());
-        printf("add accept event, listenfd is %d\n", ev->get_handle());
+        local_log("add accept event, listenfd is %d", ev->get_handle());
     }
     if(events & EVENT_RECV)
     {
@@ -52,13 +53,13 @@ int epoller::add_event(event* ev, int events)
     }
     else
     {
-        printf("add_event failed %d, epfd=%d\n", ev->get_handle(), _epfd);
+        local_log("add_event failed %d, epfd=%d", ev->get_handle(), _epfd);
         return -2;
     }
 
     if(int ret = epoll_ctl(_epfd, op, ev->get_handle(), &event))
     {
-        printf("add_event failed %d, ret=%d epfd=%d\n", ev->get_handle(), ret, _epfd);
+        local_log("add_event failed %d, ret=%d epfd=%d", ev->get_handle(), ret, _epfd);
         return -3;
     }
     return 0;
@@ -74,7 +75,7 @@ void epoller::del_event(event* ev)
 
     if(epoll_ctl(_epfd, EPOLL_CTL_DEL, ev->get_handle(), &event) < 0)
     {
-        printf("del_event failed %d\n", ev->get_handle());
+        local_log("del_event failed %d", ev->get_handle());
         return;
     }
 }

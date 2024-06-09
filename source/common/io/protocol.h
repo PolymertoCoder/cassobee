@@ -1,6 +1,7 @@
 #pragma once
 #include "marshal.h"
 #include <map>
+#include <sys/types.h>
 
 using PROTOCOLID  = uint32_t;
 

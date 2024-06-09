@@ -83,15 +83,23 @@ public:
         create(rhs.buf(), rhs.size(), rhs.capacity());
         return *this;
     }
-    operator std::string()
+    operator char*() const
+    {
+        return _buf;
+    }
+    operator const char*() const
+    {
+        return _buf;
+    }
+    operator std::string() const
     {
         return std::string(_buf, _len);
     }
-    operator std::string_view()
+    operator std::string_view() const
     {
         return std::string_view(_buf, _len);
     }
-    char* operator[](size_t pos)
+    char* operator[](size_t pos) const
     {
         if(pos >= _len) return nullptr;
         return _buf + pos;
@@ -108,22 +116,31 @@ public:
         pos = std::min(_len, pos);
         reserve(frob_size(_len + len));
         memmove(_buf + pos + len, _buf + pos, len);
-        memcpy(_buf + pos, data, len);
+        memmove(_buf + pos, data, len);
         _len += len;
     }
     void append(const char* data, size_t len)
     {
         if(len == 0) return;
         reserve(frob_size(_len + len));
-        memcpy(_buf + _len, data, len);
+        memmove(_buf + _len, data, len);
         _len += len;
+    }
+    void erase(size_t pos, size_t len)
+    {
+        pos = std::min(_len, pos);
+        len = std::min(_len - pos, len);
+        memmove(_buf, _buf + len, _len - len);
+        _len -= len;
     }
     void reserve(size_t cap)
     {
         if(_cap < cap) return;
         create(_buf, _len, cap);
     }
-    
+
+    FORCE_INLINE char* begin() const { return _buf; }
+    FORCE_INLINE char* end() const { return _buf + _len; }
     FORCE_INLINE char* buf() const { return _buf; }
     FORCE_INLINE size_t size() const { return _len; }
     FORCE_INLINE size_t capacity() const { return _cap; }
