@@ -2,8 +2,10 @@
 
 #include "octets.h"
 #include "types.h"
+#include "bytes_order.h"
 #include <exception>
 #include <type_traits>
+#include <vector>
 
 class octetsstream;
 
@@ -62,6 +64,39 @@ public:
         }
         memcpy(&val, _data.begin() + _pos, len);
         _pos += len;
+        return *this;
+    }
+    // STL容器
+    template<typename container_type>
+    octetsstream& push_container(const container_type& c)
+    {
+        for(const auto iter = c.cbegin(); iter != c.cend(); ++iter)
+        {
+            push(*iter);
+        }
+        return *this;
+    }
+    template<typename container_type>
+    requires (std::declval<container_type>().reserve(std::declval<size_t()>))
+    octetsstream& pop_container(container_type& c)
+    {
+        using size_type  = container_type::size_type;
+        using value_type = container_type::value_type;
+        size_type size = 0;
+        pop<size_type>(size);
+        c.reserve(size);
+
+        value_type value;
+        pop<value_type>(value);
+        // TODO
+        return *this;
+    }
+    template<typename container_type>
+    octetsstream& pop_container(container_type& c)
+    {
+        using size_type = typename container_type::size_type;
+        size_type size = 0;
+        pop<size_type>(size);
         return *this;
     }
 

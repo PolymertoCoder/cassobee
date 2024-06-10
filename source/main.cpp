@@ -30,6 +30,7 @@ bool sigusr1_handler(int signum)
         threadpool::get_instance()->stop();
         reactor::get_instance()->stop();
         printf("recv signal end process...");
+        return false;
     });
     return true;
 }
@@ -45,11 +46,11 @@ int main()
     local_log("nowtime1=%ld", systemtime::get_microseconds());
     sleep(3);
     local_log("nowtime2=%ld", systemtime::get_microseconds());
-    add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
-    add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
-    add_timer(false, 5000, -1, [](void*){ local_log("timer3 nowtime3: %ld.", systemtime::get_time()); return false; }, nullptr);
+    // add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
+    // add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
+    // add_timer(false, 5000, -1, [](void*){ local_log("timer3 nowtime3: %ld.", systemtime::get_time()); return false; }, nullptr);
 
-    add_timer(1000,  [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
+    add_timer(1000, [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
     add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
     add_timer(1500, [](){ WARNLOG("WARN=%d", 10);   return true; });
     add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });

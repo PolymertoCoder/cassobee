@@ -143,9 +143,9 @@ void add_signal(int signum, bool(*callback)(int))
     reactor::get_instance()->add_event(new signal_event(signum, callback), EVENT_SIGNAL);
 }
 
-int add_timer(TIMETYPE timeout, std::function<void()> handler)
+int add_timer(TIMETYPE timeout, std::function<bool()> handler)
 {
-    return add_timer(true, timeout, -1, [handler](void*){ handler(); return false; }, nullptr);
+    return add_timer(true, timeout, -1, [handler](void*){ return handler(); }, nullptr);
 }
 
 int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool(void*)> handler, void* param)

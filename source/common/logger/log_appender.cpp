@@ -19,8 +19,9 @@ log_appender::log_appender()
 
 void console_appender::log(LOG_LEVEL level, log_event* event)
 {
-    std::unique_lock<std::mutex> lock(_locker);
     std::string msg = _formatter->format(level, event);
+
+    std::unique_lock<std::mutex> lock(_locker);
     printf("%s", msg.data());
     fflush(stdout);
 }
@@ -100,9 +101,10 @@ file_appender::~file_appender()
 
 void file_appender::log(LOG_LEVEL level, log_event* event)
 {
-    std::unique_lock<std::mutex> lock(_locker);
     if(!_running) return;
     std::string msg = _formatter->format(level, event);
+
+    std::unique_lock<std::mutex> lock(_locker);
     if(_rotater->is_rotate())
     {
         _filepath = _filedir + format_string("/%s.%s.log", _filename.data(), _rotater->get_suffix());
@@ -126,8 +128,9 @@ bool file_appender::reopen() // no lock
 async_appender::async_appender(std::string logdir, std::string filename)
     : file_appender(logdir, filename)
 {
-    _timeout   = 5000;
-    _threshold = 4096;
+    auto cfg = config::get_instance();
+    _timeout   = cfg->get<int>("log", "interval");
+    _threshold = cfg->get<int>("log", "threshold");
     start();
 }
 
@@ -138,9 +141,10 @@ async_appender::~async_appender()
 
 void async_appender::log(LOG_LEVEL level, log_event* event)
 {
-    std::unique_lock<std::mutex> lock(_locker);
     if(!_running) return;
     std::string msg = _formatter->format(level, event);
+
+    std::unique_lock<std::mutex> lock(_locker);
     size_t length = _buf.write(msg.data(), msg.size());
     if(PREDICT_FALSE(length != msg.size()))
     {
@@ -163,7 +167,7 @@ void async_appender::start()
             while(_buf.empty())
             {
                 _cond.wait_for(lock, std::chrono::milliseconds(_timeout),
-                    [this](){ return  _buf.size() >= _threshold || !_running; });
+                    [this](){ return _buf.size() >= _threshold || !_running; });
             }
 
             if(_rotater->is_rotate())
@@ -190,6 +194,7 @@ void async_appender::stop()
         _thread->join();
     }
     delete _thread;
+    _thread = nullptr;
 }
 
 }

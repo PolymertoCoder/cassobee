@@ -26,7 +26,8 @@ int rand(int min, int max)
 
 pid_t gettid()
 {
-    return syscall(SYS_gettid);
+    thread_local pid_t tid = syscall(SYS_gettid);
+    return tid;
 }
 
 TIMETYPE get_process_elapse()

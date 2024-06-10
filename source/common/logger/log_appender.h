@@ -93,12 +93,12 @@ public:
     void stop();
 
 private:
+    template<size_t N> using buffer_type = cassobee::ring_buffer<N>;
     TIMETYPE _timeout = 0; // ms
     size_t   _threshold = 0;
     std::condition_variable _cond;
     std::thread* _thread = nullptr;
-    cassobee::ring_buffer<4096*8> _buf;
-    //cassobee::fixed_buffer<4096*8> _buf;
+    buffer_type<4096*8> _buf;
 };
 
 }
