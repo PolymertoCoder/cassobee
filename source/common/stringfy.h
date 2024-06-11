@@ -2,6 +2,7 @@
 
 #include "log.h"
 #include <deque>
+#include <utility>
 #include <vector>
 #include <map>
 #include <set>
@@ -42,7 +43,7 @@ std::string container_to_string(const STL_CONTAINER& container, const std::strin
     size_t i = 0, sz = container.size();
     for(typename STL_CONTAINER::const_iterator iter = container.begin(); iter != container.end(); ++iter, ++i)
     {
-        str.append(ToString(*iter));
+        str.append(to_string(*iter));
         if(i != sz-1){ str.append(", "); }
     }
     return str.append("}");
@@ -83,6 +84,15 @@ std::string to_string(const std::unordered_map<T1, T2>& val)
 {
     return container_to_string(val, "std::unordered_map:{");
 }
-
+template<typename... types>
+std::string to_string(const std::tuple<types...>& val)
+{
+    std::string str("std::tuple:{");
+    [&]<size_t... Is>(std::index_sequence<sizeof...(types)>&&)
+    {
+        ((str + to_string(std::get<Is>(val))), ...);
+    }(std::make_index_sequence<sizeof...(types)>());
+    return str.append("}");
+}
 
 }

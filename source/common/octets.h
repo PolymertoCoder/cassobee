@@ -20,6 +20,9 @@ inline size_t frob_size(size_t n)
 class octets
 {
 public:
+    octets() : _buf(new char[16]), _len(0), _cap(16)
+    {
+    }
     octets(const char* data)
     {
         create(data, sizeof(data), sizeof(data));
@@ -146,6 +149,7 @@ public:
     FORCE_INLINE size_t capacity() const { return _cap; }
     FORCE_INLINE size_t free_space() const { return _cap - _len; }
     FORCE_INLINE octets dup() const { return octets(*this); }
+    FORCE_INLINE void clear() { _len = 0; }
 
 private:
     void create(const char* data, size_t len, size_t cap)

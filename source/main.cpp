@@ -5,7 +5,10 @@
 #include "timewheel.h"
 #include "systemtime.h"
 #include "log.h"
+#include "marshal.h"
+#include <climits>
 #include <csignal>
+#include <unordered_set>
 
 std::thread start_threadpool_and_timer()
 {
@@ -63,6 +66,33 @@ int main()
     //     threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
     //     usleep(1000);
     // }
+
+    std::vector<int> vec;
+    std::set<int> set;
+    std::map<int, int> map;
+    std::unordered_set<int> uset;
+    std::unordered_map<int, int> umap;
+    for(size_t i = 0; i < 10; ++i)
+    {
+        vec.push_back(rand(INT_MIN, INT_MAX));
+        set.insert(rand(INT_MIN, INT_MAX));
+        map.emplace(i, rand(INT_MIN, INT_MAX));
+        uset.insert(rand(INT_MIN, INT_MAX));
+        umap.emplace(i, rand(INT_MIN, INT_MAX));
+    }
+    octetsstream os; //os << vec;
+    local_log("std::is_standard_layout_v<T> %d", std::is_standard_layout_v<std::vector<int>>);
+
+    std::vector<int> vec2;
+    std::set<int> set2;
+    std::map<int, int> map2;
+    std::unordered_set<int> uset2;
+    std::unordered_map<int, int> umap2;
+    for(size_t i = 0; i < 10; ++i)
+    {
+
+    }
+
 
     reactor::get_instance()->run();
     timer_thread.join();
