@@ -1,5 +1,14 @@
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
+function(add_common_flags target)
+    get_target_property(sources ${target} SOURCES)
+
+    foreach(source ${sources})
+        get_filename_component(filename ${source} NAME)
+        set_source_files_properties(${source} PROPERTIES COMPILE_DEFINITIONS "__FILENAME__=\"${filename}\"")
+    endforeach()
+endfunction()
+
 include_directories(.
                     ./common
                     ./common/io
@@ -27,3 +36,7 @@ target_link_libraries(cassobee ${LIB_LIB})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/debug)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/debug/lib)
+
+add_common_flags(bee)
+add_common_flags(log)
+add_common_flags(cassobee)

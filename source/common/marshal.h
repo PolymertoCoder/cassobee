@@ -79,14 +79,14 @@ public:
     // STL容器 push & pop
     template<typename T>
     requires cassobee::is_stl_container_v<T>
-    octetsstream& push(const T& val)
+    ATTR_WEAK octetsstream& push(const T& val)
     {
         return push_container(val);
     }
 
     template<typename T>
     requires cassobee::is_stl_container_v<T>
-    octetsstream& pop(T& val)
+    ATTR_WEAK octetsstream& pop(T& val)
     {
         return pop_container(val);
     }

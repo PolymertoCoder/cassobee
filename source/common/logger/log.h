@@ -9,12 +9,12 @@
 #include "types.h"
 #include "util.h"
 
-#ifndef __FILE_NAME__
-#define __FILE_NAME__ __FILE__
+#ifndef __FILENAME__
+#define __FILENAME__ __FILE__
 #endif
 
 #define GLOG(loglevel, fmt, ...) \
-    cassobee::glog(loglevel, __FILE_NAME__, __LINE__, gettid(), 0, std::to_string(get_process_elapse()), fmt, ##__VA_ARGS__)
+    cassobee::glog(loglevel, __FILENAME__, __LINE__, gettid(), 0, {}, fmt, ##__VA_ARGS__)
 
 #define DEBUGLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_DEBUG, fmt, ##__VA_ARGS__)
 #define INFOLOG(fmt,  ...) GLOG(cassobee::LOG_LEVEL_INFO,  fmt, ##__VA_ARGS__)
@@ -23,7 +23,7 @@
 #define FATALLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_FATAL, fmt, ##__VA_ARGS__)
 
 #define local_log(fmt, ...) \
-    cassobee::console_log(cassobee::LOG_LEVEL_INFO, __FILE_NAME__, __LINE__, gettid(), 0, std::to_string(get_process_elapse()), fmt, ##__VA_ARGS__)
+    cassobee::console_log(cassobee::LOG_LEVEL_INFO, __FILENAME__, __LINE__, gettid(), 0, {}, fmt, ##__VA_ARGS__)
 
 namespace cassobee
 {
