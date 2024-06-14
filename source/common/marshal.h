@@ -1,5 +1,6 @@
 #pragma once
 
+#include "concept.h"
 #include "octets.h"
 #include "traits.h"
 #include "types.h"
@@ -55,15 +56,13 @@ public:
 
     // 标准布局类型 push & pop
     template<typename T>
-    requires std::is_standard_layout_v<T>
     octetsstream& push(const T& val)
     {
-        _data.append(&val, sizeof(T));
+        _data.append((char*)&val, sizeof(T));
         return *this;
     }
 
     template<typename T>
-    requires std::is_standard_layout_v<T>
     octetsstream& pop(T& val)
     {
         size_t len = sizeof(val);
@@ -79,14 +78,14 @@ public:
     // STL容器 push & pop
     template<typename T>
     requires cassobee::is_stl_container_v<T>
-    ATTR_WEAK octetsstream& push(const T& val)
+    octetsstream& push(const T& val)
     {
         return push_container(val);
     }
 
     template<typename T>
     requires cassobee::is_stl_container_v<T>
-    ATTR_WEAK octetsstream& pop(T& val)
+    octetsstream& pop(T& val)
     {
         return pop_container(val);
     }
@@ -110,7 +109,7 @@ protected:
     template<typename container_type>
     octetsstream& push_container(const container_type& container)
     {
-        for(const auto iter = container.cbegin(); iter != container.cend(); ++iter)
+        for(auto iter = container.cbegin(); iter != container.cend(); ++iter)
         {
             push(*iter);
         }
@@ -118,7 +117,7 @@ protected:
     }
 
     template<typename container_type>
-    requires (std::declval<container_type>().reserve(std::declval<size_t()>))
+    requires can_reserve_stl_container<container_type>
     octetsstream& pop_container(container_type& container)
     {
         using size_type  = container_type::size_type;

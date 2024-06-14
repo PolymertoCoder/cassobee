@@ -6,6 +6,7 @@
 #include "systemtime.h"
 #include "log.h"
 #include "marshal.h"
+#include "stringfy.h"
 #include <climits>
 #include <csignal>
 #include <unordered_set>
@@ -74,25 +75,27 @@ int main()
     std::unordered_map<int, int> umap;
     for(size_t i = 0; i < 10; ++i)
     {
-        vec.push_back(rand(INT_MIN, INT_MAX));
-        set.insert(rand(INT_MIN, INT_MAX));
-        map.emplace(i, rand(INT_MIN, INT_MAX));
-        uset.insert(rand(INT_MIN, INT_MAX));
-        umap.emplace(i, rand(INT_MIN, INT_MAX));
+        vec.push_back(rand(-1, 1000));
+        set.insert(rand(-1, 1000));
+        map.emplace(i, rand(-1, 1000));
+        uset.insert(rand(-1, 1000));
+        umap.emplace(i, rand(-1, 1000));
     }
-    octetsstream os; //os << vec;
-    local_log("std::is_standard_layout_v<T> %d", std::is_standard_layout_v<std::vector<int>>);
 
     std::vector<int> vec2;
     std::set<int> set2;
     std::map<int, int> map2;
     std::unordered_set<int> uset2;
     std::unordered_map<int, int> umap2;
-    for(size_t i = 0; i < 10; ++i)
-    {
-
-    }
-
+    
+    octetsstream os;
+    os << vec;
+    os >> vec2;
+    local_log("vec2 %s", cassobee::to_string(vec2).data());
+    local_log("set2 %s", cassobee::to_string(set2).data());
+    local_log("map2 %s", cassobee::to_string(map2).data());
+    local_log("uset2 %s", cassobee::to_string(uset2).data());
+    local_log("umap2 %s", cassobee::to_string(umap2).data());
 
     reactor::get_instance()->run();
     timer_thread.join();

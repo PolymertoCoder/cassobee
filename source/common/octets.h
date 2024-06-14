@@ -3,17 +3,21 @@
 #include <cstring>
 #include <string>
 #include <string_view>
+#include "log.h"
 #include "types.h"
 
 inline size_t frob_size(size_t n)
 {
+    local_log("frob_size before n=%zu.", n);
     --n;
-    n = n | (n >> 1);
-    n = n | (n >> 2);
-    n = n | (n >> 4);
-    n = n | (n >> 8);
-    n = n | (n >> 16);
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    n |= n >> 32;
     ++n;
+    local_log("frob_size after n=%zu.", n);
     return n < 16 ? 16 : n;
 }
 
@@ -138,6 +142,7 @@ public:
     }
     void reserve(size_t cap)
     {
+        local_log("reserve: cap=%zu _cap=%zu", cap, _cap);
         if(_cap < cap) return;
         create(_buf, _len, cap);
     }
