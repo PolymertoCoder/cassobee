@@ -36,8 +36,8 @@ void log_event::assign(std::string filename, int line, TIMETYPE time, int thread
     _time = time;
     _threadid = threadid;
     _fiberid = fiberid;
-    _elapse = std::move(elapse);
-    _content = std::stringstream(std::move(content));
+    _elapse.swap(elapse);
+    _content.swap(content);
 }
 
 logger::logger(log_appender* appender)

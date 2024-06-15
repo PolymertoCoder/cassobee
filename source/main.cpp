@@ -75,11 +75,11 @@ int main()
     std::unordered_map<int, int> umap;
     for(size_t i = 0; i < 10; ++i)
     {
-        vec.push_back(rand(-1, 1000));
-        set.insert(rand(-1, 1000));
-        map.emplace(i, rand(-1, 1000));
-        uset.insert(rand(-1, 1000));
-        umap.emplace(i, rand(-1, 1000));
+        vec.push_back(rand(-1, 1000) + i);
+        set.insert(rand(-1, 1000) + i);
+        map.emplace(i, rand(-1, 1000) + i);
+        uset.insert(rand(-1, 1000) + i);
+        umap.emplace(i, rand(-1, 1000) + i);
     }
 
     std::vector<int> vec2;
@@ -87,15 +87,27 @@ int main()
     std::map<int, int> map2;
     std::unordered_set<int> uset2;
     std::unordered_map<int, int> umap2;
-    
-    octetsstream os;
-    os << vec;
-    os >> vec2;
-    local_log("vec2 %s", cassobee::to_string(vec2).data());
-    local_log("set2 %s", cassobee::to_string(set2).data());
-    local_log("map2 %s", cassobee::to_string(map2).data());
-    local_log("uset2 %s", cassobee::to_string(uset2).data());
-    local_log("umap2 %s", cassobee::to_string(umap2).data());
+
+    {
+        octetsstream os; os << vec; os >> vec2;
+        printf("vec2 %s\n", cassobee::to_string(vec2).data());
+    }
+    {
+        octetsstream os; os << set; os >> set2;
+        printf("set2 %s\n", cassobee::to_string(set2).data());
+    }
+    {
+        octetsstream os; os << map; os >> map2;
+        printf("map2 %s\n", cassobee::to_string(map2).data());
+    }
+    {
+        octetsstream os; os << uset; os >> uset2;
+        printf("uset2 %s\n", cassobee::to_string(uset2).data());
+    }
+    {
+        octetsstream os; os << umap; os >> umap2;
+        printf("umap2 %s\n", cassobee::to_string(umap2).data());
+    }
 
     reactor::get_instance()->run();
     timer_thread.join();

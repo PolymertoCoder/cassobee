@@ -6,9 +6,10 @@
 #include "log.h"
 #include "types.h"
 
-inline size_t frob_size(size_t n)
+inline constexpr size_t frob_size(size_t n)
 {
-    local_log("frob_size before n=%zu.", n);
+    //printf("frob_size before n=%zu.\n", n);
+    if(n == 0) return 1;
     --n;
     n |= n >> 1;
     n |= n >> 2;
@@ -17,7 +18,7 @@ inline size_t frob_size(size_t n)
     n |= n >> 16;
     n |= n >> 32;
     ++n;
-    local_log("frob_size after n=%zu.", n);
+    //printf("frob_size after n=%zu.\n", n);
     return n < 16 ? 16 : n;
 }
 
@@ -123,14 +124,14 @@ public:
         pos = std::min(_len, pos);
         reserve(frob_size(_len + len));
         memmove(_buf + pos + len, _buf + pos, len);
-        memmove(_buf + pos, data, len);
+        memcpy(_buf + pos, data, len);
         _len += len;
     }
     void append(const char* data, size_t len)
     {
         if(len == 0) return;
         reserve(frob_size(_len + len));
-        memmove(_buf + _len, data, len);
+        memcpy(_buf + _len, data, len);
         _len += len;
     }
     void erase(size_t pos, size_t len)
@@ -142,8 +143,8 @@ public:
     }
     void reserve(size_t cap)
     {
-        local_log("reserve: cap=%zu _cap=%zu", cap, _cap);
-        if(_cap < cap) return;
+        //printf("reserve: newcap=%zu oldcap=%zu\n", cap, _cap);
+        if(_cap >= cap) return;
         create(_buf, _len, cap);
     }
 
@@ -160,6 +161,7 @@ private:
     void create(const char* data, size_t len, size_t cap)
     {
         cap = std::max(len, cap);
+        //printf("create: newcap=%zu oldcap=%zu\n", cap, _cap);
         char* tmp = new char[cap];
         memcpy(tmp, data, len);
         _len = len;

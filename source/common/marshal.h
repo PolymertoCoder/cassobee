@@ -37,33 +37,45 @@ public:
         const char* _msg; 
     };
 
+    enum Transaction
+    {
+        BEGIN,
+        ROLLBACK,
+        COMMIT
+    };
+
 public:
     octetsstream() : _data() {}
     octetsstream(const octets& oct) : _data(oct) {}
     octetsstream(const octets& oct, size_t size) : _data(oct, size) {}
 
-    template<typename T>
-    octetsstream& operator <<(const T& val)
+    template<typename T> FORCE_INLINE octetsstream& operator <<(const T& val) { return push(val); }
+    template<typename T> FORCE_INLINE octetsstream& operator >>(T& val) { return pop(val); }
+
+    FORCE_INLINE void swap(octetsstream& rhs)
     {
-        return push(val);
+        _data.swap(rhs._data);
+        std::swap(_pos, rhs._pos);
+        std::swap(_transpos, rhs._transpos);
     }
 
-    template<typename T>
-    octetsstream& operator >>(T& val)
-    {
-        return pop(val);
-    }
+    FORCE_INLINE void reserve(size_t cap) { _data.reserve(cap); }
+    FORCE_INLINE octets& data() { return _data; }
+    FORCE_INLINE void reset_pos() { _pos = 0; }
+    FORCE_INLINE void clear() { _data.clear(); _pos = 0; _transpos = 0; }
+    FORCE_INLINE size_t get_pos() const { return _pos; }
+    FORCE_INLINE size_t size() const { return _data.size(); }
+    FORCE_INLINE size_t capacity() const { return _data.capacity(); }
 
+public:
     // 标准布局类型 push & pop
-    template<typename T>
-    octetsstream& push(const T& val)
+    template<typename T> octetsstream& push(const T& val)
     {
         _data.append((char*)&val, sizeof(T));
         return *this;
     }
 
-    template<typename T>
-    octetsstream& pop(T& val)
+    template<typename T> octetsstream& pop(T& val)
     {
         size_t len = sizeof(val);
         if(_pos + len > _data.size())
@@ -72,6 +84,20 @@ public:
         }
         memcpy(&val, _data.begin() + _pos, len);
         _pos += len;
+        return *this;
+    }
+
+    template<typename T, typename U> octetsstream& push(const std::pair<T, U>& val)
+    {
+        push(val.first);
+        push(val.second);
+        return *this;
+    }
+
+    template<typename T, typename U> octetsstream& pop(std::pair<T, U>& val)
+    {
+        pop(val.first);
+        pop(val.second);
         return *this;
     }
 
@@ -90,25 +116,11 @@ public:
         return pop_container(val);
     }
 
-    void swap(octetsstream& rhs)
-    {
-        _data.swap(rhs._data);
-        std::swap(_pos, rhs._pos);
-        std::swap(_transpos, rhs._transpos);
-    }
-
-    FORCE_INLINE void reserve(size_t cap) { _data.reserve(cap); }
-    FORCE_INLINE octets& data() { return _data; }
-    FORCE_INLINE void reset_pos() { _pos = 0; }
-    FORCE_INLINE void clear() { _data.clear(); _pos = 0; _transpos = 0; }
-    FORCE_INLINE size_t get_pos() const { return _pos; }
-    FORCE_INLINE size_t size() const { return _data.size(); }
-    FORCE_INLINE size_t capacity() const { return _data.capacity(); }
-
 protected:
     template<typename container_type>
     octetsstream& push_container(const container_type& container)
     {
+        push(container.size());
         for(auto iter = container.cbegin(); iter != container.cend(); ++iter)
         {
             push(*iter);
@@ -150,33 +162,33 @@ protected:
         return *this;
     }
 
-    // template<typename T, typename U>
-    // octetsstream& pop_container(std::map<T, U>& container)
-    // {
-    //     size_t size = 0;
-    //     pop(size);
-    //     for(size_t i = 0; i < size; ++i)
-    //     {
-    //         std::pair<T, U> element;
-    //         pop(element);
-    //         container.insert(element);
-    //     }
-    //     return *this;
-    // }
+    template<typename T, typename U>
+    octetsstream& pop_container(std::map<T, U>& container)
+    {
+        size_t size = 0;
+        pop(size);
+        for(size_t i = 0; i < size; ++i)
+        {
+            std::pair<T, U> element;
+            pop(element);
+            container.insert(element);
+        }
+        return *this;
+    }
 
-    // template<typename T, typename U>
-    // octetsstream& pop_container(std::unordered_map<T, U>& container)
-    // {
-    //     size_t size = 0;
-    //     pop(size);
-    //     for(size_t i = 0; i < size; ++i)
-    //     {
-    //         std::pair<T, U> element;
-    //         pop(element);
-    //         container.insert(element);
-    //     }
-    //     return *this;
-    // }
+    template<typename T, typename U>
+    octetsstream& pop_container(std::unordered_map<T, U>& container)
+    {
+        size_t size = 0;
+        pop(size);
+        for(size_t i = 0; i < size; ++i)
+        {
+            std::pair<T, U> element;
+            pop(element);
+            container.insert(element);
+        }
+        return *this;
+    }
 
 private:
     octets _data;

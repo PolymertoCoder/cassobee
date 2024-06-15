@@ -53,15 +53,13 @@ public:
         , _threadid(threadid), _fiberid(fiberid), _elapse(std::move(elapse))
         , _content(std::move(content)) {}
     void assign(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string elapse, std::string content);
-    FORCE_INLINE std::string get_filename() { return _filename; }
+    FORCE_INLINE const std::string& get_filename() { return _filename; }
     FORCE_INLINE int get_line() { return _line; }
     FORCE_INLINE TIMETYPE get_time() { return _time; }
-    FORCE_INLINE std::string get_content() { return _content.str(); }
-    FORCE_INLINE std::string get_elapse() { return _elapse; }
+    FORCE_INLINE const std::string& get_content() { return _content; }
+    FORCE_INLINE const std::string& get_elapse() { return _elapse; }
     FORCE_INLINE int get_threadid() { return _threadid; }
     FORCE_INLINE int get_fiberid() { return _fiberid; }
-
-    FORCE_INLINE std::stringstream& get_stream() { return _content; }
     
 private:
     std::string _filename;      // 文件名
@@ -70,7 +68,7 @@ private:
     int _threadid = 0;          // 线程id
     int _fiberid = 0;           // 协程id
     std::string _elapse;        // 程序从启动到现在的毫秒数
-    std::stringstream _content; // 日志内容
+    std::string _content; // 日志内容
 };
 
 class logger

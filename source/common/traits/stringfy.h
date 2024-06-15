@@ -44,7 +44,7 @@ std::string container_to_string(const STL_CONTAINER& container, const std::strin
     for(typename STL_CONTAINER::const_iterator iter = container.begin(); iter != container.end(); ++iter, ++i)
     {
         str.append(to_string(*iter));
-        if(i != sz-1){ str.append(", "); }
+        if(i != sz - 1){ str.append(", "); }
     }
     return str.append("}");
 }
