@@ -1,5 +1,6 @@
 #pragma once
 #include "event.h"
+#include "session.h"
 
 struct netio_event : event
 {
@@ -30,4 +31,6 @@ struct streamio_event : netio_event
     int handle_accept();
     int handle_recv();
     int handle_send();
+
+    session* _ses;
 };

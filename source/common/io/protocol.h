@@ -13,6 +13,9 @@ public:
     virtual void run() {}
     virtual protocol* dup() const { return new protocol(*this); }
 
+    void encode(octetsstream& os);
+    void decode(octetsstream& os);
+
     static bool register_protocol(PROTOCOLID id, protocol* prot)
     {
         return _stubs.emplace(id, prot).second;
