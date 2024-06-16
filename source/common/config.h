@@ -1,7 +1,7 @@
 #pragma once
 #include <map>
 #include <type_traits>
-#include "util.h"
+#include "common.h"
 
 class config : public singleton_support<config>
 {

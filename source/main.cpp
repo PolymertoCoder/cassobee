@@ -75,11 +75,11 @@ int main()
     std::unordered_map<int, int> umap;
     for(size_t i = 0; i < 10; ++i)
     {
-        vec.push_back(rand(-1, 1000) + i);
-        set.insert(rand(-1, 1000) + i);
-        map.emplace(i, rand(-1, 1000) + i);
-        uset.insert(rand(-1, 1000) + i);
-        umap.emplace(i, rand(-1, 1000) + i);
+        vec.push_back(rand(70000, 4000000) + i * 7321);
+        set.insert(rand(70000, 4000000) + i * 7321);
+        map.emplace(i, rand(70000, 4000000) + i * 7321);
+        uset.insert(rand(70000, 4000000) + i * 7321);
+        umap.emplace(i, rand(70000, 4000000) + i * 7321);
     }
 
     std::vector<int> vec2;

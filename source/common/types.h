@@ -1,8 +1,9 @@
 #pragma once
 #include <stdint.h>
 
-typedef int64_t TIMETYPE;
-typedef uint64_t SID;
+using TIMETYPE = int64_t;
+using SID = uint64_t;
+using PROTOCOLID = uint32_t;
 
 #define FORCE_INLINE __attribute__((always_inline))
 #define ATTR_WEAK __attribute__((weak))

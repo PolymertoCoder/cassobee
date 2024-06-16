@@ -10,7 +10,7 @@
 #include <sys/times.h>
 #include <sched.h>
 
-#include "util.h"
+#include "common.h"
 
 int set_nonblocking(int fd, bool nonblocking)
 {

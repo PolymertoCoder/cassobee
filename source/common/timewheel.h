@@ -3,7 +3,7 @@
 #include <functional>
 #include "lock.h"
 #include "types.h"
-#include "util.h"
+#include "common.h"
 #include "objectpool.h"
 
 #define NEAR_SLOTS 4096

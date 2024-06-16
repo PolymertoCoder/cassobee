@@ -7,7 +7,7 @@
 #include "macros.h"
 #include "objectpool.h"
 #include "types.h"
-#include "util.h"
+#include "common.h"
 
 #ifndef __FILENAME__
 #define __FILENAME__ __FILE__
@@ -62,13 +62,13 @@ public:
     FORCE_INLINE int get_fiberid() { return _fiberid; }
     
 private:
-    std::string _filename;      // 文件名
-    int _line = 0;              // 行号
-    TIMETYPE _time = 0;         // 时间戳
-    int _threadid = 0;          // 线程id
-    int _fiberid = 0;           // 协程id
-    std::string _elapse;        // 程序从启动到现在的毫秒数
-    std::string _content; // 日志内容
+    std::string _filename; // 文件名
+    int _line = 0;         // 行号
+    TIMETYPE _time = 0;    // 时间戳
+    int _threadid = 0;     // 线程id
+    int _fiberid = 0;      // 协程id
+    std::string _elapse;   // 程序从启动到现在的毫秒数
+    std::string _content;  // 日志内容
 };
 
 class logger

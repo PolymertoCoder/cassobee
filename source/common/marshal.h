@@ -18,8 +18,8 @@ class octetsstream;
 class marshal
 {
 public:
-    virtual octetsstream& pack(octetsstream&)   = 0;
-    virtual octetsstream& unpack(octetsstream&) = 0;
+    virtual octetsstream& pack(octetsstream& os)   = 0;
+    virtual octetsstream& unpack(octetsstream& os) = 0;
 };
 
 class octetsstream
@@ -71,7 +71,8 @@ public:
     // 标准布局类型 push & pop
     template<typename T> octetsstream& push(const T& val)
     {
-        _data.append((char*)&val, sizeof(T));
+        T temp = bytes_order(val);
+        _data.append((char*)&temp, sizeof(T));
         return *this;
     }
 
@@ -83,7 +84,22 @@ public:
             throw exception("no enough data!!!");
         }
         memcpy(&val, _data.begin() + _pos, len);
+        val = bytes_order(val);
         _pos += len;
+        return *this;
+    }
+
+    octetsstream& push(Transaction val) = delete;
+
+    octetsstream& pop(Transaction val)
+    {
+        switch(val)
+        {
+            case BEGIN:    { _transpos = _pos; } break;
+            case ROLLBACK: { _pos = _transpos; } break;
+            case COMMIT:   { clear();          } break;
+            default:{ break; } 
+        }
         return *this;
     }
 

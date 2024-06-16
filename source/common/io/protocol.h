@@ -3,16 +3,14 @@
 #include <map>
 #include <sys/types.h>
 
-using PROTOCOLID  = uint32_t;
-
 class protocol : public marshal
 {
 public:
     protocol() { }
     protocol(const protocol&) {}
+    virtual ~protocol() = default;
 
     virtual void run() {}
-    
     virtual protocol* dup() const { return new protocol(*this); }
 
     static bool register_protocol(PROTOCOLID id, protocol* prot)
@@ -29,9 +27,12 @@ public:
     }
 
 public:
-    virtual octetsstream& pack(octetsstream& oct)   override { return oct; }
-    virtual octetsstream& unpack(octetsstream& oct) override { return oct; }
+    virtual octetsstream& pack(octetsstream& os)   override { return os; }
+    virtual octetsstream& unpack(octetsstream& os) override { return os; }
 
 protected:
     static std::map<PROTOCOLID, protocol*> _stubs;
+
+    PROTOCOLID _type;
+    SID _sid;
 };

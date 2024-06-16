@@ -116,8 +116,7 @@ struct delegate_vector_storage : delegate_storage_base<std::vector<std::pair<key
     void del(const key_type& key)
     {
         auto& storage = base::get_storage();
-        storage.erase(std::remove_if(storage.begin(), storage.end(),
-            [&key](const std::pair<key_type, value_type>& kv){ return kv.first == key; }), storage.end());
+        std::erase_if(storage, [&key](const auto& kv){ return kv.first == key; });
     }
     value_type& get_value(typename base::iterator iter){ return (*iter).second; }
 };
@@ -133,8 +132,7 @@ struct delegate_list_storage : delegate_storage_base<std::list<std::pair<key_typ
     void del(const key_type& key)
     {
         auto& storage = base::get_storage();
-        storage.erase(std::remove_if(storage.begin(), storage.end(),
-            [&key](const std::pair<key_type, value_type>& kv){ return kv.first == key; }), storage.end());
+        std::erase_if(storage, [&key](const auto& kv){ return kv.first == key; });
     }
     value_type& get_value(typename base::iterator iter){ return (*iter).second; }
 };
@@ -206,12 +204,12 @@ private:
 
 // 声明一个单播委托类型
 #define SINGLE_DELEGATE_DECLEAR(name, return_type, ...) \
-    using name = delegate<return_type, std::mutex, __VA_ARGS__>;
+    using name = delegate<return_type, cassobee::mutex, __VA_ARGS__>;
 
 // 声明一个多播委托类型
 #define MULTICAST_DELEGATE_DECLEAR(name, ...) \
-    using name = multicast_delegate<int, delegate_list_storage, std::mutex, __VA_ARGS__>;
+    using name = multicast_delegate<int, delegate_list_storage, cassobee::mutex, __VA_ARGS__>;
 
 // 声明一个可能有大量的多播委托类型
 #define NUMEROUS_MULTICAST_DELEGATE_DECLEAR(name, ...) \
-    using name = multicast_delegate<int, delegate_map_storage, std::mutex, __VA_ARGS__>;
+    using name = multicast_delegate<int, delegate_map_storage, cassobee::mutex, __VA_ARGS__>;
