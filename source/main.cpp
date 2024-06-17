@@ -1,3 +1,4 @@
+#include "address.h"
 #include "config.h"
 #include "reactor.h"
 #include "threadpool.h"
@@ -7,7 +8,7 @@
 #include "log.h"
 #include "marshal.h"
 #include "stringfy.h"
-#include <climits>
+#include "factory.h"
 #include <csignal>
 #include <unordered_set>
 
@@ -68,46 +69,49 @@ int main()
     //     usleep(1000);
     // }
 
-    std::vector<int> vec;
-    std::set<int> set;
-    std::map<int, int> map;
-    std::unordered_set<int> uset;
-    std::unordered_map<int, int> umap;
-    for(size_t i = 0; i < 10; ++i)
-    {
-        vec.push_back(rand(70000, 4000000) + i * 7321);
-        set.insert(rand(70000, 4000000) + i * 7321);
-        map.emplace(i, rand(70000, 4000000) + i * 7321);
-        uset.insert(rand(70000, 4000000) + i * 7321);
-        umap.emplace(i, rand(70000, 4000000) + i * 7321);
-    }
+    // std::vector<int> vec;
+    // std::set<int> set;
+    // std::map<int, int> map;
+    // std::unordered_set<int> uset;
+    // std::unordered_map<int, int> umap;
+    // for(size_t i = 0; i < 10; ++i)
+    // {
+    //     vec.push_back(rand(70000, 4000000) + i * 7321);
+    //     set.insert(rand(70000, 4000000) + i * 7321);
+    //     map.emplace(i, rand(70000, 4000000) + i * 7321);
+    //     uset.insert(rand(70000, 4000000) + i * 7321);
+    //     umap.emplace(i, rand(70000, 4000000) + i * 7321);
+    // }
 
-    std::vector<int> vec2;
-    std::set<int> set2;
-    std::map<int, int> map2;
-    std::unordered_set<int> uset2;
-    std::unordered_map<int, int> umap2;
+    // std::vector<int> vec2;
+    // std::set<int> set2;
+    // std::map<int, int> map2;
+    // std::unordered_set<int> uset2;
+    // std::unordered_map<int, int> umap2;
 
-    {
-        octetsstream os; os << vec; os >> vec2;
-        printf("vec2 %s\n", cassobee::to_string(vec2).data());
-    }
-    {
-        octetsstream os; os << set; os >> set2;
-        printf("set2 %s\n", cassobee::to_string(set2).data());
-    }
-    {
-        octetsstream os; os << map; os >> map2;
-        printf("map2 %s\n", cassobee::to_string(map2).data());
-    }
-    {
-        octetsstream os; os << uset; os >> uset2;
-        printf("uset2 %s\n", cassobee::to_string(uset2).data());
-    }
-    {
-        octetsstream os; os << umap; os >> umap2;
-        printf("umap2 %s\n", cassobee::to_string(umap2).data());
-    }
+    // {
+    //     octetsstream os; os << vec; os >> vec2;
+    //     printf("vec2 %s\n", cassobee::to_string(vec2).data());
+    // }
+    // {
+    //     octetsstream os; os << set; os >> set2;
+    //     printf("set2 %s\n", cassobee::to_string(set2).data());
+    // }
+    // {
+    //     octetsstream os; os << map; os >> map2;
+    //     printf("map2 %s\n", cassobee::to_string(map2).data());
+    // }
+    // {
+    //     octetsstream os; os << uset; os >> uset2;
+    //     printf("uset2 %s\n", cassobee::to_string(uset2).data());
+    // }
+    // {
+    //     octetsstream os; os << umap; os >> umap2;
+    //     printf("umap2 %s\n", cassobee::to_string(umap2).data());
+    // }
+
+    using address_factory = factory_template<address>;
+    auto addrfactory = new address_factory;
 
     reactor::get_instance()->run();
     timer_thread.join();
