@@ -8,7 +8,7 @@
 #include "log.h"
 #include "marshal.h"
 #include "stringfy.h"
-#include "factory.h"
+#include "address.h"
 #include <csignal>
 #include <unordered_set>
 
@@ -110,8 +110,7 @@ int main()
     //     printf("umap2 %s\n", cassobee::to_string(umap2).data());
     // }
 
-    using address_factory = factory_template<address>;
-    auto addrfactory = new address_factory;
+    address_factory::register_t<ipv4_address, const char*, uint16_t> _1(address::AddressType::INET);
 
     reactor::get_instance()->run();
     timer_thread.join();

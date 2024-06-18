@@ -28,15 +28,13 @@ enum EVENT_STATUS
 
 struct event
 {
-    event() : _handle(-1), _status(EVENT_STATUS_NONE) {}
-    event(int handle) : _handle(handle), _status(EVENT_STATUS_NONE) {}
+    event() : _status(EVENT_STATUS_NONE) {}
     virtual ~event() {}
-    virtual int get_handle() { return _handle; }
+    virtual int get_handle() { return 0; }
     virtual bool handle_event(int active_events) { return 0; };
     int  get_status() { return _status; }
     void set_status(int status) { _status = status; }
 
-    int _handle;
     int _status;
     reactor* _base;
 };

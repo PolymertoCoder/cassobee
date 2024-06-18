@@ -2,15 +2,50 @@
 #include <cstring>
 #include <unistd.h>
 #include "ioevent.h"
+#include "address.h"
 #include "log.h"
+
+bool passiveio_event::handle_event(int active_events)
+{
+    if(_base == nullptr) return false;
+
+    struct sockaddr_in sock_client;
+    socklen_t len = sizeof(sock_client);
+    int clientfd = accept(_fd, (sockaddr*)&sock_client, &len);
+    if(clientfd == -1)
+    {
+        if(errno != EAGAIN || errno != EINTR)
+        {
+            printf("accept: %s\n", strerror(errno));
+            return false;
+        }
+    }
+
+    int ret = set_nonblocking(clientfd, true);
+    if(ret < 0) return false;
+
+    ipv4_address* peer = new ipv4_address(sock_client, len);
+    event* ev = new streamio_event(clientfd, peer);
+    _base->add_event(ev, EVENT_RECV);
+
+    printf("accept clientid=%d.\n", clientfd);
+    return 0;
+}
+
+bool activeio_event::handle_event(int active_events)
+{
+    return true;
+}
+
+streamio_event::streamio_event(int fd, address* peer)
+    : netio_event(fd)
+{
+    
+}
 
 bool streamio_event::handle_event(int active_events)
 {
-    if(active_events & EVENT_ACCEPT)
-    {
-        handle_accept();
-    }
-    else if(active_events & EVENT_RECV)
+    if(active_events & EVENT_RECV)
     {
         handle_recv();
     }
@@ -19,34 +54,6 @@ bool streamio_event::handle_event(int active_events)
         handle_send();
     }
     return true;
-}
-
-int streamio_event::handle_accept()
-{
-    //local_log("handle_accept begin.");
-    if(_base == nullptr) return -1;
-
-    struct sockaddr_in sock_client;
-    socklen_t len = sizeof(sock_client);
-    int clientfd = accept(_handle, (sockaddr*)&sock_client, &len);
-    if(clientfd == -1)
-    {
-        if(errno != EAGAIN || errno != EINTR)
-        {
-            local_log("accept: %s", strerror(errno));
-            return -1;
-        }
-    }
-
-    int ret = set_nonblocking(clientfd, true);
-    if(ret < 0) return -1;
-
-    event* ev = (event*)new streamio_event(clientfd);
-    if(ev == nullptr) return -1;
-    _base->add_event(ev, EVENT_RECV);
-    local_log("accept clientid=%d.", clientfd);
-
-    return 0;
 }
 
 int streamio_event::handle_recv()
@@ -82,7 +89,7 @@ int streamio_event::handle_recv()
     }
 
 #else //LT
-    int len = recv(_handle, _readbuf, READ_BUFFER_SIZE, 0);
+    int len = recv(_fd, _readbuf, READ_BUFFER_SIZE, 0);
     if(len > 0)
     {
         _rlength = len;
@@ -97,12 +104,12 @@ int streamio_event::handle_recv()
     }
     else if(len == 0)
     {
-        close(_handle);
+        close(_fd);
     }
     else
     {
-        local_log("recv[fd=%d] len=%d error[%d]:%s", _handle, len, errno, strerror(errno));
-        close(_handle);
+        local_log("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
+        close(_fd);
     }
 #endif
     return len;
@@ -112,7 +119,7 @@ int streamio_event::handle_send()
 {
     if(_base == nullptr) return -1;
 
-    int len = send(_handle, _writebuf, _wlength, 0);
+    int len = send(_fd, _writebuf, _wlength, 0);
     if(len >= 0)
     {
         if(len == _wlength)
