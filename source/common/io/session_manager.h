@@ -26,3 +26,7 @@ public:
     cassobee::rwlock _locker;
     std::map<SID, session*> _sessions;
 };
+
+
+void client(session_manager* manager);
+void server(session_manager* manager);

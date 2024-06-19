@@ -1,4 +1,5 @@
 #pragma once
+#include "address.h"
 #include "event.h"
 #include "session.h"
 
@@ -10,8 +11,9 @@ struct netio_event : event
 
 struct passiveio_event : netio_event
 {
-    passiveio_event(int fd);
+    passiveio_event(int fd, address* local);
     virtual bool handle_event(int active_events) override;
+    address* _local;
 };
 
 struct activeio_event : netio_event

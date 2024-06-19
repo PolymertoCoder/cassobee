@@ -5,30 +5,60 @@
 #include "address.h"
 #include "log.h"
 
+passiveio_event::passiveio_event(int fd, address* local)
+    : netio_event(fd), _local(local)
+{
+    
+}
+
 bool passiveio_event::handle_event(int active_events)
 {
     if(_base == nullptr) return false;
 
-    struct sockaddr_in sock_client;
-    socklen_t len = sizeof(sock_client);
-    int clientfd = accept(_fd, (sockaddr*)&sock_client, &len);
-    if(clientfd == -1)
+    int family = _local->family();
+    if(family == AF_INET)
     {
-        if(errno != EAGAIN || errno != EINTR)
+        struct sockaddr_in sock_client;
+        socklen_t len = sizeof(sock_client);
+        int clientfd = accept(_fd, (sockaddr*)&sock_client, &len);
+        if(clientfd == -1)
         {
-            printf("accept: %s\n", strerror(errno));
-            return false;
+            if(errno != EAGAIN || errno != EINTR)
+            {
+                printf("accept: %s\n", strerror(errno));
+                return false;
+            }
         }
+
+        int ret = set_nonblocking(clientfd, true);
+        if(ret < 0) return false;
+
+        address* peer = new ipv4_address(sock_client, len);
+        event* ev = new streamio_event(clientfd, peer);
+        _base->add_event(ev, EVENT_RECV);
+        printf("accept clientid=%d.\n", clientfd);
     }
+    else if(family  == AF_INET6)
+    {
+        struct sockaddr_in6 sock_client;
+        socklen_t len = sizeof(sock_client);
+        int clientfd = accept(_fd, (sockaddr*)&sock_client, &len);
+        if(clientfd == -1)
+        {
+            if(errno != EAGAIN || errno != EINTR)
+            {
+                printf("accept: %s\n", strerror(errno));
+                return false;
+            }
+        }
 
-    int ret = set_nonblocking(clientfd, true);
-    if(ret < 0) return false;
-
-    ipv4_address* peer = new ipv4_address(sock_client, len);
-    event* ev = new streamio_event(clientfd, peer);
-    _base->add_event(ev, EVENT_RECV);
-
-    printf("accept clientid=%d.\n", clientfd);
+        int ret = set_nonblocking(clientfd, true);
+        if(ret < 0) return false;
+        address* peer = new ipv6_address(sock_client, len);
+        event* ev = new streamio_event(clientfd, peer);
+        _base->add_event(ev, EVENT_RECV);
+        printf("accept clientid=%d.\n", clientfd);
+    }
     return 0;
 }
 

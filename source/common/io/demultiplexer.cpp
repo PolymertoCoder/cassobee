@@ -95,7 +95,7 @@ void epoller::dispatch(reactor* base, int timeout)
 
         if(events[i].events & EPOLLIN || events[i].events & EPOLLOUT || events[i].events & EPOLLHUP)
         {
-            if(_listenfds.count(events[i].data.fd)) {
+            if(_listenfds.contains(events[i].data.fd)) {
                 ev->handle_event(EVENT_ACCEPT);
             } else {
                 ev->handle_event(EVENT_RECV);
