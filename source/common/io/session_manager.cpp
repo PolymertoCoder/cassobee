@@ -40,7 +40,7 @@ void server(session_manager* manager)
             set_nonblocking(listenfd, true);
             struct sockaddr_in6 sock;
             bzero(&sock, sizeof(sock));
-            sock.sin6_addr.s6_addr16 = htonl(INADDR_ANY);
+            //sock.sin6_addr.s6_addr16 = htonl(INADDR_ANY);
             sock.sin6_family = AF_INET;
             sock.sin6_port = htons(localaddr->_addr.sin6_port);
             reactor::get_instance()->add_event(new passiveio_event(listenfd, local), EVENT_ACCEPT);

@@ -2,11 +2,13 @@
 #include "common.h"
 #include <string>
 #include <map>
+#include <cassert>
 
 template<typename base_product, typename key_type>
 class factory_base
 {
 public:
+    template<typename... create_params>
     class creator_base
     {
     public:
@@ -15,7 +17,7 @@ public:
 
     template<typename product, typename... create_params>
     requires std::is_base_of_v<base_product, product>
-    class creator : public creator_base
+    class creator : public creator_base<create_params...>
     {
     public:
         virtual product* create(create_params&&... params) override

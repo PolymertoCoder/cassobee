@@ -9,6 +9,9 @@ set(CMAKE_CXX_COMPILER "/usr/local/bin/c++")
 
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -g -std=c++20 -Wall -Wno-deprecated -Wno-unused-function -D_REENTRANT")
 
+set(SOURCE_PATH /source)
+set(THIRDPARTY_PATH /thirdparty)
+
 # include(CheckCXXCompilerFlag)
 # CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
 # CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
