@@ -1,6 +1,7 @@
 #include "address.h"
 #include "config.h"
 #include "reactor.h"
+#include "session.h"
 #include "threadpool.h"
 #include "delegate.h"
 #include "timewheel.h"
@@ -110,7 +111,16 @@ int main()
     //     printf("umap2 %s\n", cassobee::to_string(umap2).data());
     // }
 
-    address_factory::register_t<ipv4_address, const char*, uint16_t> _1(address::AddressType::INET);
+    // local_log("type_name:%s", cassobee::type_name<int>().data());
+    // local_log("type_name:%s", cassobee::type_name<cassobee::logger>().data());
+    // local_log("type_name:%s", cassobee::short_type_name<cassobee::logger>().data());
+    // local_log("type_name:%s", cassobee::type_name_string<int>().data());
+    // local_log("type_name:%s", cassobee::type_name_string<std::string_view>().data());
+    // local_log("type_name:%s", cassobee::short_type_name_string<std::string_view>().data());
+    // local_log("type_name:%s", cassobee::type_name_string<cassobee::logger>().data());
+    // local_log("type_name:%s", cassobee::short_type_name_string<cassobee::logger>().data());
+
+    //address_factory::register_t<ipv4_address, const char*, uint16_t> _1(address::AddressType::INET);
 
     reactor::get_instance()->run();
     timer_thread.join();

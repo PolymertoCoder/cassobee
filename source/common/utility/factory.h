@@ -1,59 +1,41 @@
 #pragma once
 #include "common.h"
+#include <functional>
 #include <string>
-#include <map>
-#include <cassert>
+#include <utility>
 
-template<typename base_product, typename key_type>
+template<typename base_product, typename key_type, typename... products>
 class factory_base
 {
 public:
-    template<typename... create_params>
-    class creator_base
+    template<typename product>
+    struct product_stub
     {
-    public:
-        virtual base_product* create() = 0;
-    };
-
-    template<typename product, typename... create_params>
-    requires std::is_base_of_v<base_product, product>
-    class creator : public creator_base<create_params...>
-    {
-    public:
-        virtual product* create(create_params&&... params) override
-        {
-            return new product(std::forward<create_params>(params)...);
-        }
-    };
-
-    template<typename product, typename... create_params>
-    struct register_t
-    {
-        register_t(const key_type& id)
-        {
-            assert(_creators.emplace(id, new creator<product, create_params...>()).second);
-        }
+        key_type id;
+        product  stub;
     };
 
 protected:
-    static std::map<key_type, creator_base*> _creators;
+    static std::tuple<product_stub<products>...> _stubs;
 };
 
-template<typename base_product, typename key_type>
-class factory_impl : public factory_base<base_product, key_type>
+template<typename base_product, typename key_type, typename... products>
+class factory_impl : public factory_base<base_product, key_type, products...>
                    , public singleton_support<factory_impl<base_product, key_type>>
 {
 public:
-    using factory_base<base_product, key_type>::_creators;
+    using factory_base<base_product, key_type, products...>::_stubs;
 
     template<typename... create_params>
     base_product* create(const key_type& id, create_params&&... params)
     {
-        if(auto iter = _creators.find(id); iter != _creators.end())
+        base_product* product = nullptr;
+        [&]<size_t... Is>(std::index_sequence<Is...>&&)
         {
-            iter->second->create(std::forward<create_params>(params)...);
-        }
-        return nullptr;
+            ((std::get<Is>(_stubs).id == id &&
+             (product = new decltype(std::get<Is>(_stubs).stub)(params...))) || ...);
+        }(std::make_index_sequence<sizeof...(products)>());
+        return product;
     }
 };
 
@@ -61,4 +43,4 @@ template<typename base_product, typename key_type = std::string>
 using factory_template = factory_impl<base_product, key_type>;
 
 #define register_product(factory, id, product, ...) \
-    static factory::register_t<product, __VA_ARGS__> _##factory##_##product(id);
+    static factory::register_t<product, __VA_ARGS__> _##factory##_##product(id, );

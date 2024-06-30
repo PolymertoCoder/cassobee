@@ -48,3 +48,8 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/debug/lib)
 add_common_flags(bee)
 add_common_flags(log)
 add_common_flags(cassobee)
+
+
+if(${CASSOBEE_BENCHMARK_ENABLE})
+    add_subdirectory(benchmark)
+endif()
