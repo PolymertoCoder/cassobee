@@ -1,9 +1,15 @@
-#include <arpa/inet.h>
-#include <cstring>
 #include <unistd.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <cstring>
+
 #include "ioevent.h"
 #include "address.h"
 #include "log.h"
+#include "common.h"
+#include "reactor.h"
 
 passiveio_event::passiveio_event(int fd, address* local)
     : netio_event(fd), _local(local)

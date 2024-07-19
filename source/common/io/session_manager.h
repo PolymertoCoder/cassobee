@@ -1,10 +1,12 @@
 #pragma once
+#include <stddef.h>
 #include <map>
+
 #include "lock.h"
 #include "types.h"
-#include "address.h"
 
 class session;
+class address;
 
 class session_manager
 {

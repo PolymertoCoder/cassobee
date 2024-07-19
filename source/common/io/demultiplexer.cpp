@@ -1,7 +1,10 @@
-#include <cstdio>
 #include <sys/epoll.h>
+#include <cstdio>
+
 #include "demultiplexer.h"
 #include "log.h"
+#include "event.h"
+#include "reactor.h"
 
 bool epoller::init()
 {

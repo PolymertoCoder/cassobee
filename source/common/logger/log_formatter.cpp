@@ -1,9 +1,15 @@
 
+#include <ctype.h>
+#include <stdio.h>
 #include <functional>
 #include <map>
+#include <sstream>
+#include <tuple>
+#include <utility>
 
 #include "log_formatter.h"
 #include "systemtime.h"
+#include "macros.h"
 
 namespace cassobee
 {

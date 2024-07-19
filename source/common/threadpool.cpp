@@ -1,5 +1,9 @@
 #include <assert.h>
+#include <bits/chrono.h>
 #include <stdexcept>
+#include <string>
+#include <utility>
+
 #include "threadpool.h"
 #include "config.h"
 #include "log.h"

@@ -1,5 +1,8 @@
 #pragma once
 #include <vector>
+#include <iosfwd>
+#include <string>
+
 #include "log.h"
 
 namespace cassobee

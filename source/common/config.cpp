@@ -1,7 +1,8 @@
 #include "config.h"
-#include <cassert>
 #include <filesystem>
 #include <fstream>
+#include "macros.h"
+#include "stringfy.h"
 
 void config::init(const char* config_path)
 {
@@ -9,7 +10,7 @@ void config::init(const char* config_path)
     if(!reload())
     {
         printf("load config %s failed...\n", _config_path.data());
-        assert(false);
+        exit(-1);
     }
     printf("load config %s finished...\n", _config_path.data());
 }
@@ -28,7 +29,7 @@ bool config::parse(std::ifstream& filestream)
         {
             std::string key   = trim(line.substr(0, pos));
             std::string value = trim(line.substr(pos + 1));
-            assert(_sections[section].emplace(key, value).second);
+            CHECK_BUG(_sections[section].emplace(key, value).second, printf("section %s emplace key %s repeat.", section.data(), key.data()); return false;);
         }
     }
     return true;
@@ -39,11 +40,6 @@ bool config::reload()
     for(const auto& entry : std::filesystem::directory_iterator(_config_path))
     {
         std::string filepath = entry.path().string();
-        if(!entry.is_regular_file())
-        {
-            printf("config file %s is not a regular file\n", filepath.data());
-            continue;
-        }
         std::ifstream ifs(filepath);
         if(!ifs.is_open())
         {
@@ -53,8 +49,10 @@ bool config::reload()
         if(!parse(ifs))
         {
             printf("parse config file:%s failed, an error occured!!!\n", filepath.data());
+            return false;
         }
         ifs.close();
+        printf("config %s load finished, %s.\n", entry.path().filename().c_str(), cassobee::to_string(_sections).data());
     }
     return true;
 }

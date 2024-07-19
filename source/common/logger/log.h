@@ -1,8 +1,8 @@
 #pragma once
-#include <cstdarg>
-#include <sstream>
+#include <stdio.h>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "macros.h"
 #include "objectpool.h"
@@ -29,8 +29,6 @@ namespace cassobee
 {
 
 class log_appender;
-class logger;
-class log_manager;
 
 enum LOG_LEVEL
 {

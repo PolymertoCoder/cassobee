@@ -1,9 +1,10 @@
 #include "log.h"
+
+#include <cstdarg>
+
 #include "log_appender.h"
 #include "systemtime.h"
 #include "config.h"
-#include <cstdarg>
-#include <sstream>
 
 namespace cassobee
 {

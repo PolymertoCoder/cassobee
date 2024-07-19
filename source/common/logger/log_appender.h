@@ -1,13 +1,19 @@
 #pragma once
+#include <stddef.h>
 #include <condition_variable>
 #include <fstream>
-#include "fixed_buffer.h"
+#include <atomic>
+#include <mutex>
+#include <string>
+#include <thread>
+
 #include "log.h"
-#include "log_formatter.h"
 #include "ring_buffer.h"
+#include "types.h"
 
 namespace cassobee
 {
+class log_formatter;
 
 // 日志输出器
 class log_appender

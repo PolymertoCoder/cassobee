@@ -1,10 +1,15 @@
 #include "session_manager.h"
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <cstring>
+
 #include "address.h"
 #include "common.h"
 #include "event.h"
 #include "ioevent.h"
 #include "reactor.h"
-#include <cstring>
 
 session_manager::session_manager()
 {

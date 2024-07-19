@@ -1,6 +1,5 @@
 #pragma once
-
-#include "log.h"
+#include "octets.h"
 #include <deque>
 #include <utility>
 #include <vector>
@@ -20,6 +19,11 @@ template<typename T> std::string to_string(const std::set<T>& val);
 template<typename T> std::string to_string(const std::unordered_set<T>& val);
 template<typename T1, typename T2> std::string to_string(const std::map<T1, T2>& val);
 template<typename T1, typename T2> std::string to_string(const std::unordered_map<T1, T2>& val);
+
+inline std::string to_string(const char* val) { return val; }
+inline std::string to_string(const octets& val) { return val; }
+inline std::string to_string(const std::string& val) { return val; }
+inline std::string to_string(const std::string_view& val) { return {val.data(), val.size()}; }
 
 template<typename T>
 auto to_string(T val) -> typename std::enable_if<std::is_arithmetic<T>::value, std::string>::type

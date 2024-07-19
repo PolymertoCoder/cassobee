@@ -1,6 +1,9 @@
 #pragma once
+#include <stdlib.h>
 #include <map>
-#include <type_traits>
+#include <iosfwd>
+#include <string>
+
 #include "common.h"
 
 class config : public singleton_support<config>

@@ -1,26 +1,41 @@
 cmake_minimum_required(VERSION 3.8)
 project(cassobee)
 
-set(CASSOBEE_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
-set(SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/source)
-set(THIRDPARTY_PATH ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
+message("use ${CMAKE_CXX_COMPILER_ID} compiler to build this project.")
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CASSOBEE_BENCHMARK_ENABLE ON)
-set(CASSOBEE_IWYU_ENABLE ON)
+set(CASSOBEE_ROOT_PATH  ${CMAKE_CURRENT_SOURCE_DIR})
+set(SOURCE_PATH         ${CASSOBEE_ROOT_PATH}/source)
+set(THIRDPARTY_PATH     ${CASSOBEE_ROOT_PATH}/thirdparty)
 
-set(CMAKE_BUILD_TYPE debug)
+option(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+option(CASSOBEE_BENCHMARK_ENABLE ON)
+option(CASSOBEE_IWYU_ENABLE OFF)
+
+#set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 #set(CMAKE_C_COMPILER "/usr/local/bin/gcc")
 #set(CMAKE_CXX_COMPILER "/usr/local/bin/g++")
-set(CMAKE_C_COMPILER "/usr/local/bin/clang")
-set(CMAKE_CXX_COMPILER "/usr/local/bin/clang++")
+#set(CMAKE_C_COMPILER "/usr/local/bin/clang")
+#set(CMAKE_CXX_COMPILER "/usr/local/bin/clang++")
 
 if(${CASSOBEE_IWYU_ENABLE})
-    set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE "usr/local/bin/include-what-you-use")
+    find_program(IWYU_BIN_PATH "include-what-you-use")
+    if(IWYU_BIN_PATH)
+        set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE '${IWYU_BIN_PATH};-Xiwyu;--transitive_includes_only;')
+    else()
+        message(FATAL_ERROR "Cound not found include-what-you-use.")
+    endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -g -std=c++20 -Wall -Wno-deprecated -Wno-unused-function -D_REENTRANT")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++20 -Wall -Wno-deprecated -Wno-unused-function -D_REENTRANT")
+
+if(${CMAKE_BUILD_TYPE} EQUAL debug)
+   add_compile_options(-O0 -ggdb -g)
+elif(${CMAKE_BUILD_TYPE} EQUAL release)
+   add_compile_options(-O2)
+endif()
 
 # include(CheckCXXCompilerFlag)
 # CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
@@ -36,9 +51,5 @@ set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -O0 -ggdb -g -std=c++20 -Wall -Wno
 # endif()
 
 add_compile_options(-DCMAKE_CROSSCOMPILING=true)
-
-if(${CASSOBEE_BENCHMARK_ENABLE})
-    #target_link_library()
-endif()
 
 add_subdirectory(source)

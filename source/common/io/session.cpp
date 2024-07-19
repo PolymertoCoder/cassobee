@@ -1,5 +1,9 @@
 #include "session.h"
 
+#include "address.h"
+
+class session_manager;
+
 session::session(session_manager* manager)
     : _manager(manager)
 {

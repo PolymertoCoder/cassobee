@@ -1,7 +1,8 @@
 #pragma once
-#include "address.h"
 #include "event.h"
-#include "session.h"
+
+class address;
+class session;
 
 struct netio_event : event
 {

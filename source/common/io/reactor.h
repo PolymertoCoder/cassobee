@@ -1,14 +1,14 @@
 #pragma once
 #include <map>
 #include <functional>
+
 #include "common.h"
-#include "event.h"
-#include "demultiplexer.h"
+#include "types.h"
 
 class demultiplexer;
-using SIG_HANDLER = void(*)(int);
+struct event;
 
-class epoller;
+using SIG_HANDLER = void(*)(int);
 
 class reactor : public singleton_support<reactor>
 {

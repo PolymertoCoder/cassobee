@@ -1,9 +1,13 @@
 #pragma once
-#include "address.h"
+#include <stdint.h>
+
 #include "octets.h"
-#include "event.h"
 #include "marshal.h"
-#include "session_manager.h"
+#include "types.h"
+
+class address;
+class session_manager;
+struct event;
 
 enum SESSION_STATE
 {

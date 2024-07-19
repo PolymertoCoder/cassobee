@@ -1,6 +1,10 @@
 #pragma once
+#include <assert.h>
+#include <stddef.h>
 #include <cstdint>
 #include <functional>
+#include <utility>
+
 #include "lock.h"
 #include "types.h"
 #include "common.h"

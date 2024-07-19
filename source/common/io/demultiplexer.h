@@ -1,7 +1,5 @@
 #pragma once
 #include <set>
-#include "reactor.h"
-#include "event.h"
 
 struct event;
 class reactor;
