@@ -111,14 +111,9 @@ int main()
     //     printf("umap2 %s\n", cassobee::to_string(umap2).data());
     // }
 
-    local_log("type_name:%s", cassobee::type_name<int>().data());
-    local_log("type_name:%s", cassobee::type_name<cassobee::logger>().data());
-    local_log("type_name:%s", cassobee::short_type_name<cassobee::logger>().data());
-    local_log("type_name:%s", cassobee::type_name_string<int>().data());
-    local_log("type_name:%s", cassobee::type_name_string<std::string_view>().data());
-    local_log("type_name:%s", cassobee::short_type_name_string<std::string_view>().data());
-    local_log("type_name:%s", cassobee::type_name_string<cassobee::logger>().data());
-    local_log("type_name:%s", cassobee::short_type_name_string<cassobee::logger>().data());
+    // local_log("type_name:%s", cassobee::type_name<int>());
+    // local_log("type_name:%s", cassobee::type_name<cassobee::logger>());
+    // local_log("type_name:%s", cassobee::short_type_name<cassobee::logger>());
 
     //address_factory::register_t<ipv4_address, const char*, uint16_t> _1(address::AddressType::INET);
 

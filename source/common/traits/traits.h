@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <mutex>
 #include <string_view>
 #include <string>
 #include <type_traits>
@@ -57,33 +58,35 @@ template<typename T>
 struct type_name_holder
 {
     static constexpr auto value = type_name_array<T>();
+    static auto get() -> const std::string&
+    {
+        static std::string str = std::string(value.data(), value.size());
+        return str;
+    }
+    static auto get_short() -> const std::string&
+    {
+        static std::string str;
+        static std::once_flag once;
+        std::call_once(once, [&]()
+        {
+            static std::string tmp = std::string(value.data(), value.size());
+            size_t pos = tmp.rfind("::");
+            str = (pos != std::string::npos) ? tmp.substr(pos + 2) : tmp;
+        });
+        return str;
+    }
 };
 
 template<typename T>
-consteval auto type_name() -> std::string_view
+const char* type_name()
 {
-    constexpr auto& ref = type_name_holder<T>::value;
-    return ref;
+    return type_name_holder<T>::get().data();
 }
 
 template<typename T>
-consteval auto short_type_name() -> std::string_view
+const char* short_type_name()
 {
-    constexpr auto& ref = type_name_holder<T>::value;
-    size_t pos = ref.rfind("::");
-    return pos != std::string_view::npos ? ref.substr(pos + 2) : ref;
-}
-
-template<typename T>
-auto type_name_string() -> std::string
-{
-    return std::string(type_name<T>());
-}
-
-template<typename T>
-auto short_type_name_string() -> std::string
-{
-    return std::string(short_type_name<T>());
+    return type_name_holder<T>::get_short().data();
 }
 
 }
