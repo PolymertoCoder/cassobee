@@ -48,6 +48,6 @@ add_common_flags(cassobee)
 
 if(${CASSOBEE_BENCHMARK_ENABLE})
     set(BENCHMARK_ENABLE_TESTING OFF)
-    add_subdirectory(${THIRDPARTY_PATH}/benchmark ${CMAKE_BINARY_DIR}/benchmark)
+    add_subdirectory(${THIRDPARTY_PATH}/benchmark ${CMAKE_BINARY_DIR}/thirdparty/benchmark)
     add_subdirectory(benchmark)
 endif()

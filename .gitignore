@@ -2,5 +2,4 @@
 /bin/
 /debug/
 /.cache/*
-/thirdparty/benchmark/
-/thirdparty/include-what-you-use/
+/thirdparty/

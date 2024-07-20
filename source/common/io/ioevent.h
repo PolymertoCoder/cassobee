@@ -31,8 +31,4 @@ struct streamio_event : netio_event
     int handle_send();
 
     session* _ses;
-    int _rlength;
-    char _readbuf[READ_BUFFER_SIZE];
-    int _wlength;
-    char _writebuf[WRITE_BUFFER_SIZE];
 };

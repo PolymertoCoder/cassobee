@@ -1,6 +1,7 @@
 #include "session_manager.h"
 
 #include <arpa/inet.h>
+#include <cassert>
 #include <netinet/in.h>
 #include <sys/socket.h>
 
@@ -9,10 +10,22 @@
 #include "event.h"
 #include "ioevent.h"
 #include "reactor.h"
+#include "config.h"
 
 session_manager::session_manager()
 {
+    auto cfg = config::get_instance();
+    int version = cfg->get<int>(identity(), "version");
+    if(version == 4) {
+        _socktype = AF_INET;
+    } else if(version == 6) {
+        _socktype = AF_INET6;
+    } else {
+        assert(false);
+    }
 
+    _read_buffer_size = cfg->get<size_t>(identity(), "read_buffer_size");
+    _write_buffer_size = cfg->get<size_t>(identity(), "write_buffer_size");
 }
 
 void client(session_manager* manager)
@@ -22,8 +35,8 @@ void client(session_manager* manager)
 
 void server(session_manager* manager)
 {
-    address* local = manager->_local;
-    switch(manager->_socktype)
+    address* local = manager->local();
+    switch(manager->family())
     {
         case AF_INET:
         {
@@ -32,8 +45,8 @@ void server(session_manager* manager)
             set_nonblocking(listenfd, true);
             struct sockaddr_in sock;
             bzero(&sock, sizeof(sock));
-            sock.sin_addr.s_addr = htonl(INADDR_ANY);
             sock.sin_family = AF_INET;
+            sock.sin_addr.s_addr = htonl(INADDR_ANY);
             sock.sin_port = htons(localaddr->_addr.sin_port);
             reactor::get_instance()->add_event(new passiveio_event(listenfd, local), EVENT_ACCEPT);
         } break;
@@ -44,8 +57,8 @@ void server(session_manager* manager)
             set_nonblocking(listenfd, true);
             struct sockaddr_in6 sock;
             bzero(&sock, sizeof(sock));
-            //sock.sin6_addr.s6_addr16 = htonl(INADDR_ANY);
             sock.sin6_family = AF_INET;
+            sock.sin6_addr = in6addr_any;
             sock.sin6_port = htons(localaddr->_addr.sin6_port);
             reactor::get_instance()->add_event(new passiveio_event(listenfd, local), EVENT_ACCEPT);
         } break;

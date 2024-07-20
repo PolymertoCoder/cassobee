@@ -10,12 +10,12 @@ set(EXECUTABLE_OUTPUT_PATH  ${CASSOBEE_ROOT_PATH}/debug)
 set(LIBRARY_OUTPUT_PATH     ${CASSOBEE_ROOT_PATH}/debug/libs)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" ON)
+option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" OFF)
 option(CASSOBEE_IWYU_ENABLE "enable include-what-you-use" OFF)
 
-#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
+#set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 #set(CMAKE_C_COMPILER "/usr/local/bin/gcc")
 #set(CMAKE_CXX_COMPILER "/usr/local/bin/g++")
@@ -31,7 +31,7 @@ if(${CASSOBEE_IWYU_ENABLE})
     endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++20 -Wall -Wno-deprecated -Wno-unused-function -D_REENTRANT")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++23 -Wall -Wno-deprecated -Wno-unused-function -D_REENTRANT")
 
 if(${CMAKE_BUILD_TYPE} EQUAL debug)
    add_compile_options(-O0 -ggdb -g)

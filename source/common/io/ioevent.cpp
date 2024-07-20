@@ -10,6 +10,7 @@
 #include "log.h"
 #include "common.h"
 #include "reactor.h"
+#include "session.h"
 
 passiveio_event::passiveio_event(int fd, address* local)
     : netio_event(fd), _local(local)
@@ -96,17 +97,17 @@ int streamio_event::handle_recv()
 {
     if(_base == nullptr) return -1;
 
-    memset(_readbuf, 0, READ_BUFFER_SIZE);
-    _rlength = 0;
+    memset(_ses->_readbuf, 0, READ_BUFFER_SIZE);
+    _ses->_rlength = 0;
 
 #if 0 //ET
     int idx = 0, len = 0;
     while(idx < READ_BUFFER_SIZE)
     {
-        len = recv(_fd, _readbuf+idx, READ_BUFFER_SIZE-idx, 0);
+        len = recv(_fd, _ses->_readbuf.data() + idx, READ_BUFFER_SIZE-idx, 0);
         if(len > 0) {
             idx += len;
-            local_log("recv[%d]:%s", len, _readbuf);
+            local_log("recv[%d]:%s", len, _ses->_readbuf.data());
         }
         else if(len == 0) {
             close(_fd);
@@ -117,26 +118,26 @@ int streamio_event::handle_recv()
     }
 
     if(idx == READ_BUFFER_SIZE && len != -1) {
-        base->add_event(ev, EVENT_RECV); 
+        _base->add_event(this, EVENT_RECV); 
     } else if(len == 0) {
-        //base->add_event(ev, EVENT_RECV); 
+        //base->add_event(this, EVENT_RECV); 
     } else {
-        base->add_event(ev, EVENT_SEND);
+        _base->add_event(this, EVENT_SEND);
     }
 
 #else //LT
-    int len = recv(_fd, _readbuf, READ_BUFFER_SIZE, 0);
+    int len = recv(_fd, _ses->_readbuf.data(), READ_BUFFER_SIZE, 0);
     if(len > 0)
     {
-        _rlength = len;
-        _readbuf[len] = '\0';
+        _ses->_rlength = len;
+        _ses->_readbuf.data()[len] = '\0';
         //TODO 处理业务
         
         //local_log("recv[fd=%d]:%s", _fd, _readbuf);
-        memcpy(_writebuf, _readbuf, _rlength);
-        _wlength = _rlength;
+        memcpy(_ses->_writebuf.data(), _ses->_readbuf.data(), _ses->_rlength);
+        _ses->_wlength = _ses->_rlength;
         _base->add_event(this, EVENT_SEND);
-        _rlength = 0;
+        _ses->_rlength = 0;
     }
     else if(len == 0)
     {
@@ -155,18 +156,18 @@ int streamio_event::handle_send()
 {
     if(_base == nullptr) return -1;
 
-    int len = send(_fd, _writebuf, _wlength, 0);
+    int len = send(_fd, _ses->_writebuf.data(), _ses->_wlength, 0);
     if(len >= 0)
     {
-        if(len == _wlength)
+        if(len == _ses->_wlength)
         {
-            _wlength = 0;
+            _ses->_wlength = 0;
             _base->add_event(this, EVENT_RECV);
         }
         else
         {
-            memcpy(_writebuf, _writebuf+len, _wlength-len);
-            _wlength -= len;
+            memcpy(_ses->_writebuf.data(), _ses->_writebuf.data() + len, _ses->_wlength-len);
+            _ses->_wlength -= len;
             _base->add_event(this, EVENT_SEND);
         }
     }
