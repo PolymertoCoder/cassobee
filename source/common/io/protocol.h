@@ -18,13 +18,18 @@ public:
     void encode(octetsstream& os);
     void decode(octetsstream& os);
 
+    static auto& get_map()
+    {
+        static std::map<PROTOCOLID, protocol*> _stubs;
+        return _stubs;
+    }
     static bool register_protocol(PROTOCOLID id, protocol* prot)
     {
-        return _stubs.emplace(id, prot).second;
+        return get_map().emplace(id, prot).second;
     }
     static protocol* get_protocol(PROTOCOLID id)
     {
-        if(auto iter = _stubs.find(id); iter != _stubs.end())
+        if(auto iter = get_map().find(id); iter != get_map().end())
         {
             return iter->second->dup();
         }
@@ -36,8 +41,7 @@ public:
     virtual octetsstream& unpack(octetsstream& os) override { return os; }
 
 protected:
-    static std::map<PROTOCOLID, protocol*> _stubs;
-
     PROTOCOLID _type;
+    uint32_t _priority;
     SID _sid;
 };

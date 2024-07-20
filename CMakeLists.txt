@@ -1,15 +1,17 @@
 cmake_minimum_required(VERSION 3.8)
 project(cassobee)
 
-message("use ${CMAKE_CXX_COMPILER_ID} compiler to build this project.")
+message("Use ${CMAKE_CXX_COMPILER_ID} compiler to build this project.")
 
-set(CASSOBEE_ROOT_PATH  ${CMAKE_CURRENT_SOURCE_DIR})
-set(SOURCE_PATH         ${CASSOBEE_ROOT_PATH}/source)
-set(THIRDPARTY_PATH     ${CASSOBEE_ROOT_PATH}/thirdparty)
+set(CASSOBEE_ROOT_PATH      ${CMAKE_CURRENT_SOURCE_DIR})
+set(SOURCE_PATH             ${CASSOBEE_ROOT_PATH}/source)
+set(THIRDPARTY_PATH         ${CASSOBEE_ROOT_PATH}/thirdparty)
+set(EXECUTABLE_OUTPUT_PATH  ${CASSOBEE_ROOT_PATH}/debug)
+set(LIBRARY_OUTPUT_PATH     ${CASSOBEE_ROOT_PATH}/debug/libs)
 
-option(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-option(CASSOBEE_BENCHMARK_ENABLE ON)
-option(CASSOBEE_IWYU_ENABLE OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" ON)
+option(CASSOBEE_IWYU_ENABLE "enable include-what-you-use" OFF)
 
 #set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
@@ -37,19 +39,10 @@ elif(${CMAKE_BUILD_TYPE} EQUAL release)
    add_compile_options(-O2)
 endif()
 
-# include(CheckCXXCompilerFlag)
-# CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-# CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-# if(COMPILER_SUPPORTS_CXX17)
-#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-#     message("The compiler ${CMAKE_CXX_COMPILER} has C++17 support.")
-# elseif(COMPILER_SUPPORTS_CXX11)
-#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-#     message("The compiler ${CMAKE_CXX_COMPILER} has C++11 support.")
-# else()
-#     message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-# endif()
-
 add_compile_options(-DCMAKE_CROSSCOMPILING=true)
 
 add_subdirectory(source)
+
+set(tinyxml2_BUILD_TESTING OFF)
+set(tinyxml2_SHARED_LIBS ${LIBRARY_OUTPUT_PATH})
+add_subdirectory(${THIRDPARTY_PATH}/tinyxml2)

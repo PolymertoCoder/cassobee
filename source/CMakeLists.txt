@@ -42,14 +42,12 @@ add_executable(cassobee main.cpp)
 add_dependencies(cassobee bee log)
 target_link_libraries(cassobee ${LIB_LIB})
 
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/debug)
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/debug/lib)
-
 add_common_flags(bee)
 add_common_flags(log)
 add_common_flags(cassobee)
 
-
 if(${CASSOBEE_BENCHMARK_ENABLE})
+    set(BENCHMARK_ENABLE_TESTING OFF)
+    add_subdirectory(${THIRDPARTY_PATH}/benchmark ${CMAKE_BINARY_DIR}/benchmark)
     add_subdirectory(benchmark)
 endif()
