@@ -1,5 +1,5 @@
 #pragma once
-#include <map>
+#include <unordered_map>
 #include <utility>
 
 #include "marshal.h"
@@ -8,40 +8,40 @@
 class protocol : public marshal
 {
 public:
-    protocol() { }
+    protocol() {}
     protocol(const protocol&) {}
     virtual ~protocol() = default;
 
-    virtual void run() {}
-    virtual protocol* dup() const { return new protocol(*this); }
+    virtual void run() {};
+    virtual protocol* dup() = 0;
 
-    void encode(octetsstream& os);
-    void decode(octetsstream& os);
+    static bool check_policy(PROTOCOLID id, size_t size);
 
-    static auto& get_map()
+    static void encode(octetsstream& os);
+    static void decode(octetsstream& os);
+
+    FORCE_INLINE PROTOCOLID get_type() const { return _type; }
+    FORCE_INLINE virtual size_t thread_group_idx() const { return 0; }
+
+public:
+    FORCE_INLINE static auto& get_map()
     {
-        static std::map<PROTOCOLID, protocol*> _stubs;
+        static std::unordered_map<PROTOCOLID, protocol*> _stubs;
         return _stubs;
     }
-    static bool register_protocol(PROTOCOLID id, protocol* prot)
+    FORCE_INLINE static bool register_protocol(PROTOCOLID id, protocol* prot)
     {
         return get_map().emplace(id, prot).second;
     }
-    static protocol* get_protocol(PROTOCOLID id)
+    FORCE_INLINE static protocol* get_protocol(PROTOCOLID id)
     {
-        if(auto iter = get_map().find(id); iter != get_map().end())
-        {
-            return iter->second->dup();
-        }
-        return nullptr;
+        auto iter = get_map().find(id);
+        return iter != get_map().end() ? iter->second->dup() : nullptr;
     }
-
-public:
-    virtual octetsstream& pack(octetsstream& os)   override { return os; }
-    virtual octetsstream& unpack(octetsstream& os) override { return os; }
 
 protected:
     PROTOCOLID _type;
     uint32_t _priority;
+    size_t maxsize;
     SID _sid;
 };

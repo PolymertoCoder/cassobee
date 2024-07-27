@@ -3,9 +3,6 @@
 
 #include "types.h"
 
-#define READ_BUFFER_SIZE 4096
-#define WRITE_BUFFER_SIZE 4096
-
 class reactor;
 
 enum EVENT_MASK

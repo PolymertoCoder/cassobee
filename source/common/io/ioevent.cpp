@@ -97,9 +97,6 @@ int streamio_event::handle_recv()
 {
     if(_base == nullptr) return -1;
 
-    memset(_ses->_readbuf, 0, READ_BUFFER_SIZE);
-    _ses->_rlength = 0;
-
 #if 0 //ET
     int idx = 0, len = 0;
     while(idx < READ_BUFFER_SIZE)
@@ -126,18 +123,13 @@ int streamio_event::handle_recv()
     }
 
 #else //LT
-    int len = recv(_fd, _ses->_readbuf.data(), READ_BUFFER_SIZE, 0);
+    octets& rbuffer = _ses->rbuffer();
+    int len = recv(_fd, rbuffer.end(), rbuffer.free_space(), 0);
     if(len > 0)
     {
-        _ses->_rlength = len;
-        _ses->_readbuf.data()[len] = '\0';
-        //TODO 处理业务
-        
-        //local_log("recv[fd=%d]:%s", _fd, _readbuf);
-        memcpy(_ses->_writebuf.data(), _ses->_readbuf.data(), _ses->_rlength);
-        _ses->_wlength = _ses->_rlength;
-        _base->add_event(this, EVENT_SEND);
-        _ses->_rlength = 0;
+        rbuffer.fast_resize(len);
+        // 处理业务
+        _ses->on_recv(len);
     }
     else if(len == 0)
     {
@@ -156,24 +148,16 @@ int streamio_event::handle_send()
 {
     if(_base == nullptr) return -1;
 
-    int len = send(_fd, _ses->_writebuf.data(), _ses->_wlength, 0);
+    octets& wbuffer = _ses->wbuffer();
+    int len = send(_fd, wbuffer.begin(), wbuffer.size(), 0);
     if(len >= 0)
     {
-        if(len == _ses->_wlength)
-        {
-            _ses->_wlength = 0;
-            _base->add_event(this, EVENT_RECV);
-        }
-        else
-        {
-            memcpy(_ses->_writebuf.data(), _ses->_writebuf.data() + len, _ses->_wlength-len);
-            _ses->_wlength -= len;
-            _base->add_event(this, EVENT_SEND);
-        }
+        wbuffer.erase(0, len);
+        _ses->on_send(len);
     }
     else
     {
-        _base->add_event(this, EVENT_SEND);
+        _ses->permit_send();
     }
     return len;
 }

@@ -1,16 +1,15 @@
 #include "session_manager.h"
 
-#include <arpa/inet.h>
-#include <cassert>
-#include <netinet/in.h>
-#include <sys/socket.h>
-
 #include "address.h"
 #include "common.h"
-#include "event.h"
 #include "ioevent.h"
+#include "log.h"
+#include "macros.h"
+#include "marshal.h"
 #include "reactor.h"
 #include "config.h"
+#include "protocol.h"
+#include "session.h"
 
 session_manager::session_manager()
 {
@@ -24,8 +23,65 @@ session_manager::session_manager()
         assert(false);
     }
 
-    _read_buffer_size = cfg->get<size_t>(identity(), "read_buffer_size");
+    _read_buffer_size  = cfg->get<size_t>(identity(), "read_buffer_size");
     _write_buffer_size = cfg->get<size_t>(identity(), "write_buffer_size");
+}
+
+void session_manager::add_session(SID sid, session* ses)
+{
+    cassobee::rwlock::wrscoped l(_locker);
+    ASSERT(!_sessions.contains(sid) && ses);
+    _sessions.emplace(sid, ses);
+}
+
+void session_manager::del_session(SID sid)
+{
+    cassobee::rwlock::wrscoped l(_locker);
+    _sessions.erase(sid);
+}
+
+session* session_manager::find_session(SID sid)
+{
+    cassobee::rwlock::rdscoped l(_locker);
+    return find_session_nolock(sid);
+}
+
+session* session_manager::find_session_nolock(SID sid)
+{
+    auto iter = _sessions.find(sid);
+    return iter != _sessions.end() ? iter->second : nullptr;
+}
+
+void session_manager::send_protocol(SID sid, const protocol& prot)
+{
+    cassobee::rwlock::rdscoped l(_locker);
+    if(session* ses = find_session_nolock(sid))
+    {
+        thread_local octetsstream os;
+        os.clear();
+        prot.encode(os);
+
+        ses->wbuffer().append(os.data(), os.size());
+        ses->permit_send();
+    }
+    else
+    {
+        ERRORLOG("session_manager %s cant find session %d on sending protocol", identity(), sid);
+    }
+}
+
+void session_manager::send_octets(SID sid, const octets& oct)
+{
+    cassobee::rwlock::rdscoped l(_locker);
+    if(session* ses = find_session_nolock(sid))
+    {
+        ses->wbuffer().append(oct.data(), oct.size());
+        ses->permit_send();
+    }
+    else
+    {
+        ERRORLOG("session_manager %s cant find session %d on sending protocol", identity(), sid);
+    }
 }
 
 void client(session_manager* manager)

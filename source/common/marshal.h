@@ -18,7 +18,7 @@ class octetsstream;
 class marshal
 {
 public:
-    virtual octetsstream& pack(octetsstream& os)   = 0;
+    virtual octetsstream& pack(octetsstream& os) const = 0;
     virtual octetsstream& unpack(octetsstream& os) = 0;
 };
 
@@ -63,6 +63,8 @@ public:
     FORCE_INLINE octets& data() { return _data; }
     FORCE_INLINE void reset_pos() { _pos = 0; }
     FORCE_INLINE void clear() { _data.clear(); _pos = 0; _transpos = 0; }
+
+    FORCE_INLINE bool data_ready(size_t len) const { return _data.size() - _pos >= len; }
     FORCE_INLINE size_t get_pos() const { return _pos; }
     FORCE_INLINE size_t size() const { return _data.size(); }
     FORCE_INLINE size_t capacity() const { return _data.capacity(); }
@@ -89,6 +91,18 @@ public:
         return *this;
     }
 
+    octetsstream& push(const octets& val)
+    {
+        _data.append(val.data(), val.size());
+        return *this;
+    }
+
+    octetsstream& pop(octets& val)
+    {
+        val.append(_data.begin() + _pos, _data.size() - _pos);
+        return *this;
+    }
+
     octetsstream& push(Transaction val) = delete;
 
     octetsstream& pop(Transaction val)
@@ -101,6 +115,16 @@ public:
             default:{ break; } 
         }
         return *this;
+    }
+
+    octetsstream& push(const marshal& val)
+    {
+        return val.pack(*this);
+    }
+
+    octetsstream& pop(marshal& val)
+    {
+        return val.unpack(*this);
     }
 
     template<typename T, typename U> octetsstream& push(const std::pair<T, U>& val)

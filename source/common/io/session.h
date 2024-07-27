@@ -4,6 +4,7 @@
 #include "octets.h"
 #include "marshal.h"
 #include "types.h"
+#include "session_manager.h"
 
 class address;
 class session_manager;
@@ -25,17 +26,28 @@ public:
     void open(address* peer);
     void close();
 
-public:
+    void on_recv(size_t len);
+    void on_send(size_t len);
+
+    void permit_recv();
+    void permit_send();
+
+    FORCE_INLINE size_t max_rbuf_size() const { return _manager->_read_buffer_size;  }
+    FORCE_INLINE size_t max_wbuf_size() const { return _manager->_write_buffer_size; }
+    FORCE_INLINE octets& rbuffer() { return _readbuf;  }
+    FORCE_INLINE octets& wbuffer() { return _writebuf; }
+
+    FORCE_INLINE void set_state(SESSION_STATE state) { _state = state; }
+
+private:
     SID _sid = 0;
     int _sockfd = 0;
     uint8_t _state = SESSION_STATE_NONE;
     address* _peer = nullptr;
     session_manager* _manager;
 
-    event* _event;
-    int _rlength = 0;
+    event* _event = nullptr;
     octets _readbuf;
-    int _wlength = 0;
     octets _writebuf;
 
     octetsstream _reados;
