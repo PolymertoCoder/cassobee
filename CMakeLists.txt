@@ -12,6 +12,7 @@ set(LIBRARY_OUTPUT_PATH     ${CASSOBEE_ROOT_PATH}/debug/libs)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" OFF)
 option(CASSOBEE_IWYU_ENABLE "enable include-what-you-use" OFF)
+option(CASSOBEE_SENITIZE_ENABLE "enable google senitizer" ON)
 
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)

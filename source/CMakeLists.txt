@@ -9,6 +9,11 @@ function(add_common_flags target)
     endforeach()
 endfunction()
 
+function(add_sanitize_flag target)
+    target_compile_options(${target} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+    target_link_libraries(${target} -fsanitize=address)
+endfunction()
+
 include_directories(.
                     ./common
                     ./common/io
@@ -35,8 +40,10 @@ add_library(log SHARED ${LIBLOG_SRC})
 aux_source_directory(./common/security LIBSECURITY_SRC)
 message("libsecurity source: " ${LIBSECURITY_SRC})
 add_library(security SHARED ${LIBSECURITY_SRC})
+find_library(LIBCRYTOPP_PATH cryptopp ${THIRDPARTY_PATH}/cryptopp)
+target_link_libraries(security ${LIBCRYTOPP_PATH})
 
-set(LIB_LIB pthread bee log)
+set(LIB_LIB pthread bee log security)
 
 add_executable(cassobee main.cpp)
 add_dependencies(cassobee bee log)
@@ -45,6 +52,12 @@ target_link_libraries(cassobee ${LIB_LIB})
 add_common_flags(bee)
 add_common_flags(log)
 add_common_flags(cassobee)
+
+if(${CASSOBEE_SENITIZE_ENABLE})
+    add_sanitize_flag(bee)
+    add_sanitize_flag(log)
+    add_sanitize_flag(cassobee)
+endif()
 
 if(${CASSOBEE_BENCHMARK_ENABLE})
     set(BENCHMARK_ENABLE_TESTING OFF)
