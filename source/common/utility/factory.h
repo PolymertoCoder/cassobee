@@ -1,46 +1,60 @@
 #pragma once
 #include "common.h"
-#include <functional>
-#include <string>
+#include "concept.h"
+#include "traits.h"
+#include <tuple>
 #include <utility>
 
-template<typename base_product, typename key_type, typename... products>
+template<typename base_product, typename... products>
 class factory_base
 {
 public:
     template<typename product>
+    requires (std::is_base_of_v<base_product, product>)
     struct product_stub
     {
-        key_type id;
-        product  stub;
+        using type = product;
+        constexpr static auto value = cassobee::type_name<product>();
     };
 
 protected:
     static std::tuple<product_stub<products>...> _stubs;
 };
 
-template<typename base_product, typename key_type, typename... products>
-class factory_impl : public factory_base<base_product, key_type, products...>
-                   , public singleton_support<factory_impl<base_product, key_type>>
+template<typename base_product, typename... products>
+class factory_impl : public factory_base<base_product, products...>
+                   , public singleton_support<factory_impl<base_product, products...>>
 {
 public:
-    using factory_base<base_product, key_type, products...>::_stubs;
+    using factory_base<base_product, products...>::_stubs;
+
+    template<size_t I>
+    using product_wrapper = std::tuple_element_t<I, decltype(_stubs)>;
+
+    template<size_t I, typename... create_params>
+    base_product* create_helper(const std::string_view& id, create_params&&... params)
+    {
+        if constexpr(has_constructor<typename product_wrapper<I>::type, create_params...>)
+        {
+            if(id == product_wrapper<I>::value)
+                return new product_wrapper<I>::type(params...);
+        }
+        return nullptr;
+    }
 
     template<typename... create_params>
-    base_product* create(const key_type& id, create_params&&... params)
+    auto* create(const std::string_view& id, create_params&&... params)
     {
+        static_assert(sizeof...(products) > 0);
+
         base_product* product = nullptr;
         [&]<size_t... Is>(std::index_sequence<Is...>&&)
         {
-            ((std::get<Is>(_stubs).id == id &&
-             (product = new decltype(std::get<Is>(_stubs).stub)(params...))) || ...);
+            ((product = create_helper<Is>(id, params...)) || ...);
         }(std::make_index_sequence<sizeof...(products)>());
         return product;
     }
 };
 
-template<typename base_product, typename key_type = std::string>
-using factory_template = factory_impl<base_product, key_type>;
-
-#define register_product(factory, id, product, ...) \
-    static factory::register_t<product, __VA_ARGS__> _##factory##_##product(id, );
+template<typename base_product, typename... products>
+using factory_template = factory_impl<base_product, products...>;
