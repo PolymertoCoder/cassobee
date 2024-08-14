@@ -23,7 +23,11 @@ class session
 {
 public:
     session(session_manager* manager);
-    void open(address* peer);
+    ~session();
+
+    session* dup();
+
+    void open();
     void close();
 
     void on_recv(size_t len);
@@ -37,7 +41,11 @@ public:
     FORCE_INLINE octets& rbuffer() { return _readbuf;  }
     FORCE_INLINE octets& wbuffer() { return _writebuf; }
 
+    FORCE_INLINE address* get_peer() { return _peer; }
+
     FORCE_INLINE void set_state(SESSION_STATE state) { _state = state; }
+
+    FORCE_INLINE session_manager* get_manager() const { return _manager; }
 
 private:
     SID _sid = 0;

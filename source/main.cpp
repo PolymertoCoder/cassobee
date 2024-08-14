@@ -5,7 +5,10 @@
 #include <thread>
 
 #include "config.h"
+#include "marshal.h"
 #include "reactor.h"
+#include "stringfy.h"
+#include "address.h"
 #include "threadpool.h"
 #include "timewheel.h"
 #include "systemtime.h"
@@ -52,9 +55,9 @@ int main()
     local_log("nowtime1=%ld", systemtime::get_microseconds());
     sleep(3);
     local_log("nowtime2=%ld", systemtime::get_microseconds());
-    // add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
-    // add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
-    // add_timer(false, 5000, -1, [](void*){ local_log("timer3 nowtime3: %ld.", systemtime::get_time()); return false; }, nullptr);
+    add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
+    add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
+    add_timer(false, 5000, -1, [](void*){ local_log("timer3 nowtime3: %ld.", systemtime::get_time()); return false; }, nullptr);
 
     add_timer(1000, [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
     add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
@@ -115,7 +118,13 @@ int main()
     // local_log("type_name:%s", cassobee::type_name<cassobee::logger>());
     // local_log("type_name:%s", cassobee::short_type_name<cassobee::logger>());
 
-    //address_factory::register_t<ipv4_address, const char*, uint16_t> _1(address::AddressType::INET);
+    struct sockaddr_in addr;
+    bzero(&addr, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(6666);
+    auto addr4 = address_factory::get_instance()->create("ipv4_address", addr);
+    UNUSE(addr4);
 
     reactor::get_instance()->run();
     timer_thread.join();

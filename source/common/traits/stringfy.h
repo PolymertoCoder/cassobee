@@ -91,10 +91,10 @@ std::string to_string(const std::unordered_map<T1, T2>& val)
 template<typename... types>
 std::string to_string(const std::tuple<types...>& val)
 {
-    std::string str("std::tuple:{");
+    std::string str("std::tuple:{ ");
     [&]<size_t... Is>(std::index_sequence<sizeof...(types)>&&)
     {
-        ((str + to_string(std::get<Is>(val))), ...);
+        str + ((to_string(std::get<Is>(val)) + " "), ...);
     }(std::make_index_sequence<sizeof...(types)>());
     return str.append("}");
 }

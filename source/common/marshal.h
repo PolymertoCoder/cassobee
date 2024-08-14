@@ -7,11 +7,7 @@
 #include "bytes_order.h"
 #include <exception>
 #include <map>
-#include <set>
-#include <type_traits>
 #include <unordered_map>
-#include <unordered_set>
-#include <vector>
 
 class octetsstream;
 
@@ -50,7 +46,7 @@ public:
     octetsstream(const octets& oct, size_t size) : _data(oct, size) {}
 
     template<typename T> FORCE_INLINE octetsstream& operator <<(const T& val) { return push(val); }
-    template<typename T> FORCE_INLINE octetsstream& operator >>(T& val) { return pop(val); }
+    template<typename T> FORCE_INLINE octetsstream& operator >>(T&& val) { return pop(std::forward<T>(val)); }
 
     FORCE_INLINE void swap(octetsstream& rhs)
     {
@@ -62,6 +58,7 @@ public:
     FORCE_INLINE void reserve(size_t cap) { _data.reserve(cap); }
     FORCE_INLINE octets& data() { return _data; }
     FORCE_INLINE void reset_pos() { _pos = 0; }
+    FORCE_INLINE void try_shrink() { if(_pos > 0x100000) { _data.erase(0, _pos); } }
     FORCE_INLINE void clear() { _data.clear(); _pos = 0; _transpos = 0; }
 
     FORCE_INLINE bool data_ready(size_t len) const { return _data.size() - _pos >= len; }
@@ -111,7 +108,7 @@ public:
         {
             case BEGIN:    { _transpos = _pos; } break;
             case ROLLBACK: { _pos = _transpos; } break;
-            case COMMIT:   { clear();          } break;
+            case COMMIT:   { try_shrink();     } break;
             default:{ break; } 
         }
         return *this;

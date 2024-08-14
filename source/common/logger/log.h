@@ -39,8 +39,8 @@ enum LOG_LEVEL
     LOG_LEVEL_FATAL,
 };
 
-void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...);
-void console_log(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...);
+void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...) FORMAT_PRINT_CHECK(7, 8);
+void console_log(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...) FORMAT_PRINT_CHECK(7, 8);
 
 class log_event
 {

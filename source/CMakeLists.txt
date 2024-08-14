@@ -21,6 +21,8 @@ include_directories(.
                     ./common/traits
                     ./common/utility
                     ./common/security
+                    ./protocol
+                    ./protocol/include
 )
 
 # libbee
@@ -35,6 +37,11 @@ add_library(bee SHARED ${LIBBEE_SRC})
 aux_source_directory(./common/logger LIBLOG_SRC)
 message("liblog source: " ${LIBLOG_SRC})
 add_library(log SHARED ${LIBLOG_SRC})
+
+# libprot
+aux_source_directory(./protocol/source LIBPROT_SRC)
+include_directories(./protocol/include)
+#add_library(prot SHARED ${LIBPROT_SRC})
 
 # libsecurity
 aux_source_directory(./common/security LIBSECURITY_SRC)

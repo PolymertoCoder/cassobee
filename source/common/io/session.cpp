@@ -4,14 +4,27 @@
 #include "event.h"
 #include "protocol.h"
 #include "reactor.h"
+#include "threadpool.h"
 
 class session_manager;
 
 session::session(session_manager* manager)
     : _manager(manager)
 {
+    _peer = _manager->get_addr()->dup();
+
     _readbuf.reserve(_manager->_read_buffer_size);
     _writebuf.reserve(_manager->_write_buffer_size);
+}
+
+session::~session()
+{
+    delete _peer;
+}
+
+session* session::dup()
+{
+    return new session(*this);
 }
 
 void session::on_recv(size_t len)
@@ -19,7 +32,14 @@ void session::on_recv(size_t len)
     _state = SESSION_STATE_RECVING;
     _reados << _readbuf;
 
-    protocol::decode(_reados);
+    while(protocol* prot = protocol::decode(_reados, this))
+    {
+        threadpool::get_instance()->add_task(prot->thread_group_idx(), [prot]()
+        {
+            prot->run();
+            delete prot;
+        });
+    }
 }
 
 void session::on_send(size_t len)
@@ -46,15 +66,12 @@ void session::permit_send()
     reactor::get_instance()->add_event(_event, EVENT_SEND);
 }
 
-void session::open(address* peer)
+void session::open()
 {
     set_state(SESSION_STATE_ACTIVE);
-    _peer = peer->dup();
 }
 
 void session::close()
 {
-
-    delete _peer;
     set_state(SESSION_STATE_CLOSING);
 }

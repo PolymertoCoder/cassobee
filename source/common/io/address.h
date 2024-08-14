@@ -23,7 +23,7 @@ public:
 
     virtual ~address() {};
     virtual sockaddr* addr() = 0;
-    virtual socklen_t len() = 0;
+    virtual socklen_t& len() = 0;
     virtual int family() = 0;
     virtual address* dup() = 0;
     virtual std::string to_string() = 0;
@@ -32,7 +32,7 @@ public:
 class general_address : public address
 {
 public:
-    general_address(sockaddr addr, socklen_t len)
+    general_address(sockaddr addr, socklen_t len = sizeof(addr))
         : _addr(addr), _len(len) {}
     general_address(const general_address& rhs)
     {
@@ -40,7 +40,7 @@ public:
         _len = rhs._len;
     }
     virtual sockaddr* addr() override { return &_addr; };
-    virtual socklen_t len() override { return _len; };
+    virtual socklen_t& len() override { return _len; };
     virtual int family() override { return _addr.sa_family; };
     virtual general_address* dup() override { return new general_address(*this); }
     virtual std::string to_string() override
@@ -56,7 +56,7 @@ public:
 class ipv4_address : public address
 {
 public:
-    ipv4_address(sockaddr_in addr, socklen_t len) : _addr(addr), _len(len) {}
+    ipv4_address(sockaddr_in addr, socklen_t len = sizeof(addr)) : _addr(addr), _len(len) {}
     ipv4_address(const char* ip, uint16_t port)
     {
         _addr.sin_family = AF_INET;
@@ -70,7 +70,7 @@ public:
         _len = rhs._len;
     }
     virtual sockaddr* addr() override { return (sockaddr*)&_addr; };
-    virtual socklen_t len() override { return _len; };
+    virtual socklen_t& len() override { return _len; };
     virtual int family() override { return AF_INET; };
     virtual ipv4_address* dup() override { return new ipv4_address(*this); }
     virtual std::string to_string() override
@@ -94,7 +94,7 @@ public:
 class ipv6_address : public address
 {
 public:
-    ipv6_address(sockaddr_in6 addr, socklen_t len) : _addr(addr), _len(len) {}
+    ipv6_address(sockaddr_in6 addr, socklen_t len = sizeof(addr)) : _addr(addr), _len(len) {}
     ipv6_address(const char* ip, uint16_t port)
     {
         _addr.sin6_family = AF_INET6;
@@ -108,7 +108,7 @@ public:
         _len = rhs._len;
     }
     virtual sockaddr* addr() override { return (sockaddr*)&_addr; };
-    virtual socklen_t len() override { return _len; };
+    virtual socklen_t& len() override { return _len; };
     virtual int family() override { return AF_INET6; };
     virtual ipv6_address* dup() override { return new ipv6_address(*this); }
     virtual std::string to_string() override
@@ -132,7 +132,7 @@ public:
 class unix_address : public address
 {
 public:
-    unix_address(sockaddr_un addr, socklen_t len) : _addr(addr), _len(len) {}
+    unix_address(sockaddr_un addr, socklen_t len = sizeof(addr)) : _addr(addr), _len(len) {}
     unix_address(const char* path)
     {
         _addr.sun_family = AF_UNIX;
@@ -145,7 +145,7 @@ public:
         _len = rhs._len;
     }
     virtual sockaddr* addr() override { return (sockaddr*)&_addr; };
-    virtual socklen_t len() override { return _len; };
+    virtual socklen_t& len() override { return _len; };
     virtual int family() override { return AF_UNIX; };
     virtual unix_address* dup() override { return new unix_address(*this); }
     virtual std::string to_string() override
@@ -165,3 +165,8 @@ public:
 // register_product(address_factory, address::AddressType::INET, ipv4_address, const char*, uint16_t);
 // register_product(address_factory, address::AddressType::INET6, ipv6_address, const char*, uint16_t);
 // register_product(address_factory, address::AddressType::UNIX, unix_address, const char*);
+
+using address_factory = factory_template<address,
+                                         general_address,
+                                         ipv4_address,
+                                         ipv6_address>;

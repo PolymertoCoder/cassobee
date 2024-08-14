@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <netinet/tcp.h>
 #include <cstring>
 
 #include "ioevent.h"
@@ -12,17 +13,43 @@
 #include "reactor.h"
 #include "session.h"
 
-passiveio_event::passiveio_event(int fd, address* local)
-    : netio_event(fd), _local(local)
+passiveio_event::passiveio_event(session_manager* manager)
+    : netio_event(manager->create_session())
 {
+    int socktype = _ses->get_manager()->socktype();
     
+    if(socktype == SOCK_STREAM)
+    {
+        int family = manager->family();
+        int listenfd = socket(family, socktype, 0);
+        set_nonblocking(listenfd, true);
+
+        struct sockaddr* addr = manager->get_addr()->addr();
+        if(bind(listenfd, addr, sizeof(*addr)) < 0)
+        {
+            perror("bind");
+            close(listenfd);
+            exit(-1);
+        }
+        if(listen(listenfd, 20) < 0)
+        {
+            perror("listen");
+            close(listenfd);
+            exit(-1);
+        }
+        _fd = listenfd;
+    }
+    else if(socktype == SOCK_DGRAM)
+    {
+        // TODO
+    }
 }
 
 bool passiveio_event::handle_event(int active_events)
 {
     if(_base == nullptr) return false;
 
-    int family = _local->family();
+    int family = _ses->get_manager()->family();
     if(family == AF_INET)
     {
         struct sockaddr_in sock_client;
@@ -40,9 +67,7 @@ bool passiveio_event::handle_event(int active_events)
         int ret = set_nonblocking(clientfd, true);
         if(ret < 0) return false;
 
-        address* peer = new ipv4_address(sock_client, len);
-        event* ev = new streamio_event(clientfd, peer);
-        _base->add_event(ev, EVENT_RECV);
+        _base->add_event(new streamio_event(clientfd, _ses->dup()), EVENT_RECV);
         printf("accept clientid=%d.\n", clientfd);
     }
     else if(family  == AF_INET6)
@@ -61,9 +86,8 @@ bool passiveio_event::handle_event(int active_events)
 
         int ret = set_nonblocking(clientfd, true);
         if(ret < 0) return false;
-        address* peer = new ipv6_address(sock_client, len);
-        event* ev = new streamio_event(clientfd, peer);
-        _base->add_event(ev, EVENT_RECV);
+
+        _base->add_event(new streamio_event(clientfd, _ses->dup()), EVENT_RECV);
         printf("accept clientid=%d.\n", clientfd);
     }
     return 0;
@@ -74,10 +98,31 @@ bool activeio_event::handle_event(int active_events)
     return true;
 }
 
-streamio_event::streamio_event(int fd, address* peer)
-    : netio_event(fd)
+streamio_event::streamio_event(int fd, session* ses)
+    : netio_event(ses)
 {
-    
+    _fd = fd;
+    address* addr = ses->get_peer();
+    if(getsockname(_fd, addr->addr(), &addr->len()) < 0)
+    {
+        perror("getsockname");
+        close(_fd);
+        exit(-1);
+    }
+    int flag = 1;
+    if(setsockopt(_fd, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(int)) < 0)
+    {
+        perror("setsockopt");
+        close(_fd);
+        exit(-1);
+    }
+    if(setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int)) < 0)
+    {
+        perror("setsockopt");
+        close(_fd);
+        exit(-1);
+    }
+    ses->open();
 }
 
 bool streamio_event::handle_event(int active_events)

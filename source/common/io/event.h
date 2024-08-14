@@ -7,7 +7,7 @@ class reactor;
 
 enum EVENT_MASK
 {
-    EVENT_NONE = 0,
+    EVENT_NONE   = 0x00,
     EVENT_ACCEPT = 0x01,
     EVENT_RECV   = 0x02,
     EVENT_SEND   = 0x04,
