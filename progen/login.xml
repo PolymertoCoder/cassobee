@@ -1,0 +1,12 @@
+<application>
+    <protocol name="ExampleProtocol" maxsize="1024" codefield="uint32_t">
+        <field name="field1" type="int" default="0"/>
+        <field name="field2" type="std::string" default="std::string()"/>
+        <field name="field3" type="std::vector&lt;int&gt;" default="std::vector&lt;int&gt;()"/>
+    </protocol>
+
+    <rpcdata name="ExampleRpcData" codefield="uint32_t">
+        <field name="fieldA" type="double" default="0.0"/>
+        <field name="fieldB" type="std::map&lt;int, std::string&gt;" default="std::map&lt;int, std::string&gt;()"/>
+    </rpcdata>
+</application>

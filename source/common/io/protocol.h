@@ -16,10 +16,10 @@ public:
     protocol(const protocol&) = default;
     virtual ~protocol() = default;
 
-    virtual PROTOCOLID get_type() = 0;
-    virtual size_t maxsize() = 0;
+    virtual PROTOCOLID get_type() const = 0;
+    virtual size_t maxsize() const = 0;
+    virtual protocol* dup() const = 0;
     virtual void run() = 0;
-    virtual protocol* dup() = 0;
     
     static bool size_policy(PROTOCOLID type, size_t size);
     static bool check_policy(PROTOCOLID type, size_t size, session_manager* manager);

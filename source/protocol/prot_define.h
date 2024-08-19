@@ -1,3 +1,10 @@
 #pragma once
+#include "types.h"
 
-#define MAXPROTOCOLID 2000
+static constexpr PROTOCOLID MAXPROTOCOLID = 1;
+
+enum PROTOCOL_TYPE
+{
+    PROTOCOL_TYPE_EXAMPLEPROTOCOL = 1,
+};
+
