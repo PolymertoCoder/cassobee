@@ -41,7 +41,7 @@ add_library(log SHARED ${LIBLOG_SRC})
 # libprot
 aux_source_directory(./protocol/source LIBPROT_SRC)
 include_directories(./protocol/include)
-#add_library(prot SHARED ${LIBPROT_SRC})
+add_library(prot SHARED ${LIBPROT_SRC})
 
 # libsecurity
 aux_source_directory(./common/security LIBSECURITY_SRC)
