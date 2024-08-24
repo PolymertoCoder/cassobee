@@ -1,7 +1,6 @@
 #pragma once
 #include "event.h"
 
-class address;
 class session;
 class session_manager;
 

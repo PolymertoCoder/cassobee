@@ -1,7 +1,6 @@
 #include "config.h"
 #include <filesystem>
 #include <fstream>
-#include "macros.h"
 #include "stringfy.h"
 
 void config::init(const char* config_path)

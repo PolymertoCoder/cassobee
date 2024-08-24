@@ -1,13 +1,11 @@
 #pragma once
 
+#include <exception>
 #include "concept.h"
 #include "octets.h"
 #include "traits.h"
 #include "types.h"
 #include "bytes_order.h"
-#include <exception>
-#include <map>
-#include <unordered_map>
 
 class octetsstream;
 
@@ -90,13 +88,16 @@ public:
 
     octetsstream& push(const octets& val)
     {
+        push(val.size());
         _data.append(val.data(), val.size());
         return *this;
     }
 
     octetsstream& pop(octets& val)
     {
-        val.append(_data.begin() + _pos, _data.size() - _pos);
+        size_t size = 0;
+        pop(size);
+        val.append(_data.begin() + _pos, size);
         return *this;
     }
 
@@ -138,24 +139,34 @@ public:
         return *this;
     }
 
+    template<typename T> requires std::same_as<T, char> octetsstream& push(const std::basic_string<T>& val)
+    {
+        push(val.size());
+        _data.append(val.data(), val.size());
+        return *this;
+    }
+
+    template<typename T> requires std::same_as<T, char> octetsstream& pop(std::basic_string<T>& val)
+    {
+        size_t size = 0;
+        pop(size);
+        val.append(_data.begin() + _pos, size);
+        return *this;
+    }
+
     // STL容器 push & pop
-    template<typename T>
-    requires cassobee::is_stl_container_v<T>
-    octetsstream& push(const T& val)
+    template<typename T> requires cassobee::is_stl_container_v<T> octetsstream& push(const T& val)
     {
         return push_container(val);
     }
 
-    template<typename T>
-    requires cassobee::is_stl_container_v<T>
-    octetsstream& pop(T& val)
+    template<typename T> requires cassobee::is_stl_container_v<T> octetsstream& pop(T& val)
     {
         return pop_container(val);
     }
 
 protected:
-    template<typename container_type>
-    octetsstream& push_container(const container_type& container)
+    template<typename container_type> octetsstream& push_container(const container_type& container)
     {
         push(container.size());
         for(auto iter = container.cbegin(); iter != container.cend(); ++iter)
@@ -165,9 +176,7 @@ protected:
         return *this;
     }
 
-    template<typename container_type>
-    requires can_reserve_stl_container<container_type>
-    octetsstream& pop_container(container_type& container)
+    template<typename container_type> requires can_reserve_stl_container<container_type> octetsstream& pop_container(container_type& container)
     {
         using size_type  = container_type::size_type;
         using value_type = container_type::value_type;
@@ -183,8 +192,7 @@ protected:
         return *this;
     }
 
-    template<typename container_type>
-    octetsstream& pop_container(container_type& container)
+    template<typename container_type> octetsstream& pop_container(container_type& container)
     {
         using size_type  = typename container_type::size_type;
         using value_type = container_type::value_type;
@@ -199,8 +207,7 @@ protected:
         return *this;
     }
 
-    template<typename T, typename U>
-    octetsstream& pop_container(std::map<T, U>& container)
+    template<typename T, typename U> octetsstream& pop_container(std::map<T, U>& container)
     {
         size_t size = 0;
         pop(size);
@@ -213,8 +220,7 @@ protected:
         return *this;
     }
 
-    template<typename T, typename U>
-    octetsstream& pop_container(std::unordered_map<T, U>& container)
+    template<typename T, typename U> octetsstream& pop_container(std::unordered_map<T, U>& container)
     {
         size_t size = 0;
         pop(size);

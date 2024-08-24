@@ -1,4 +1,3 @@
-#include <cstdio>
 #include <unistd.h>
 #include "timewheel.h"
 #include "config.h"

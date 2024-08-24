@@ -6,8 +6,6 @@
 #include "reactor.h"
 #include "threadpool.h"
 
-class session_manager;
-
 session::session(session_manager* manager)
     : _manager(manager)
 {

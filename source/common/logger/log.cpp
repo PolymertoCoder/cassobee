@@ -1,7 +1,5 @@
-#include "log.h"
-
 #include <cstdarg>
-
+#include "log.h"
 #include "log_appender.h"
 #include "systemtime.h"
 #include "config.h"

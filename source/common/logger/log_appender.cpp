@@ -10,7 +10,6 @@
 #include "log_appender.h"
 #include "config.h"
 #include "log_formatter.h"
-#include "macros.h"
 #include "systemtime.h"
 #include "common.h"
 

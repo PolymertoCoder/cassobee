@@ -160,12 +160,6 @@ public:
     socklen_t _len;
 };
 
-// using address_factory = factory_template<address, address::AddressType>;
-// register_product(address_factory, address::AddressType::GENERAL, general_address, sockaddr, socklen_t);
-// register_product(address_factory, address::AddressType::INET, ipv4_address, const char*, uint16_t);
-// register_product(address_factory, address::AddressType::INET6, ipv6_address, const char*, uint16_t);
-// register_product(address_factory, address::AddressType::UNIX, unix_address, const char*);
-
 using address_factory = factory_template<address,
                                          general_address,
                                          ipv4_address,

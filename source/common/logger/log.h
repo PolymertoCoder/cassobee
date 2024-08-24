@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include "macros.h"
 #include "objectpool.h"
 #include "types.h"
 #include "common.h"

@@ -1,10 +1,8 @@
 #include "session_manager.h"
 
 #include "address.h"
-#include "common.h"
 #include "ioevent.h"
 #include "log.h"
-#include "macros.h"
 #include "marshal.h"
 #include "reactor.h"
 #include "config.h"
