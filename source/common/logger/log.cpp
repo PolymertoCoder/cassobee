@@ -39,9 +39,9 @@ void log_event::assign(std::string filename, int line, TIMETYPE time, int thread
     _content.swap(content);
 }
 
-logger::logger(log_appender* appender)
-    : _root_appender(appender)
-{    
+logger::logger(LOG_LEVEL level, log_appender* appender)
+    : _loglevel(level), _root_appender(appender)
+{
 }
 
 logger::~logger()
@@ -53,6 +53,7 @@ logger::~logger()
 
 void logger::log(LOG_LEVEL level, log_event* event)
 {
+    if(level >= _loglevel) return;
     _root_appender->log(level, event);
 }
 
@@ -94,16 +95,17 @@ void log_manager::init()
     std::string filename = cfg->get("log", "filename");
 
     bool asynclog = cfg->get<bool>("log", "asynclog");
+    auto loglevel = cfg->get<int>("log", "loglevel", LOG_LEVEL_TRACE);
     if(asynclog)
     {
-        _file_logger = new logger(new async_appender(logdir, filename));
+        _file_logger = new logger((LOG_LEVEL)loglevel, new async_appender(logdir, filename));
     }
     else
     {
-        _file_logger = new logger(new file_appender(logdir, filename));
+        _file_logger = new logger((LOG_LEVEL)loglevel, new file_appender(logdir, filename));
     }
 
-    _console_logger = new logger(new console_appender());
+    _console_logger = new logger((LOG_LEVEL)loglevel, new console_appender());
 
     size_t poolsize = cfg->get<int>("log", "poolsize");
     _eventpool.init(poolsize);

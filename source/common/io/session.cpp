@@ -22,7 +22,18 @@ session::~session()
 
 session* session::dup()
 {
-    return new session(*this);
+    auto ses = new session(*this);
+    ses->_sid = 0;
+    ses->_sockfd = 0;
+    ses->_state = SESSION_STATE_NONE;
+    ses->_peer->dup();
+
+    ses->_event = nullptr;
+    _readbuf.clear();
+    _writebuf.clear();
+    _reados.clear();
+    _writeos.clear();
+    return ses;
 }
 
 void session::on_recv(size_t len)

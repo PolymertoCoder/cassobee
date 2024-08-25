@@ -122,7 +122,7 @@ public:
     void insert(size_t pos, const char* data, size_t len)
     {
         pos = std::min(_len, pos);
-        reserve(frob_size(_len + len));
+        reserve(_len + len);
         memmove(_buf + pos + len, _buf + pos, len);
         memcpy(_buf + pos, data, len);
         _len += len;
@@ -130,9 +130,16 @@ public:
     void append(const char* data, size_t len)
     {
         if(len == 0) return;
-        reserve(frob_size(_len + len));
+        reserve(_len + len);
         memcpy(_buf + _len, data, len);
         _len += len;
+    }
+    void replace(size_t pos, const char* data, size_t len)
+    {
+        if(len == 0) return;
+        reserve(pos + len);
+        memcpy(_buf + pos, data, len);
+        _len = std::max(_len, pos + len);
     }
     void erase(size_t pos, size_t len)
     {
@@ -145,7 +152,7 @@ public:
     {
         //printf("reserve: newcap=%zu oldcap=%zu\n", cap, _cap);
         if(_cap >= cap) return;
-        create(_buf, _len, cap);
+        create(_buf, _len, frob_size(cap));
     }
 
     FORCE_INLINE char* begin() const { return _buf; }

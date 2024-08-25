@@ -3,7 +3,8 @@
 #include "marshal.h"
 #include "session.h"
 #include "session_manager.h"
-#include "threadpool.h"
+#include "types.h"
+#include <cstdio>
 
 bool protocol::size_policy(PROTOCOLID type, size_t size)
 {
@@ -28,9 +29,25 @@ bool protocol::check_policy(PROTOCOLID type, size_t size, session_manager* manag
     return true;
 }
 
-void protocol::encode(octetsstream& os)
+void protocol::encode(octetsstream& os) const
 {
-
+    PROTOCOLID id = get_type(); size_t size = 0;
+    try
+    {
+        os << id;
+        size_t size_begin_pos = os.get_pos();
+        os << size;
+        size_t begin_pos = os.get_pos();
+        pack(os);
+        size = os.get_pos() - begin_pos;
+        thread_local char sizebuf[32] = {0};
+        size_t n = snprintf(sizebuf, 32, "%zu", size);
+        os.data().replace(size_begin_pos, sizebuf, n);
+    }
+    catch(...)
+    {
+        ERRORLOG("protocol decode failed, id=%d size=%zu.", id, size);
+    }
 }
 
 protocol* protocol::decode(octetsstream& os, session* ses)
@@ -57,6 +74,11 @@ protocol* protocol::decode(octetsstream& os, session* ses)
             temp->unpack(os);
             return temp;
         }
+    }
+    catch(octetsstream::exception& e)
+    {
+        os >> octetsstream::ROLLBACK;
+        ERRORLOG("protocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
     }
     catch(...)
     {

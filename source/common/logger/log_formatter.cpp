@@ -32,6 +32,7 @@ public:
     {
         switch(level)
         {
+            case LOG_LEVEL_TRACE: { os << "TRACE"; } break;
             case LOG_LEVEL_DEBUG: { os << "DEBUG"; } break;
             case LOG_LEVEL_INFO:  { os << "INFO";  } break;
             case LOG_LEVEL_WARN:  { os << "WARN";  } break;
@@ -240,10 +241,10 @@ log_formatter::log_formatter(const std::string pattern)
         {
             if(!nstr.empty())
             {
-                vec.push_back(std::make_tuple(nstr, "", true));
+                vec.emplace_back(nstr, "", true);
                 nstr.clear();
             }
-            vec.push_back(std::make_tuple(str, fmt, false));
+            vec.emplace_back(str, fmt, false);
             i = n - 1;
         }
         else
@@ -251,13 +252,13 @@ log_formatter::log_formatter(const std::string pattern)
             // 格式错误，可能是缺少'}'
             printf("pattern parse error: %s-%s\n", _pattern.data(), _pattern.substr(i).data());
             _error = true;
-            vec.push_back(std::make_tuple("<<pattern_error>>", fmt, true)); 
+            vec.emplace_back("<<pattern_error>>", fmt, true); 
         }
     }
 
     if(!nstr.empty())
     {
-        vec.push_back(std::make_tuple(nstr, "", true));
+        vec.emplace_back(nstr, "", true);
     }
     static std::map<std::string, std::function<format_item*(const std::string&)>> format_items_creators =
     {
@@ -286,8 +287,7 @@ log_formatter::log_formatter(const std::string pattern)
         }
         else
         {
-            auto iter = format_items_creators.find(key);
-            if(iter == format_items_creators.end())
+            if(auto iter = format_items_creators.find(key); iter == format_items_creators.end())
             {
                 _items.push_back(new string_format_item("<<error_format %" + key + ">>"));
                 _error = true;

@@ -124,22 +124,10 @@ void session_manager::send_octets(SID sid, const octets& oct)
 
 void client(session_manager* manager)
 {
-    
+    reactor::get_instance()->add_event(new activeio_event(manager), EVENT_ACCEPT);
 }
 
 void server(session_manager* manager)
 {
     reactor::get_instance()->add_event(new passiveio_event(manager), EVENT_ACCEPT);
-    switch(manager->family())
-    {
-        case AF_INET:
-        {
-            
-        } break;
-        case AF_INET6:
-        {
-            
-            reactor::get_instance()->add_event(new passiveio_event(manager), EVENT_ACCEPT);
-        } break;
-    }
 }

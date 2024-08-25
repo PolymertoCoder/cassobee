@@ -84,8 +84,7 @@ bool passiveio_event::handle_event(int active_events)
             }
         }
 
-        int ret = set_nonblocking(clientfd, true);
-        if(ret < 0) return false;
+        if(set_nonblocking(clientfd, true) < 0) return false;
 
         _base->add_event(new streamio_event(clientfd, _ses->dup()), EVENT_RECV);
         printf("accept clientid=%d.\n", clientfd);
@@ -93,8 +92,27 @@ bool passiveio_event::handle_event(int active_events)
     return 0;
 }
 
+activeio_event::activeio_event(session_manager* manager)
+    : netio_event(manager->create_session())
+{
+    _fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if(_fd < 0)
+    {
+        perror("create socket");
+        return;
+    }
+    set_nonblocking(_fd, true);
+    struct sockaddr* addr = _ses->get_manager()->get_addr()->addr();
+    if(connect(_fd, addr, sizeof(*addr)) < 0)
+    {
+        perror("connect");
+        return;
+    }
+}
+
 bool activeio_event::handle_event(int active_events)
 {
+    // TODO   
     return true;
 }
 

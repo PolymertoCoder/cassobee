@@ -4,10 +4,15 @@
 class session;
 class session_manager;
 
-struct netio_event : event
+struct io_event : event
+{
+    io_event() {}
+    int _fd = -1;
+};
+
+struct netio_event : io_event
 {
     netio_event(session* ses) : _ses(ses) {}
-    int _fd = -1;
     session* _ses;
 };
 
@@ -19,7 +24,7 @@ struct passiveio_event : netio_event
 
 struct activeio_event : netio_event
 {
-    activeio_event(int fd);
+    activeio_event(session_manager* manager);
     virtual bool handle_event(int active_events) override;
 };
 

@@ -52,7 +52,6 @@ public:
         std::swap(_pos, rhs._pos);
         std::swap(_transpos, rhs._transpos);
     }
-
     FORCE_INLINE void reserve(size_t cap) { _data.reserve(cap); }
     FORCE_INLINE octets& data() { return _data; }
     FORCE_INLINE void reset_pos() { _pos = 0; }

@@ -15,6 +15,7 @@
 #define GLOG(loglevel, fmt, ...) \
     cassobee::glog(loglevel, __FILENAME__, __LINE__, gettid(), 0, {}, fmt, ##__VA_ARGS__)
 
+#define TRACELOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_TRACE, fmt, ##__VA_ARGS__)
 #define DEBUGLOG(fmt, ...) GLOG(cassobee::LOG_LEVEL_DEBUG, fmt, ##__VA_ARGS__)
 #define INFOLOG(fmt,  ...) GLOG(cassobee::LOG_LEVEL_INFO,  fmt, ##__VA_ARGS__)
 #define WARNLOG(fmt,  ...) GLOG(cassobee::LOG_LEVEL_WARN,  fmt, ##__VA_ARGS__)
@@ -31,6 +32,7 @@ class log_appender;
 
 enum LOG_LEVEL
 {
+    LOG_LEVEL_TRACE,
     LOG_LEVEL_DEBUG,
     LOG_LEVEL_INFO,
     LOG_LEVEL_WARN,
@@ -71,7 +73,7 @@ private:
 class logger
 {
 public:
-    logger(log_appender* appender);
+    logger(LOG_LEVEL level, log_appender* appender);
     ~logger();
     void log(LOG_LEVEL level, log_event* event);
 
@@ -79,7 +81,9 @@ public:
     bool add_appender(const std::string& name, log_appender* appender);
     bool del_appender(const std::string& name);
     void clr_appender();
+
 private:
+    LOG_LEVEL _loglevel = LOG_LEVEL_DEBUG;
     log_appender* _root_appender  = nullptr;
     std::unordered_map<std::string, log_appender*> _appenders;
 };
@@ -95,20 +99,21 @@ public:
         auto [id, evt] = _eventpool.alloc();
         if(PREDICT_FALSE(!evt))
         {
-            printf("logevent pool is full or not initialize\n");
+            printf("logevent pool is full or not initialized\n");
             return;
         }
         evt->assign(params...);
         _file_logger->log(level, evt);
         _eventpool.free(id);
     }
+
     template<typename ...params_type>
     void console_log(LOG_LEVEL level, params_type... params)
     {
         auto [id, evt] = _eventpool.alloc();
         if(PREDICT_FALSE(!evt))
         {
-            printf("logevent pool is full or not initialize\n");
+            printf("logevent pool is full or not initialized\n");
             return;
         }
         evt->assign(params...);

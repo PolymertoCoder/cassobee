@@ -24,7 +24,7 @@ public:
     static bool size_policy(PROTOCOLID type, size_t size);
     static bool check_policy(PROTOCOLID type, size_t size, session_manager* manager);
 
-    static void encode(octetsstream& os);
+    void encode(octetsstream& os) const;
     static protocol* decode(octetsstream& os, session* ses);
 
     FORCE_INLINE virtual size_t thread_group_idx() const { return 0; }
