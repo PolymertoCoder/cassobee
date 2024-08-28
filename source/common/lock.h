@@ -28,6 +28,26 @@ public:
     };
 };
 
+class empty_lock : public lock_support<empty_lock>
+{
+public:
+    FORCE_INLINE void lock() {}
+    FORCE_INLINE void unlock() {}
+    FORCE_INLINE bool try_lock() { return true; }
+    struct rdscoped { rdscoped(empty_lock&) {} };
+    struct wrscoped { wrscoped(empty_lock&) {} };
+    FORCE_INLINE void rdlock() {}
+    FORCE_INLINE void try_rdlock() {}
+    FORCE_INLINE void wrlock() {}
+    FORCE_INLINE void try_wrlock() {}
+};
+
+#ifndef _REENTRANT
+typedef empty_lock spinlock;
+typedef empty_lock mutex;
+typedef empty_lock rwlock;
+#else
+
 class spinlock : public lock_support<spinlock>
 {
 public:
@@ -144,4 +164,5 @@ private:
     pthread_rwlock_t _locker;
 };
 
+#endif // #ifndef _REENTRANT
 }
