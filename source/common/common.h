@@ -5,6 +5,7 @@
 #include <vector>
 #include <string_view>
 
+#include "lock.h"
 #include "types.h"
 
 #define GET_TIME_BEGIN() \
@@ -33,6 +34,19 @@ struct light_object_base
     void lock()   { _locker.lock();   }
     void unlock() { _locker.unlock(); }
     
+    lock_type _locker;
+};
+
+template<typename id_type, typename lock_type>
+requires std::is_base_of_v<cassobee::lock_support<lock_type>, lock_type>
+struct sequential_id_generator
+{
+    id_type gen()
+    {
+        typename lock_type::scoped l(_locker);
+        static id_type maxid = id_type(); // 第一个值作为无效值使用
+        return ++maxid;
+    }
     lock_type _locker;
 };
 

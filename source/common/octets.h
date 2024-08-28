@@ -137,6 +137,7 @@ public:
     void replace(size_t pos, const char* data, size_t len)
     {
         if(len == 0) return;
+        len = std::min(_len - pos, len); // 不改变长度
         reserve(pos + len);
         memcpy(_buf + pos, data, len);
         _len = std::max(_len, pos + len);

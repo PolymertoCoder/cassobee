@@ -36,9 +36,28 @@ session* session::dup()
     return ses;
 }
 
+SID session::get_next_sessionid()
+{
+    static sequential_id_generator<SID, cassobee::spinlock> sid_generator;
+    return sid_generator.gen();
+}
+
+void session::open()
+{
+    set_state(SESSION_STATE_ACTIVE);
+    _sid = get_next_sessionid();
+    _manager->add_session(_sid, this);
+}
+
+void session::close()
+{
+    set_state(SESSION_STATE_CLOSING);
+    _manager->del_session(_sid);
+}
+
 void session::on_recv(size_t len)
 {
-    _state = SESSION_STATE_RECVING;
+    set_state(SESSION_STATE_RECVING);
     _reados << _readbuf;
 
     while(protocol* prot = protocol::decode(_reados, this))
@@ -53,6 +72,7 @@ void session::on_recv(size_t len)
 
 void session::on_send(size_t len)
 {
+    set_state(SESSION_STATE_SENDING);
     if(len == _writebuf.size())
     {
         // 写缓冲区的数据全部发送完毕了
@@ -73,14 +93,4 @@ void session::permit_recv()
 void session::permit_send()
 {
     reactor::get_instance()->add_event(_event, EVENT_SEND);
-}
-
-void session::open()
-{
-    set_state(SESSION_STATE_ACTIVE);
-}
-
-void session::close()
-{
-    set_state(SESSION_STATE_CLOSING);
 }

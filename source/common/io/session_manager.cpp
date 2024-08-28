@@ -21,22 +21,12 @@ session_manager::session_manager()
         if(version == 4)
         {
             _family = AF_INET;
-            struct sockaddr_in addr;
-            bzero(&addr, sizeof(addr));
-            addr.sin_family = _family;
-            addr.sin_port = htons(port);
-            addr.sin_addr.s_addr = INADDR_ANY;
-            _addr = address_factory::get_instance()->create("ipv4_address", addr);
+            _addr = address_factory::get_instance()->create("ipv4_address", INADDR_ANY, port);
         }
         else if(version == 6)
         {
             _family = AF_INET6;
-            struct sockaddr_in6 addr;
-            bzero(&addr, sizeof(addr));
-            addr.sin6_family = AF_INET;
-            addr.sin6_port = htons(port);
-            addr.sin6_addr = in6addr_any;
-            _addr = address_factory::get_instance()->create("ipv6_address", addr);
+            _addr = address_factory::get_instance()->create("ipv6_address", in6addr_any, port);
         }
         else
         {
@@ -63,12 +53,14 @@ void session_manager::add_session(SID sid, session* ses)
     cassobee::rwlock::wrscoped l(_locker);
     ASSERT(!_sessions.contains(sid) && ses);
     _sessions.emplace(sid, ses);
+    TRACELOG("session_manager add_session %lu.", sid);
 }
 
 void session_manager::del_session(SID sid)
 {
     cassobee::rwlock::wrscoped l(_locker);
     _sessions.erase(sid);
+    TRACELOG("session_manager del_session %lu.", sid);
 }
 
 session* session_manager::find_session(SID sid)

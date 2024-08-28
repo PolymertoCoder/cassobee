@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 
+#include "lock.h"
 #include "octets.h"
 #include "marshal.h"
 #include "types.h"
@@ -26,6 +27,8 @@ public:
     ~session();
 
     session* dup();
+
+    SID get_next_sessionid();
 
     void open();
     void close();
