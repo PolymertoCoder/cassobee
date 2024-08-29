@@ -15,6 +15,8 @@
 #include "log.h"
 #include "traits.h"
 #include "common.h"
+#include "factory.h"
+#include "client_manager.h"
 
 std::thread start_threadpool_and_timer()
 {
@@ -118,13 +120,14 @@ int main()
     // local_log("type_name:%s", cassobee::type_name<cassobee::logger>());
     // local_log("type_name:%s", cassobee::short_type_name<cassobee::logger>());
 
-    struct sockaddr_in addr;
-    bzero(&addr, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(6666);
-    auto addr4 = address_factory::get_instance()->create("ipv4_address", addr);
-    UNUSE(addr4);
+    local_log("run here:%s.", address_factory::get_instance()->infomation().data());
+
+    // const char* str{"ipv4_address"};
+    // address_factory::get_instance()->create2<str>("0.0.0.0", 8888);
+
+    auto clientmgr = new client_manager;
+    clientmgr->init();
+    server(clientmgr);
 
     reactor::get_instance()->run();
     timer_thread.join();

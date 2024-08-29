@@ -56,6 +56,8 @@ add_executable(cassobee main.cpp)
 add_dependencies(cassobee bee log)
 target_link_libraries(cassobee ${LIB_LIB})
 
+add_executable(client client.cpp)
+
 add_common_flags(bee)
 add_common_flags(log)
 add_common_flags(cassobee)

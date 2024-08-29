@@ -84,7 +84,7 @@ public:
 
 private:
     LOG_LEVEL _loglevel = LOG_LEVEL_DEBUG;
-    log_appender* _root_appender  = nullptr;
+    log_appender* _root_appender = nullptr;
     std::unordered_map<std::string, log_appender*> _appenders;
 };
 

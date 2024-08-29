@@ -42,7 +42,7 @@ consteval auto type_name_array() -> std::string_view
     constexpr std::source_location location;
     constexpr auto function_name = std::string_view(location.current().function_name());
     constexpr auto prefix = "T = "sv;
-    constexpr auto suffix = ",;]"sv;
+    constexpr auto suffix = ";]"sv;
 
     constexpr auto prepos = std::ranges::search(function_name, prefix);
     static_assert(!prepos.empty());
@@ -70,8 +70,17 @@ template<typename T>
 consteval auto short_type_name() -> std::string_view
 {
     constexpr auto& ref = type_name_holder<T>::value;
-    size_t pos = ref.rfind("::");
-    return pos != std::string_view::npos ? ref.substr(pos + 2) : ref;
+    constexpr auto begin = ref.find('<'); // T是模板类
+    constexpr auto len = (begin != std::string_view::npos) ? begin : ref.size();
+    if constexpr(constexpr auto end = ref.find("::", 0, len); end != std::string_view::npos)
+    {
+        constexpr auto diff = end + 2;
+        return std::string_view(ref.data() + diff, ref.size() - diff);
+    }
+    else
+    {
+        return std::string_view(ref.data(), ref.size());
+    }
 }
 
 template<typename T>
@@ -85,5 +94,22 @@ auto short_type_name_string() -> std::string
 {
     return std::string(short_type_name<T>());
 }
+
+template<size_t N>
+struct strTP
+{
+    constexpr strTP(const char str[N]) { for(size_t i = 0; i < N; ++i) data[i] = str[N]; }
+    constexpr bool operator==(const std::string_view& view)
+    {
+        if(view.size() != N) return false;
+        for(size_t i = 0; i < N; ++i)
+        {
+            if(view[i] != data[i])
+                return false;
+        }
+        return true;
+    }
+    char data[N];
+};
 
 } // namespace cassobee

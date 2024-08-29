@@ -11,6 +11,25 @@
 
 session_manager::session_manager()
 {
+}
+
+session_manager::~session_manager()
+{
+    delete _addr;
+    for(auto [sid, ses] : _sessions)
+    {
+        delete ses;
+    }
+    _sessions.clear();
+}
+
+session* session_manager::create_session()
+{
+    return new session(this);
+}
+
+void session_manager::init()
+{
     auto cfg = config::get_instance();
     std::string socktype = cfg->get(identity(), "socktype");
     if(socktype == "tcp")
@@ -18,20 +37,22 @@ session_manager::session_manager()
         _socktype = SOCK_STREAM;
         int version = cfg->get<int>(identity(), "version");
         int port = cfg->get<int>(identity(), "port");
+        TRACELOG("version:%d port:%d.", version, port);
         if(version == 4)
         {
             _family = AF_INET;
-            _addr = address_factory::get_instance()->create("ipv4_address", INADDR_ANY, port);
+            _addr = address_factory::get_instance()->create("ipv4_address", "0.0.0.0", port);
         }
         else if(version == 6)
         {
             _family = AF_INET6;
-            _addr = address_factory::get_instance()->create("ipv6_address", in6addr_any, port);
+            _addr = address_factory::get_instance()->create("ipv6_address", "0.0.0.0", port);
         }
         else
         {
             assert(false);
         }
+        assert(_addr != nullptr);
     }
     else if(socktype == "udp")
     {
@@ -41,11 +62,6 @@ session_manager::session_manager()
 
     _read_buffer_size  = cfg->get<size_t>(identity(), "read_buffer_size");
     _write_buffer_size = cfg->get<size_t>(identity(), "write_buffer_size");
-}
-
-session* session_manager::create_session()
-{
-    return new session(this);
 }
 
 void session_manager::add_session(SID sid, session* ses)

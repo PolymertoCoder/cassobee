@@ -94,7 +94,7 @@ std::string to_string(const std::tuple<types...>& val)
     std::string str("std::tuple:{ ");
     [&]<size_t... Is>(std::index_sequence<sizeof...(types)>&&)
     {
-        str + ((to_string(std::get<Is>(val)) + " "), ...);
+        str + ((to_string(std::get<Is>(val)) + " ") + ...);
     }(std::make_index_sequence<sizeof...(types)>());
     return str.append("}");
 }

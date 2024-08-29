@@ -53,7 +53,7 @@ logger::~logger()
 
 void logger::log(LOG_LEVEL level, log_event* event)
 {
-    if(level >= _loglevel) return;
+    //if(level >= _loglevel) return;
     _root_appender->log(level, event);
 }
 

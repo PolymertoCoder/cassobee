@@ -3,6 +3,7 @@
 #include <bitset>
 #include <unordered_map>
 
+#include "common.h"
 #include "lock.h"
 #include "types.h"
 #include "prot_define.h"
@@ -16,7 +17,9 @@ class session_manager
 {
 public:
     session_manager();
-    FORCE_INLINE virtual const char* identity() { return "session_manager"; }
+    ~session_manager();
+    void init();
+    FORCE_INLINE virtual const char* identity() const { return "session_manager"; }
     FORCE_INLINE address* get_addr() { return _addr; }
     FORCE_INLINE int socktype() { return _socktype; }
     FORCE_INLINE int family() { return _family; }

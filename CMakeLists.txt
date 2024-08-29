@@ -34,9 +34,9 @@ endif()
 
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++23 -Wall -Wno-deprecated -Wno-unused-function -D_REENTRANT")
 
-if(${CMAKE_BUILD_TYPE} EQUAL debug)
+if(${CMAKE_BUILD_TYPE} EQUAL Debug)
    add_compile_options(-O0 -ggdb -g)
-elif(${CMAKE_BUILD_TYPE} EQUAL release)
+elif(${CMAKE_BUILD_TYPE} EQUAL Release)
    add_compile_options(-O2)
 endif()
 
