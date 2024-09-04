@@ -50,6 +50,7 @@ struct sequential_id_generator
     lock_type _locker;
 };
 
+void set_signal(int signum, SIG_HANDLER handler);
 int set_nonblocking(int fd, bool nonblocking);
 pid_t gettid();
 TIMETYPE get_process_elapse();

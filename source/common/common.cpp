@@ -9,8 +9,23 @@
 #include <cstring>
 #include <ctime>
 #include <cstdarg>
+#include <csignal>
 
 #include "common.h"
+
+void set_signal(int signum, SIG_HANDLER handler)
+{
+    struct sigaction act;
+    bzero(&act, sizeof(act));
+    act.sa_handler = handler; // 设置信号处理函数
+    sigfillset(&act.sa_mask); // 初始化信号屏蔽集
+    act.sa_flags |= SA_RESTART; // 由此信号中断的系统调用自动重启动
+
+    if(sigaction(signum, &act, NULL) == -1)
+    {
+        printf("capture %d signal, but to deal with failure", signum);
+    }
+}
 
 int set_nonblocking(int fd, bool nonblocking)
 {

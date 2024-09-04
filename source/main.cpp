@@ -51,8 +51,9 @@ int main()
     config::get_instance()->init("/home/qinchao/cassobee/config");
     cassobee::log_manager::get_instance()->init();
     cassobee::log_manager::set_process_name("cassobee");
-    add_signal(SIGUSR1, sigusr1_handler);
-    reactor::get_instance()->init();
+    auto* looper = reactor::get_instance();
+    looper->init();
+    looper->add_signal(SIGUSR1, sigusr1_handler);
     std::thread timer_thread = start_threadpool_and_timer();
     local_log("nowtime1=%ld", systemtime::get_microseconds());
     sleep(3);
@@ -129,7 +130,7 @@ int main()
     clientmgr->init();
     server(clientmgr);
 
-    reactor::get_instance()->run();
+    looper->run();
     timer_thread.join();
     printf("process exit normally...\n");
     return 0;

@@ -3,12 +3,11 @@
 #include <functional>
 
 #include "common.h"
+#include "event.h"
 #include "types.h"
 
 class demultiplexer;
 struct event;
-
-using SIG_HANDLER = void(*)(int);
 
 class reactor : public singleton_support<reactor>
 {
@@ -23,14 +22,18 @@ public:
     int  add_event(event* ev, int events);
     void del_event(event* ev);
 
-    bool handle_signal_event(int signum);
-    void handle_timer_event();
+    void add_signal(int signum, bool(*callback)(int));
 
     event* get_event(int fd);
     FORCE_INLINE bool& get_wakeup() { return _wakeup; }
     FORCE_INLINE bool use_timer_thread() { return _use_timer_thread; }
 
-public:
+private:
+    friend struct sigio_event;
+    bool handle_signal_event(int signum);
+    void handle_timer_event();
+
+private:
     bool _stop = true;
     demultiplexer* _dispatcher;
     bool _wakeup = false;
@@ -41,9 +44,6 @@ public:
     EVENTS_MAP _signal_events;
     TIMEREVENT_MAP _timer_events;
 };
-
-void set_signal(int signum, SIG_HANDLER handler);
-void add_signal(int signum, bool(*callback)(int));
 
 int add_timer(TIMETYPE timeout/*ms*/, std::function<bool()> handler);
 int add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, std::function<bool(void*)> handler, void* param);

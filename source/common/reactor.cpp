@@ -1,8 +1,5 @@
 #include "reactor.h"
 
-#include <csignal>
-#include <cstdio>
-#include <cstring>
 #include <map>
 #include <utility>
 
@@ -11,6 +8,47 @@
 #include "timewheel.h"
 #include "log.h"
 #include "demultiplexer.h"
+
+void reactor::init()
+{
+    _dispatcher = new epoller();
+    _dispatcher->init();
+    _stop = false;
+    _use_timer_thread = true;
+    _timeout = 1;
+    add_event(new sigio_event(),   EVENT_RECV);
+    add_event(new control_event(), EVENT_RECV);
+}
+
+int reactor::run()
+{
+    if(_dispatcher == nullptr) return -1;
+
+    while(!_stop)
+    {
+        int timeout = _timeout;
+        if(_timer_events.size())
+        {
+            TIMETYPE nowtime = systemtime::get_millseconds();
+            TIMETYPE diff = _timer_events.begin()->first - nowtime;
+            if(diff > _timeout) timeout = diff;
+            //local_log("reactor::run nexttime=%ld nowtime=%ld timeout=%d", _timer_events.begin()->first, nowtime, timeout);
+        }
+        _dispatcher->dispatch(this, timeout);
+        handle_timer_event();
+    }
+    return 0;
+}
+
+void reactor::stop()
+{
+    _stop = true;
+}
+
+void reactor::wakeup()
+{
+    control_event::wakeup(this);
+}
 
 int reactor::add_event(event* ev, int events)
 {
@@ -53,6 +91,17 @@ void reactor::del_event(event* ev)
     delete temp;
 }
 
+void reactor::add_signal(int signum, bool(*callback)(int))
+{
+    add_event(new signal_event(signum, callback), EVENT_SIGNAL);
+}
+
+event* reactor::get_event(int fd)
+{
+    EVENTS_MAP::iterator itr = _io_events.find(fd);
+    return itr != _io_events.end() ? itr->second : nullptr;
+}
+
 bool reactor::handle_signal_event(int signum)
 {
     if(auto iter = _signal_events.find(signum); iter != _signal_events.end())
@@ -77,72 +126,6 @@ void reactor::handle_timer_event()
             add_event(tm, EVENT_TIMER);
         }
     }
-}
-
-void reactor::init()
-{
-    _dispatcher = new epoller();
-    _dispatcher->init();
-    _stop = false;
-    _use_timer_thread = true;
-    _timeout = 1;
-    add_event(new sigio_event(),   EVENT_RECV);
-    add_event(new control_event(), EVENT_RECV);
-}
-
-int reactor::run()
-{
-    if(_dispatcher == nullptr) return -1;
-
-    while(!_stop)
-    {
-        int timeout = _timeout;
-        if(_timer_events.size())
-        {
-            TIMETYPE nowtime = systemtime::get_millseconds();
-            TIMETYPE diff = _timer_events.begin()->first - nowtime;
-            if(diff > _timeout) timeout = diff;
-            //local_log("reactor::run nexttime=%ld nowtime=%ld timeout=%d", _timer_events.begin()->first, nowtime, timeout);
-        }
-        _dispatcher->dispatch(this, timeout);
-        handle_timer_event();        
-    }
-    return 0;
-}
-
-void reactor::stop()
-{
-    _stop = true;
-}
-
-void reactor::wakeup()
-{
-    control_event::wakeup(this);
-}
-
-event* reactor::get_event(int fd)
-{
-    EVENTS_MAP::iterator itr = _io_events.find(fd);
-    return itr != _io_events.end() ? itr->second : nullptr;
-}
-
-void set_signal(int signum, SIG_HANDLER handler)
-{
-    struct sigaction act;
-    bzero(&act, sizeof(act));
-    act.sa_handler = handler; // 设置信号处理函数
-    sigfillset(&act.sa_mask); // 初始化信号屏蔽集
-    act.sa_flags |= SA_RESTART; // 由此信号中断的系统调用自动重启动
-
-    if(sigaction(signum, &act, NULL) == -1)
-    {
-        local_log("capture %d signal, but to deal with failure", signum);
-    }
-}
-
-void add_signal(int signum, bool(*callback)(int))
-{
-    reactor::get_instance()->add_event(new signal_event(signum, callback), EVENT_SIGNAL);
 }
 
 int add_timer(TIMETYPE timeout, std::function<bool()> handler)
