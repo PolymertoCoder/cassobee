@@ -165,7 +165,8 @@ public:
     }
 
 protected:
-    template<typename container_type> octetsstream& push_container(const container_type& container)
+    template<typename container_type>
+    octetsstream& push_container(const container_type& container)
     {
         push(container.size());
         for(auto iter = container.cbegin(); iter != container.cend(); ++iter)
@@ -175,7 +176,8 @@ protected:
         return *this;
     }
 
-    template<typename container_type> requires can_reserve_stl_container<container_type> octetsstream& pop_container(container_type& container)
+    template<typename container_type> requires cassobee::can_reserve_stl_container<container_type>
+    octetsstream& pop_container(container_type& container)
     {
         using size_type  = container_type::size_type;
         using value_type = container_type::value_type;
@@ -191,7 +193,8 @@ protected:
         return *this;
     }
 
-    template<typename container_type> octetsstream& pop_container(container_type& container)
+    template<typename container_type>
+    octetsstream& pop_container(container_type& container)
     {
         using size_type  = typename container_type::size_type;
         using value_type = container_type::value_type;
@@ -206,7 +209,8 @@ protected:
         return *this;
     }
 
-    template<typename T, typename U> octetsstream& pop_container(std::map<T, U>& container)
+    template<typename T, typename U>
+    octetsstream& pop_container(std::map<T, U>& container)
     {
         size_t size = 0;
         pop(size);
@@ -219,7 +223,8 @@ protected:
         return *this;
     }
 
-    template<typename T, typename U> octetsstream& pop_container(std::unordered_map<T, U>& container)
+    template<typename T, typename U>
+    octetsstream& pop_container(std::unordered_map<T, U>& container)
     {
         size_t size = 0;
         pop(size);

@@ -96,18 +96,19 @@ auto short_type_name_string() -> std::string
 }
 
 template<size_t N>
-struct strTP
+struct string_literal
 {
-    constexpr strTP(const char str[N]) { for(size_t i = 0; i < N; ++i) data[i] = str[N]; }
-    constexpr bool operator==(const std::string_view& view)
+    constexpr string_literal(const char (&str)[N]) // 数组引用，不会退化成指针，能保留数组的大小信息
     {
-        if(view.size() != N) return false;
-        for(size_t i = 0; i < N; ++i)
-        {
-            if(view[i] != data[i])
-                return false;
-        }
-        return true;
+        std::copy_n(str, N, data);
+    }
+    constexpr operator std::string_view() const
+    {
+        return std::string_view(data, N - 1); // N-1 to exclude the null terminator
+    }
+    constexpr bool operator==(std::string_view other) const
+    {
+        return std::string_view(data, N - 1) == other;
     }
     char data[N];
 };

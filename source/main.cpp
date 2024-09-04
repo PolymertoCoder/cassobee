@@ -117,14 +117,15 @@ int main()
     //     printf("umap2 %s\n", cassobee::to_string(umap2).data());
     // }
 
-    // local_log("type_name:%s", cassobee::type_name<int>());
-    // local_log("type_name:%s", cassobee::type_name<cassobee::logger>());
-    // local_log("type_name:%s", cassobee::short_type_name<cassobee::logger>());
+    // local_log("type_name:%s", cassobee::type_name_string<int>().data());
+    // local_log("type_name:%s", cassobee::type_name_string<cassobee::logger>().data());
+    // local_log("type_name:%s", cassobee::short_type_name_string<cassobee::logger>().data());
 
-    local_log("run here:%s.", address_factory::get_instance()->infomation().data());
+    // local_log("run here:%s.", address_factory::get_instance()->infomation().data());
 
-    // const char* str{"ipv4_address"};
-    // address_factory::get_instance()->create2<str>("0.0.0.0", 8888);
+    address_factory::get_instance()->create("ipv4_address", "0.0.0.0", 8888);
+    address_factory::get_instance()->create2<"ipv4_address">("0.0.0.0", 8888);
+    static_assert(address_factory::product_exists("ipv4_address"));
 
     auto clientmgr = new client_manager;
     clientmgr->init();

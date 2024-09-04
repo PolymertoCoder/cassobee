@@ -3,6 +3,9 @@
 #include <cstddef>
 #include <utility>
 
+namespace cassobee
+{
+
 template<typename T>
 concept stl_container = requires { cassobee::is_stl_container_v<T>; };
 
@@ -14,3 +17,5 @@ concept can_reserve_stl_container = (stl_container<T> && has_reserve<T>);
 
 template<typename T, typename... create_params>
 concept has_constructor = requires { T(std::declval<create_params>()...); };
+
+} // namespace cassobee

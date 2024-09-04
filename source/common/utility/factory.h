@@ -28,6 +28,14 @@ public:
 
 protected:
     static std::tuple<product_stub<products>...> _stubs;
+
+    static consteval bool product_exists(const std::string_view& id)
+    {
+        return [&]<size_t... Is>(std::index_sequence<Is...>&&)
+        {
+            return ((id == std::tuple_element_t<Is, decltype(_stubs)>::value) || ...);
+        }(std::make_index_sequence<sizeof...(products)>());
+    }
 };
 
 template<typename base_product, typename... products>
@@ -36,6 +44,7 @@ class factory_impl : public factory_base<base_product, products...>
 {
 public:
     using factory_base<base_product, products...>::_stubs;
+    using factory_base<base_product, products...>::product_exists;
 
     static constexpr auto factory_name = cassobee::type_name<factory_impl<base_product, products...>>();
 
@@ -45,10 +54,10 @@ public:
     template<size_t I, typename... create_params>
     base_product* create_helper(const std::string_view& id, create_params&&... params)
     {
-        if constexpr(has_constructor<typename product_wrapper<I>::type, create_params...>)
+        if constexpr(cassobee::has_constructor<typename product_wrapper<I>::type, create_params...>)
         {
             if(id == product_wrapper<I>::value)
-                return new product_wrapper<I>::type(params...);
+                return new product_wrapper<I>::type(std::forward<create_params>(params)...);
         }
         else
         {
@@ -65,25 +74,16 @@ public:
         base_product* product = nullptr;
         [&]<size_t... Is>(std::index_sequence<Is...>&&)
         {
-            ((product = create_helper<Is>(id, params...)) || ...);
+            ((product = create_helper<Is>(id, std::forward<create_params>(params)...)) || ...);
         }(std::make_index_sequence<sizeof...(products)>());
         return product;
     }
 
-    template<char* id>
-    consteval auto check_product_id()
-    {
-        return [&]<size_t... Is>(std::index_sequence<Is...>&&)
-        {
-            return ((id == product_wrapper<Is>::value) || ...);
-        }(std::make_index_sequence<sizeof...(products)>());
-    }
-
-    template<char* id, typename... create_params>
+    template<cassobee::string_literal id, typename... create_params>
     auto* create2(create_params&&... params)
     {
-        static_assert(check_product_id<id>());
-        create(id, std::forward<create_params>(params)...);
+        static_assert(product_exists(std::string_view(id)));
+        return create(std::string_view(id), std::forward<create_params>(params)...);
     }
 };
 
