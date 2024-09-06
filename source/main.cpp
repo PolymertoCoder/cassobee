@@ -123,8 +123,8 @@ int main()
 
     // local_log("run here:%s.", address_factory::get_instance()->infomation().data());
 
-    // address_factory::get_instance()->create("ipv4_address", "0.0.0.0", 8888);
-    // address_factory::get_instance()->create2<"ipv4_address">("0.0.0.0", 8888);
+    // address_factory::create("ipv4_address", "0.0.0.0", 8888);
+    // address_factory::create2<"ipv4_address">("0.0.0.0", 8888);
 
     auto clientmgr = new client_manager;
     clientmgr->init();

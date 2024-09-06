@@ -41,12 +41,12 @@ void session_manager::init()
         if(version == 4)
         {
             _family = AF_INET;
-            _addr = address_factory::get_instance()->create2<"ipv4_address">("0.0.0.0", port);
+            _addr = address_factory::create2<"ipv4_address">("0.0.0.0", port);
         }
         else if(version == 6)
         {
             _family = AF_INET6;
-            _addr = address_factory::get_instance()->create2<"ipv6_address">("0.0.0.0", port);
+            _addr = address_factory::create2<"ipv6_address">("0.0.0.0", port);
         }
         else
         {

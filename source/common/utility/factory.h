@@ -1,7 +1,7 @@
 #pragma once
-#include "common.h"
 #include "concept.h"
 #include "log.h"
+#include "stringfy.h"
 #include "traits.h"
 #include <tuple>
 #include <utility>
@@ -32,7 +32,6 @@ protected:
 
 template<typename base_product, typename... products>
 class factory_impl : public factory_base<base_product, products...>
-                   , public singleton_support<factory_impl<base_product, products...>>
 {
 protected:
     using factory_base<base_product, products...>::_stubs;
@@ -57,16 +56,18 @@ protected:
     }
 
     template<size_t I, typename... create_params>
-    [[nodiscard]] base_product* create_helper(const std::string_view& id, create_params&&... params)
+    [[nodiscard]] static base_product* create_helper(const std::string_view& id, create_params&&... params)
     {
         if constexpr(cassobee::has_constructor<typename product_wrapper<I>::type, create_params...>)
         {
             if(id == product_wrapper<I>::value)
+            {
                 return new product_wrapper<I>::type(std::forward<create_params>(params)...);
+            }
         }
         else
         {
-            local_log("factory %s cannot find product %s constructor.", std::string(factory_name).data(), id.data());
+            ERRORLOG("factory %s cannot find product %s constructor, params=%s.", std::string(factory_name).data(), id.data(), cassobee::to_string(std::tie(std::forward<create_params>(params)...)).data());
         }
         return nullptr;
     }
@@ -75,7 +76,7 @@ public:
     static constexpr auto factory_name = cassobee::type_name<factory_impl<base_product, products...>>();
 
     template<typename... create_params>
-    [[nodiscard]] auto* create(const std::string_view& id, create_params&&... params)
+    [[nodiscard]] static auto* create(const std::string_view& id, create_params&&... params)
     {
         static_assert(sizeof...(products) > 0);
 
@@ -88,10 +89,10 @@ public:
     }
 
     template<cassobee::string_literal id, typename... create_params>
-    [[nodiscard]] auto* create2(create_params&&... params)
+    [[nodiscard]] static auto* create2(create_params&&... params)
     {
-        static_assert(static_check<create_params...>(std::string_view(id)));
-        return create(std::string_view(id), std::forward<create_params>(params)...);
+        static_assert(static_check<create_params...>(id));
+        return create(id, std::forward<create_params>(params)...);
     }
 };
 
