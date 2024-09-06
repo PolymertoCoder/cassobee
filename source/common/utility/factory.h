@@ -28,31 +28,36 @@ public:
 
 protected:
     static std::tuple<product_stub<products>...> _stubs;
-
-    static consteval bool product_exists(const std::string_view& id)
-    {
-        return [&]<size_t... Is>(std::index_sequence<Is...>&&)
-        {
-            return ((id == std::tuple_element_t<Is, decltype(_stubs)>::value) || ...);
-        }(std::make_index_sequence<sizeof...(products)>());
-    }
 };
 
 template<typename base_product, typename... products>
 class factory_impl : public factory_base<base_product, products...>
                    , public singleton_support<factory_impl<base_product, products...>>
 {
-public:
+protected:
     using factory_base<base_product, products...>::_stubs;
-    using factory_base<base_product, products...>::product_exists;
-
-    static constexpr auto factory_name = cassobee::type_name<factory_impl<base_product, products...>>();
 
     template<size_t I>
     using product_wrapper = std::tuple_element_t<I, decltype(_stubs)>;
 
     template<size_t I, typename... create_params>
-    base_product* create_helper(const std::string_view& id, create_params&&... params)
+    [[nodiscard]] static consteval bool static_check_helper(const std::string_view& id)
+    {
+        return id == product_wrapper<I>::value &&
+                cassobee::has_constructor<typename product_wrapper<I>::type, create_params...>;
+    }
+
+    template<typename... create_params>
+    [[nodiscard]] static consteval bool static_check(const std::string_view& id)
+    {
+        return [&]<size_t... Is>(std::index_sequence<Is...>&&)
+        {
+            return ((static_check_helper<Is, create_params...>(id)) || ...);
+        }(std::make_index_sequence<sizeof...(products)>());
+    }
+
+    template<size_t I, typename... create_params>
+    [[nodiscard]] base_product* create_helper(const std::string_view& id, create_params&&... params)
     {
         if constexpr(cassobee::has_constructor<typename product_wrapper<I>::type, create_params...>)
         {
@@ -66,8 +71,11 @@ public:
         return nullptr;
     }
 
+public:
+    static constexpr auto factory_name = cassobee::type_name<factory_impl<base_product, products...>>();
+
     template<typename... create_params>
-    auto* create(const std::string_view& id, create_params&&... params)
+    [[nodiscard]] auto* create(const std::string_view& id, create_params&&... params)
     {
         static_assert(sizeof...(products) > 0);
 
@@ -80,9 +88,9 @@ public:
     }
 
     template<cassobee::string_literal id, typename... create_params>
-    auto* create2(create_params&&... params)
+    [[nodiscard]] auto* create2(create_params&&... params)
     {
-        static_assert(product_exists(std::string_view(id)));
+        static_assert(static_check<create_params...>(std::string_view(id)));
         return create(std::string_view(id), std::forward<create_params>(params)...);
     }
 };

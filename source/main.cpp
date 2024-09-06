@@ -58,15 +58,15 @@ int main()
     local_log("nowtime1=%ld", systemtime::get_microseconds());
     sleep(3);
     local_log("nowtime2=%ld", systemtime::get_microseconds());
-    add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
-    add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
-    add_timer(false, 5000, -1, [](void*){ local_log("timer3 nowtime3: %ld.", systemtime::get_time()); return false; }, nullptr);
+    // add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
+    // add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
+    // add_timer(false, 5000, -1, [](void*){ local_log("timer3 nowtime3: %ld.", systemtime::get_time()); return false; }, nullptr);
 
-    add_timer(1000, [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
-    add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
-    add_timer(1500, [](){ WARNLOG("WARN=%d", 10);   return true; });
-    add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
-    add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
+    // add_timer(1000, [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
+    // add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
+    // add_timer(1500, [](){ WARNLOG("WARN=%d", 10);   return true; });
+    // add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
+    // add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
     // while(true)
     // {
     //     threadpool::get_instance()->add_task(rand(0, 3), [](){ DEBUGLOG("DEBUG=%s", "多线程测试"); });
@@ -123,9 +123,8 @@ int main()
 
     // local_log("run here:%s.", address_factory::get_instance()->infomation().data());
 
-    address_factory::get_instance()->create("ipv4_address", "0.0.0.0", 8888);
-    address_factory::get_instance()->create2<"ipv4_address">("0.0.0.0", 8888);
-    static_assert(address_factory::product_exists("ipv4_address"));
+    // address_factory::get_instance()->create("ipv4_address", "0.0.0.0", 8888);
+    // address_factory::get_instance()->create2<"ipv4_address">("0.0.0.0", 8888);
 
     auto clientmgr = new client_manager;
     clientmgr->init();
