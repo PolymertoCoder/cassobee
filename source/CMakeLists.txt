@@ -50,13 +50,15 @@ add_library(security SHARED ${LIBSECURITY_SRC})
 find_library(LIBCRYTOPP_PATH cryptopp ${THIRDPARTY_PATH}/cryptopp)
 target_link_libraries(security ${LIBCRYTOPP_PATH})
 
-set(LIB_LIB pthread bee log security)
+# cassobee exe
+set(CASSOBEE_DEPEND_LIB bee log security prot)
 
 add_executable(cassobee main.cpp)
-add_dependencies(cassobee bee log)
-target_link_libraries(cassobee ${LIB_LIB})
+add_dependencies(cassobee ${CASSOBEE_DEPEND_LIB})
+target_link_libraries(cassobee pthread ${CASSOBEE_DEPEND_LIB})
 
-add_executable(client client.cpp)
+# client exe
+add_subdirectory(client)
 
 add_common_flags(bee)
 add_common_flags(log)

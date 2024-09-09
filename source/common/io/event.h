@@ -33,7 +33,7 @@ struct event
     void set_status(int status) { _status = status; }
 
     int _status;
-    reactor* _base;
+    reactor* _base = nullptr;
 };
 
 struct control_event : event
@@ -54,7 +54,7 @@ struct timer_event : event
     TIMETYPE _timeout;
     int _repeats;
     callback _handler;
-    void* _param;
+    void* _param = nullptr;
 };
 
 struct sigio_event : event

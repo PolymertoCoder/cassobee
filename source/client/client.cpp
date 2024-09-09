@@ -5,6 +5,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "ExampleProtocol.h"
+#include "session_manager.h"
 
 int main()
 {
@@ -27,10 +29,11 @@ int main()
         return 0;
     }
 
-    while(1)
+    while(true)
     {
         char buf[1024] = "i am client abcdef";
         send(sockfd, buf, strlen(buf), 0);
+        printf("send...\n");
 
         memset(buf, '\0', sizeof(buf));
         ssize_t recv_size = recv(sockfd, buf, sizeof(buf) - 1, 0);

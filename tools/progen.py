@@ -45,6 +45,7 @@ def generate_class_header(name, base_class, fields, maxsize=None, codefield=None
     included_headers = generate_included_headers(fields)
     header_content.extend(included_headers)
     
+    header_content.append("\n")
     header_content.append(f"class {name} : public {base_class}\n")
     header_content.append("{\npublic:\n")
 
@@ -54,10 +55,11 @@ def generate_class_header(name, base_class, fields, maxsize=None, codefield=None
     if codefield:
         header_content.append(generate_enum_fields(fields, default_code))
     
-    header_content.append(f"    {name}() = default;\n")
     if fields:
         header_content.append(generate_constructors(name, fields, codefield, default_code))
         header_content.append(generate_operator_overloads(name, fields, codefield))
+    else:
+        header_content.append(f"    {name}() = default;\n")
     
     if maxsize:
         header_content.append(generate_virtual_methods(name, maxsize, base_class))

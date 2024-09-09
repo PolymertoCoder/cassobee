@@ -25,6 +25,7 @@ passiveio_event::passiveio_event(session_manager* manager)
         set_nonblocking(listenfd, true);
 
         struct sockaddr* addr = manager->get_addr()->addr();
+        TRACELOG("addr:%s.", manager->get_addr()->to_string().data());
         if(bind(listenfd, addr, sizeof(*addr)) < 0)
         {
             perror("bind");
@@ -48,6 +49,7 @@ passiveio_event::passiveio_event(session_manager* manager)
 bool passiveio_event::handle_event(int active_events)
 {
     if(_base == nullptr) return false;
+    if(active_events != EVENT_ACCEPT) return false;
 
     int family = _ses->get_manager()->family();
     if(family == AF_INET)
@@ -59,7 +61,7 @@ bool passiveio_event::handle_event(int active_events)
         {
             if(errno != EAGAIN || errno != EINTR)
             {
-                printf("accept: %s\n", strerror(errno));
+                TRACELOG("accept: %s\n", strerror(errno));
                 return false;
             }
         }
@@ -68,7 +70,7 @@ bool passiveio_event::handle_event(int active_events)
         if(ret < 0) return false;
 
         _base->add_event(new streamio_event(clientfd, _ses->dup()), EVENT_RECV);
-        printf("accept clientid=%d.\n", clientfd);
+        TRACELOG("accept clientid=%d.\n", clientfd);
     }
     else if(family  == AF_INET6)
     {
@@ -79,7 +81,7 @@ bool passiveio_event::handle_event(int active_events)
         {
             if(errno != EAGAIN || errno != EINTR)
             {
-                printf("accept: %s\n", strerror(errno));
+                TRACELOG("accept: %s\n", strerror(errno));
                 return false;
             }
         }
@@ -87,7 +89,7 @@ bool passiveio_event::handle_event(int active_events)
         if(set_nonblocking(clientfd, true) < 0) return false;
 
         _base->add_event(new streamio_event(clientfd, _ses->dup()), EVENT_RECV);
-        printf("accept clientid=%d.\n", clientfd);
+        TRACELOG("accept clientid=%d.\n", clientfd);
     }
     return 0;
 }
@@ -148,10 +150,12 @@ bool streamio_event::handle_event(int active_events)
     if(active_events & EVENT_RECV)
     {
         handle_recv();
+        _ses->permit_send();
     }
     else if(active_events & EVENT_SEND)
     {
         handle_send();
+        _ses->permit_recv();
     }
     return true;
 }
@@ -200,7 +204,7 @@ int streamio_event::handle_recv()
     }
     else
     {
-        local_log("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
+        TRACELOG("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
         close(_fd);
     }
 #endif

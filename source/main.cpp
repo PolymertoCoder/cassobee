@@ -55,9 +55,9 @@ int main()
     looper->init();
     looper->add_signal(SIGUSR1, sigusr1_handler);
     std::thread timer_thread = start_threadpool_and_timer();
-    local_log("nowtime1=%ld", systemtime::get_microseconds());
-    sleep(3);
-    local_log("nowtime2=%ld", systemtime::get_microseconds());
+    // local_log("nowtime1=%ld", systemtime::get_microseconds());
+    // sleep(3);
+    // local_log("nowtime2=%ld", systemtime::get_microseconds());
     // add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, -1, [](void*){ local_log("timer3 nowtime3: %ld.", systemtime::get_time()); return false; }, nullptr);
