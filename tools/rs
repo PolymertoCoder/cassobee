@@ -12,4 +12,6 @@ sleep 5
 
 echo 'start process...'
 
-cd $rootpath/bin && ./start.sh
+cd $rootpath/bin
+./run_cassobee.sh
+./run_client.sh

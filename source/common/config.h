@@ -42,7 +42,7 @@ public:
     }
 
 private:
-    std::string _config_path;
+    std::string _config_file;
     using ITEM_MAP    = std::map<std::string, std::string>;
     using SECTION_MAP = std::map<std::string, ITEM_MAP>;
     SECTION_MAP _sections;

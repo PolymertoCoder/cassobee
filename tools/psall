@@ -2,4 +2,27 @@
 
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
-ps -eo lstart,etime,cmd:45,pid | grep $rootpath | grep -v grep | grep -v psall
+ps -eo lstart,etime,pid,cmd | grep "$rootpath" | grep -v grep | grep -v psall | grep -v .vscode-server | awk '
+BEGIN {
+    RED="\033[31m"
+    GREEN="\033[32m"
+    YELLOW="\033[33m"
+    BLUE="\033[34m"
+    MAGENTA="\033[35m"
+    CYAN="\033[36m"
+    BOLD_RED="\033[1m\033[31m"
+    BOLD_GREEN="\033[1m\033[32m"
+    BOLD_YELLOW="\033[1m\033[33m"
+    BOLD_BLUE="\033[1m\033[34m"
+    BOLD_MAGENTA="\033[1m\033[35m"
+    BOLD_CYAN="\033[1m\033[36m"
+    RESET="\033[0m"
+}
+{
+    lstart = $1 " " $2 " " $3 " " $4 " " $5
+    etime = $6
+    pid = $7
+    cmd = substr($0, index($0, $8))
+
+    printf "%s%s%s %s%s%s %s%s%s %s%s%s\n", BOLD_BLUE, lstart, RESET, BOLD_YELLOW, etime, RESET, BOLD_RED, pid, RESET, BOLD_CYAN, cmd, RESET
+}'

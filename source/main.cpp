@@ -1,4 +1,5 @@
 #include <csignal>
+#include <cstring>
 #include <stdio.h>
 #include <unistd.h>
 #include <functional>
@@ -46,9 +47,26 @@ bool sigusr1_handler(int signum)
     return true;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    config::get_instance()->init("/home/qinchao/cassobee/config");
+    if(argc < 3)
+    {
+        printf("Usage: %s --config <config filepath>...\n", argv[0]);
+        return -1;
+    }
+    for(int i = 1; i < argc; ++i)
+    {
+        if(strcmp(argv[i], "--config") == 0)
+        {
+            printf("config filepath:%s\n", argv[i+1]);
+            config::get_instance()->init(argv[++i]);
+        }
+        else
+        {
+            printf("unprocessed arg %s...\n", argv[i]);
+        }
+    }
+
     cassobee::log_manager::get_instance()->init();
     cassobee::log_manager::set_process_name("cassobee");
     auto* looper = reactor::get_instance();

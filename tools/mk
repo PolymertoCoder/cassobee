@@ -3,11 +3,14 @@
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
 outputfile=$rootpath/debug/cassobee.log
+configpath=$rootpath/config
 
 cd $rootpath/build && cmake .. && make -j8
 
 echo use $outputfile as output file.
 
-echo nohup $rootpath/debug/cassobee '>>' $outputfile '2>&1 &' > $rootpath/bin/start.sh
+echo nohup $rootpath/debug/cassobee --config $configpath/cassobee.conf '>' $outputfile '2>&1 &' > $rootpath/bin/run_cassobee.sh
+chmod 775 $rootpath/bin/run_cassobee.sh
 
-chmod 775 $rootpath/bin/start.sh
+echo nohup $rootpath/debug/client --config $configpath/client.conf '>' $outputfile '2>&1 &' > $rootpath/bin/run_client.sh
+chmod 775 $rootpath/bin/run_client.sh

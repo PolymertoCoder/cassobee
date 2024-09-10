@@ -3,15 +3,15 @@
 #include <fstream>
 #include "stringfy.h"
 
-void config::init(const char* config_path)
+void config::init(const char* config_file)
 {
-    _config_path = config_path;
+    _config_file = config_file;
     if(!reload())
     {
-        printf("load config %s failed...\n", _config_path.data());
+        printf("load config file %s failed...\n", _config_file.data());
         exit(-1);
     }
-    printf("load config %s finished...\n", _config_path.data());
+    printf("load config file %s finished...\n", _config_file.data());
 }
 
 bool config::parse(std::ifstream& filestream)
@@ -36,23 +36,19 @@ bool config::parse(std::ifstream& filestream)
 
 bool config::reload()
 {
-    for(const auto& entry : std::filesystem::directory_iterator(_config_path))
+    std::ifstream ifs(_config_file);
+    if(!ifs.is_open())
     {
-        std::string filepath = entry.path().string();
-        std::ifstream ifs(filepath);
-        if(!ifs.is_open())
-        {
-            printf("config file %s cannot open?!\n", filepath.data());
-            continue;
-        }
-        if(!parse(ifs))
-        {
-            printf("parse config file:%s failed, an error occured!!!\n", filepath.data());
-            return false;
-        }
-        ifs.close();
-        printf("config %s load finished, %s.\n", entry.path().filename().c_str(), cassobee::to_string(_sections).data());
+        printf("config file %s cannot open?!\n", _config_file.data());
+        return false;
     }
+    if(!parse(ifs))
+    {
+        printf("parse config file:%s failed, an error occured!!!\n", _config_file.data());
+        return false;
+    }
+    ifs.close();
+    printf("config %s load finished, %s.\n", _config_file.data(), cassobee::to_string(_sections).data());
     return true;
 }
     

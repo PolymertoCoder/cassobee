@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <cstring>
 #include <endian.h>
 
 template<typename T>
@@ -29,6 +30,12 @@ inline uint32_t bytes_order<uint32_t>(uint32_t value)
 }
 
 template<>
+inline float bytes_order<float>(float value)
+{
+    return htobe32(value);
+}
+
+template<>
 inline int64_t bytes_order<int64_t>(int64_t value)
 {
     return htobe64(value);
@@ -36,6 +43,12 @@ inline int64_t bytes_order<int64_t>(int64_t value)
 
 template<>
 inline uint64_t bytes_order<uint64_t>(uint64_t value)
+{
+    return htobe64(value);
+}
+
+template<>
+inline double bytes_order<double>(double value)
 {
     return htobe64(value);
 }
