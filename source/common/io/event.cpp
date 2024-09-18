@@ -1,11 +1,10 @@
 #include <cstdio>
 #include <unistd.h>
 #include <sys/socket.h>
+#include "demultiplexer.h"
 #include "reactor.h"
 #include "event.h"
 #include "log.h"
-
-int control_event::_pipe[2] = {-1, -1};
 
 control_event::control_event()
 {
@@ -24,11 +23,11 @@ bool control_event::handle_event(int active_events)
     return true;
 }
 
-void control_event::wakeup(reactor* base)
+void control_event::wakeup()
 {
-    if(!base || base->get_wakeup()) return;
-    write(_pipe[1], "0", 1);
-    base->get_wakeup() = false;
+    if(!_base) return;
+    _base->add_event(this, EVENT_WAKEUP);
+    // write(_pipe[1], "0", 1);
 }
 
 timer_event::timer_event(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)

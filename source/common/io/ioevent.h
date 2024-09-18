@@ -7,7 +7,7 @@ class session_manager;
 struct io_event : event
 {
     io_event() {}
-    virtual int get_handle() override { return _fd; }
+    virtual int get_handle() const override { return _fd; }
     int _fd = -1;
 };
 

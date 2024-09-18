@@ -43,6 +43,10 @@ int epoller::add_event(event* ev, int events)
     {
         event.events |= EPOLLHUP;
     }
+    if(events & EVENT_WAKEUP)
+    {
+        event.events |= (EPOLLET | EPOLLOUT);
+    }
 
     int op;
     if(ev->get_status() == EVENT_STATUS_NONE)
@@ -88,7 +92,6 @@ void epoller::del_event(event* ev)
 void epoller::dispatch(reactor* base, int timeout)
 {
     struct epoll_event events[EPOLL_ITEM_MAX];
-    //int checkpos = 0;
     int nready = epoll_wait(_epfd, events, EPOLL_ITEM_MAX, timeout);
 
     for(int i = 0; i < nready; i++)
@@ -96,11 +99,14 @@ void epoller::dispatch(reactor* base, int timeout)
         event* ev = base->get_event(events[i].data.fd);
         if(ev == nullptr) continue;
 
-        if(events[i].events & EPOLLIN || events[i].events & EPOLLOUT || events[i].events & EPOLLHUP)
+        if(events[i].events & EPOLLIN || events[i].events & EPOLLHUP)
         {
-            if(_listenfds.contains(events[i].data.fd)) {
+            if(_listenfds.contains(events[i].data.fd))
+            {
                 ev->handle_event(EVENT_ACCEPT);
-            } else {
+            }
+            else
+            {
                 ev->handle_event(EVENT_RECV);
             }
         }
@@ -109,4 +115,11 @@ void epoller::dispatch(reactor* base, int timeout)
             ev->handle_event(EVENT_SEND);
         }
     }
+}
+
+void epoller::wakeup()
+{
+    if(_ctrl_event == nullptr || _wakeup) return;
+    _ctrl_event->wakeup();
+    _wakeup = false;
 }

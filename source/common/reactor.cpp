@@ -16,8 +16,9 @@ void reactor::init()
     _stop = false;
     _use_timer_thread = true;
     _timeout = 1;
-    add_event(new sigio_event(),   EVENT_RECV);
-    add_event(new control_event(), EVENT_RECV);
+
+    add_event(new sigio_event(),   EVENT_RECV  );
+    add_event(new control_event(), EVENT_WAKEUP);
 }
 
 int reactor::run()
@@ -47,7 +48,7 @@ void reactor::stop()
 
 void reactor::wakeup()
 {
-    control_event::wakeup(this);
+    _dispatcher->wakeup();
 }
 
 int reactor::add_event(event* ev, int events)
@@ -107,6 +108,11 @@ event* reactor::get_event(int fd)
 {
     EVENTS_MAP::iterator itr = _io_events.find(fd);
     return itr != _io_events.end() ? itr->second : nullptr;
+}
+
+bool& reactor::get_wakeup()
+{
+    return _dispatcher->get_wakeup();
 }
 
 bool reactor::handle_signal_event(int signum)

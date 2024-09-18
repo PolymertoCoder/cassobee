@@ -25,7 +25,8 @@ public:
     void add_signal(int signum, bool(*callback)(int));
 
     event* get_event(int fd);
-    FORCE_INLINE bool& get_wakeup() { return _wakeup; }
+    bool&  get_wakeup();
+    FORCE_INLINE demultiplexer* get_dispatcher() const { return _dispatcher; }
     FORCE_INLINE bool use_timer_thread() { return _use_timer_thread; }
 
 private:
@@ -40,6 +41,7 @@ private:
     bool _use_timer_thread = true;
     int  _timeout = 0; // ms
 
+    control_event* _ctrl_event = nullptr;
     EVENTS_MAP _io_events;
     EVENTS_MAP _signal_events;
     TIMEREVENT_MAP _timer_events;

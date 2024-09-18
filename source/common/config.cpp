@@ -1,5 +1,4 @@
 #include "config.h"
-#include <filesystem>
 #include <fstream>
 #include "stringfy.h"
 

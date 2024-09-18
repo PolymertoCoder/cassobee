@@ -41,7 +41,7 @@ bool sigusr1_handler(int signum)
         timewheel::get_instance()->stop();
         threadpool::get_instance()->stop();
         reactor::get_instance()->stop();
-        printf("recv signal end process...");
+        printf("receive shutdown signal, end process...");
         return false;
     });
     return true;

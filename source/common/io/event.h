@@ -15,6 +15,7 @@ enum EVENT_MASK
     EVENT_TIMER  = 0x10,
     EVENT_SIGIO  = 0x20,
     EVENT_SIGNAL = 0x40,
+    EVENT_WAKEUP = 0x80,
 };
 
 enum EVENT_STATUS
@@ -27,9 +28,9 @@ struct event
 {
     event() : _status(EVENT_STATUS_NONE) {}
     virtual ~event() {}
-    virtual int get_handle() { return 0; }
+    virtual int get_handle() const { return 0; }
     virtual bool handle_event(int active_events) { return 0; };
-    int  get_status() { return _status; }
+    int  get_status() const { return _status; }
     void set_status(int status) { _status = status; }
 
     int _status;
@@ -39,10 +40,10 @@ struct event
 struct control_event : event
 {
     control_event();
-    virtual int get_handle() override { return _pipe[0]; }
+    virtual int get_handle() const override { return _pipe[0]; }
     virtual bool handle_event(int active_events) override;
-    static void wakeup(reactor* base);
-    static int _pipe[2];
+    void wakeup();
+    int _pipe[2];
 };
 
 struct timer_event : event
@@ -61,7 +62,7 @@ struct sigio_event : event
 {
     using signal_handler = void(*)(int);
     sigio_event();
-    virtual int get_handle() override { return _pipe[0]; }
+    virtual int get_handle() const override { return _pipe[0]; }
     virtual bool handle_event(int active_events) override;
     static void sigio_callback(int signum);
     static int _pipe[2];
