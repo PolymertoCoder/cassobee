@@ -21,7 +21,7 @@ using SIG_HANDLER = void(*)(int);
 
 #ifndef _OPEN_VERSION
 #define CHECK_BUG(expr, dosth) \
-if(!expr) \
+if(!(expr)) \
 { \
     assert(false); \
 }

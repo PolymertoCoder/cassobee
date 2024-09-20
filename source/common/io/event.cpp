@@ -5,29 +5,27 @@
 #include "reactor.h"
 #include "event.h"
 #include "log.h"
+#include "types.h"
 
 control_event::control_event()
 {
-    if(socketpair(AF_UNIX, SOCK_STREAM, 0, control_event::_pipe) == -1)
+    if(pipe(_control_pipe) == -1)
     {
-        local_log("sigio_event create failed.");
+        perror("pipe");
         return;
     }
+    set_nonblocking(_control_pipe[0]);
+    set_nonblocking(_control_pipe[1]);
 }
 
 bool control_event::handle_event(int active_events)
 {
-    char buf[32];
-    size_t n = read(_pipe[0], buf, 32);
-    if(n == 0 || n > 32 || !_base) return false;
+    // char data;
+    // if(int n = read(_control_pipe[0], &data, sizeof(data)); n > 0)
+    // {
+    //     CHECK_BUG(data == 0, return false);
+    // }
     return true;
-}
-
-void control_event::wakeup()
-{
-    if(!_base) return;
-    _base->add_event(this, EVENT_WAKEUP);
-    // write(_pipe[1], "0", 1);
 }
 
 timer_event::timer_event(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)
@@ -45,39 +43,51 @@ bool timer_event::handle_event(int active_events)
     return false;
 }
 
-int sigio_event::_pipe[2] = { -1, -1 };
+int sigio_event::_signal_pipe[2] = { -1, -1 };
 
 sigio_event::sigio_event()
 {
-    if(socketpair(AF_UNIX, SOCK_STREAM, 0, sigio_event::_pipe) == -1)
+    if(pipe(_signal_pipe) == -1)
     {
-        local_log("sigio_event create failed.");
+        perror("pipe");
         return;
     }
+    set_nonblocking(_signal_pipe[0]);
+    set_nonblocking(_signal_pipe[1]);
+    TRACELOG("sigio_event readfd=%d writefd=%d.", _signal_pipe[0], _signal_pipe[1]);
 }
 
 bool sigio_event::handle_event(int active_events)
 {
-    char buf[32];
-    size_t n = read(sigio_event::_pipe[0], buf, 32);
-    if(n == 0 || n > 32 || !_base) return false;
-    for(size_t i = 0; i < n; ++i){ if(!_base->handle_signal_event(i)) return false; }
+    DEBUGLOG("sigio_event handle_event run.");
+    if(!_base) return false;
+    int signum;
+    if(read(_signal_pipe[0], &signum, sizeof(signum)) == -1)
+    {
+        perror("read");
+        return false;
+    }
+    if(!_base->handle_signal_event(signum)) return false;
+    DEBUGLOG("sigio_event handle_event run success, signum=%d.", signum);
     return true;
 }
 
 void sigio_event::sigio_callback(int signum)
 {
-    write(sigio_event::_pipe[1], (char*)&signum, 1);
+    write(_signal_pipe[1], &signum, sizeof(signum));
+    DEBUGLOG("sigio_event callback run.");
 }
 
 signal_event::signal_event(int signum, signal_callback callback)
     : _signum(signum), _callback(callback)
 {
+    DEBUGLOG("signal_event constructor, signum=%d.", _signum);
     set_signal(signum, sigio_event::sigio_callback);
 }
 
 bool signal_event::handle_event(int active_events)
 {
+    DEBUGLOG("signal_event handle_event run, _signum=%d.", _signum);
     if(active_events != EVENT_SIGNAL) return false;
     if(!_callback(_signum)) return false;
     return true;

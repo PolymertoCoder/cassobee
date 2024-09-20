@@ -5,6 +5,7 @@
 #include "log.h"
 #include "event.h"
 #include "reactor.h"
+#include "types.h"
 
 bool epoller::init()
 {
@@ -46,6 +47,8 @@ int epoller::add_event(event* ev, int events)
     if(events & EVENT_WAKEUP)
     {
         event.events |= (EPOLLET | EPOLLOUT);
+        _ctrl_event = dynamic_cast<control_event*>(ev);
+        CHECK_BUG(_ctrl_event, );
     }
 
     int op;
@@ -91,8 +94,11 @@ void epoller::del_event(event* ev)
 
 void epoller::dispatch(reactor* base, int timeout)
 {
+    _wakeup = false;
     struct epoll_event events[EPOLL_ITEM_MAX];
     int nready = epoll_wait(_epfd, events, EPOLL_ITEM_MAX, timeout);
+    _wakeup = true;
+    //TRACELOG("epoller wakeup...");
 
     for(int i = 0; i < nready; i++)
     {
@@ -120,6 +126,7 @@ void epoller::dispatch(reactor* base, int timeout)
 void epoller::wakeup()
 {
     if(_ctrl_event == nullptr || _wakeup) return;
-    _ctrl_event->wakeup();
+    this->add_event(_ctrl_event, EVENT_WAKEUP);
+    // write(_ctrl_event->_pipe[1], "0", 1);
     _wakeup = false;
 }

@@ -144,12 +144,12 @@ int main(int argc, char* argv[])
     // address_factory::create("ipv4_address", "0.0.0.0", 8888);
     // address_factory::create2<"ipv4_address">("0.0.0.0", 8888);
 
-    auto clientmgr = new client_manager;
+    auto clientmgr = client_manager::get_instance();
     clientmgr->init();
     server(clientmgr);
 
     looper->run();
     timer_thread.join();
-    printf("process exit normally...\n");
+    TRACELOG("process exit normally...\n");
     return 0;
 }

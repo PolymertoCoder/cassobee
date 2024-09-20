@@ -22,7 +22,7 @@ passiveio_event::passiveio_event(session_manager* manager)
     {
         int family = manager->family();
         int listenfd = socket(family, socktype, 0);
-        set_nonblocking(listenfd, true);
+        set_nonblocking(listenfd);
 
         struct sockaddr* addr = manager->get_addr()->addr();
         TRACELOG("addr:%s.", manager->get_addr()->to_string().data());
@@ -66,7 +66,7 @@ bool passiveio_event::handle_event(int active_events)
             }
         }
 
-        int ret = set_nonblocking(clientfd, true);
+        int ret = set_nonblocking(clientfd);
         if(ret < 0) return false;
 
         _base->add_event(new streamio_event(clientfd, _ses->dup()), EVENT_RECV);
@@ -86,7 +86,7 @@ bool passiveio_event::handle_event(int active_events)
             }
         }
 
-        if(set_nonblocking(clientfd, true) < 0) return false;
+        if(set_nonblocking(clientfd) < 0) return false;
 
         _base->add_event(new streamio_event(clientfd, _ses->dup()), EVENT_RECV);
         TRACELOG("accept clientid=%d.\n", clientfd);
@@ -103,7 +103,7 @@ activeio_event::activeio_event(session_manager* manager)
         perror("create socket");
         return;
     }
-    set_nonblocking(_fd, true);
+    set_nonblocking(_fd);
     struct sockaddr* addr = _ses->get_manager()->get_addr()->addr();
     if(connect(_fd, addr, sizeof(*addr)) < 0)
     {

@@ -37,11 +37,10 @@ private:
 private:
     bool _stop = true;
     demultiplexer* _dispatcher;
-    bool _wakeup = false;
+    bool _wakeup = true;
     bool _use_timer_thread = true;
     int  _timeout = 0; // ms
 
-    control_event* _ctrl_event = nullptr;
     EVENTS_MAP _io_events;
     EVENTS_MAP _signal_events;
     TIMEREVENT_MAP _timer_events;

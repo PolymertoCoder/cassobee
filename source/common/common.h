@@ -57,7 +57,7 @@ struct sequential_id_generator
 };
 
 void set_signal(int signum, SIG_HANDLER handler);
-int set_nonblocking(int fd, bool nonblocking);
+int set_nonblocking(int fd, bool nonblocking = true);
 pid_t gettid();
 TIMETYPE get_process_elapse();
 int rand(int min, int max);

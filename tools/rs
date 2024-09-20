@@ -8,10 +8,9 @@ rm -f $rootpath/debug/cassobee.log
 
 echo 'wait process exit...'
 
-sleep 5
+sleep 3
 
 echo 'start process...'
 
 cd $rootpath/bin
 ./run_cassobee.sh
-./run_client.sh

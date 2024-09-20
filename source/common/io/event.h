@@ -40,10 +40,9 @@ struct event
 struct control_event : event
 {
     control_event();
-    virtual int get_handle() const override { return _pipe[0]; }
+    virtual int get_handle() const override { return _control_pipe[0]; }
     virtual bool handle_event(int active_events) override;
-    void wakeup();
-    int _pipe[2];
+    int _control_pipe[2];
 };
 
 struct timer_event : event
@@ -62,16 +61,17 @@ struct sigio_event : event
 {
     using signal_handler = void(*)(int);
     sigio_event();
-    virtual int get_handle() const override { return _pipe[0]; }
+    virtual int get_handle() const override { return _signal_pipe[0]; }
     virtual bool handle_event(int active_events) override;
     static void sigio_callback(int signum);
-    static int _pipe[2];
+    static int _signal_pipe[2];
 };
 
 struct signal_event : event
 {
     using signal_callback = bool(*)(int);
     signal_event(int signum, signal_callback callback);
+    virtual int get_handle() const override { return _signum; }
     virtual bool handle_event(int active_events) override;
     int _signum;
     signal_callback _callback;

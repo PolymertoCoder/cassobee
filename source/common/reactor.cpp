@@ -8,6 +8,7 @@
 #include "timewheel.h"
 #include "log.h"
 #include "demultiplexer.h"
+#include "types.h"
 
 void reactor::init()
 {
@@ -55,7 +56,7 @@ int reactor::add_event(event* ev, int events)
 {
     if(_dispatcher == nullptr || ev == nullptr) return -1;
 
-    if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP)
+    if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP || events & EVENT_WAKEUP)
     {
         _io_events.emplace(ev->get_handle(), ev);
         if(int ret = _dispatcher->add_event(ev, events))
@@ -63,7 +64,7 @@ int reactor::add_event(event* ev, int events)
             ERRORLOG("add_io_event error, ret=%d.", ret);
             return ret;
         }
-        TRACELOG("add_io_event handle=%d.", ev->get_handle());
+        TRACELOG("add_io_event handle=%d events=%d.", ev->get_handle(), events);
     }
     else if(events & EVENT_TIMER)
     {
@@ -78,6 +79,10 @@ int reactor::add_event(event* ev, int events)
     {
         _signal_events.emplace(ev->get_handle(), ev);
         TRACELOG("add_signal_event signum=%d.", ev->get_handle());
+    }
+    else
+    {
+        CHECK_BUG(false, ERRORLOG("reactor add_event unknown events:%d.", events); return -2);
     }
     ev->_base = this;
     wakeup();
@@ -117,8 +122,10 @@ bool& reactor::get_wakeup()
 
 bool reactor::handle_signal_event(int signum)
 {
+    DEBUGLOG("handle_signal_event run.");
     if(auto iter = _signal_events.find(signum); iter != _signal_events.end())
     {
+        DEBUGLOG("handle_signal_event run inner.");
         return iter->second->handle_event(EVENT_SIGNAL);
     }
     return true;
