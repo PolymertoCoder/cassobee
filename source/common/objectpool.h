@@ -52,9 +52,6 @@ public:
 
     ~objectpool()
     {
-#ifdef _REENTRANT
-        cassobee::spinlock::scoped l(_locker);
-#endif
         destory();
     }
 

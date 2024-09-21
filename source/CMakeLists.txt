@@ -9,6 +9,23 @@ function(add_common_flags target)
     endforeach()
 endfunction()
 
+function(gen_startup_script target)
+    add_custom_command(
+        OUTPUT ${BINARY_PATH}/run_${target}.sh ${BINARY_PATH}/gdbrun_${target}.sh
+        COMMAND ${CMAKE_COMMAND} -E env python3 ${TOOLS_PATH}/build_tool/gen_startup_script.py ${target} ${BINARY_PATH}
+        DEPENDS ${target} ${TOOLS_PATH}/build_tool/gen_startup_script.py
+        #COMMENT Generating run_${target}.sh and gdbrun_${target}.sh
+    )
+
+    add_custom_target(
+        gen_startup_script_${target} ALL
+        DEPENDS ${BINARY_PATH}/run_${target}.sh ${BINARY_PATH}/gdbrun_${target}.sh
+        #COMMENT Generating all startup scripts for ${target}
+    )
+
+    #add_dependencies(${target} gen_startup_script_${target})
+endfunction()
+
 function(add_sanitize_flag target)
     target_compile_options(${target} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
     target_link_libraries(${target} -fsanitize=address)
@@ -63,6 +80,8 @@ add_subdirectory(client)
 add_common_flags(bee)
 add_common_flags(log)
 add_common_flags(cassobee)
+
+gen_startup_script(cassobee)
 
 if(${CASSOBEE_SENITIZE_ENABLE})
     add_sanitize_flag(bee)

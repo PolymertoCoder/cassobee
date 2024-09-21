@@ -30,13 +30,13 @@ passiveio_event::passiveio_event(session_manager* manager)
         {
             perror("bind");
             close(listenfd);
-            exit(-1);
+            return;
         }
         if(listen(listenfd, 20) < 0)
         {
             perror("listen");
             close(listenfd);
-            exit(-1);
+            return;
         }
         _fd = listenfd;
     }
