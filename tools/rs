@@ -4,12 +4,6 @@ rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
 ks
 
-rm -f $rootpath/debug/cassobee.log
-
-echo 'wait process exit...'
-
-sleep 3
-
 echo 'start process...'
 
 cd $rootpath/bin

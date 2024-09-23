@@ -3,8 +3,9 @@
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
 procpath=$rootpath/debug/
 
+#rm -f $rootpath/debug/cassobee.log
+
 pgrep -af $procpath | grep -v pgrep | grep -v gdb | awk '{print $1}' | xargs -I {} kill -SIGUSR1 {}
 
-#pkill -SIGUSR1 -f $procpath
-#pkill -9 -f $procpath
-#pgrep -f $procpath | xargs kill -SIGUSR1
+echo 'wait process exit...'
+sleep 5

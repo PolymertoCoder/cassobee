@@ -26,7 +26,7 @@ std::thread start_threadpool_and_timer()
     {
         return std::thread([]()
         {
-            local_log("timer thread tid:%d.", gettid());
+            printf("timer thread tid:%d.", gettid());
             timewheel::get_instance()->init();
             timewheel::get_instance()->run();
         });
@@ -41,7 +41,7 @@ bool sigusr1_handler(int signum)
         timewheel::get_instance()->stop();
         threadpool::get_instance()->stop();
         reactor::get_instance()->stop();
-        printf("receive shutdown signal, end process...");
+        printf("receive shutdown signal, end process...\n");
         return false;
     });
     return true;
