@@ -90,6 +90,8 @@ def generate_included_headers(fields):
             included_headers.add("#include <unordered_set>\n")
         if "std::unordered_map" in field_type:
             included_headers.add("#include <unordered_map>\n")
+        if field_type not in basic_types and not any(stl in field_type for stl in ["std::vector", "std::map", "std::set", "std::string", "std::pair", "std::unordered_set", "std::unordered_map"]):
+            included_headers.add(f'#include "{field_type}.h"\n')
     return included_headers
 
 def generate_enum_fields(fields, default_code):
@@ -112,13 +114,7 @@ def generate_constructors(name, fields, codefield, default_code):
     constructor_content += ", ".join(default_initializers)
     constructor_content += "\n    {}\n"
 
-    constructor_signatures = generate_constructor_signatures(fields)
-    for params, initializers in constructor_signatures:
-        constructor_content += f"    {name}({', '.join(params)}) : "
-        if codefield:
-            constructor_content += f"code({default_code}), "
-        constructor_content += ", ".join(initializers)
-        constructor_content += "\n    {}\n"
+    constructor_content += generate_non_basic_type_constructors(name, fields, codefield, default_code)
 
     constructor_content += f"    {name}(const {name}& rhs) = default;\n"
     constructor_content += f"    {name}({name}&& rhs) = default;\n\n"
@@ -131,39 +127,46 @@ def generate_default_constructor_params(fields):
     default_params = []
     default_initializers = []
     for field_name, field_type, default_value in fields:
-        default_params.append(f"{field_type} _{field_name} = {default_value}")
+        if default_value == "{}":
+            default_params.append(f"{field_type} _{field_name} = {field_type}()")
+        else:
+            default_params.append(f"{field_type} _{field_name} = {default_value}")
         default_initializers.append(f"{field_name}(_{field_name})")
     return default_params, default_initializers
 
-def generate_constructor_signatures(fields):
-    """Generate different constructor signatures."""
-    constructor_signatures = set()
-    for i in range(1 << len(fields)):
-        params = []
-        initializers = []
-        for j, (field_name, field_type, _) in enumerate(fields):
-            if field_type in basic_types:
-                params.append(f"{field_type} _{field_name}")
-                initializers.append(f"{field_name}(_{field_name})")
-            else:
-                if i & (1 << j):
-                    params.append(f"const {field_type}& _{field_name}")
-                    initializers.append(f"{field_name}(_{field_name})")
-                else:
-                    params.append(f"{field_type}&& _{field_name}")
-                    initializers.append(f"{field_name}(std::move(_{field_name}))")
-        signature = tuple(params)
-        if signature not in constructor_signatures:
-            constructor_signatures.add((tuple(params), tuple(initializers)))
-    return constructor_signatures
+def generate_non_basic_type_constructors(name, fields, codefield, default_code):
+    """Generate constructors for non-basic types with const& and && parameters."""
+    constructor_content = ""
+    non_basic_fields = [(field_name, field_type) for field_name, field_type, _ in fields if field_type not in basic_types]
+
+    # Generate constructor with const& parameters for non-basic types
+    params = ", ".join([f"const {field_type}& _{field_name}" if field_type not in basic_types else f"{field_type} _{field_name}" for field_name, field_type, _ in fields])
+    initializers = ", ".join([f"{field_name}(_{field_name})" for field_name, _, _ in fields])
+    constructor_content += f"    {name}({params}) : "
+    if codefield:
+        constructor_content += f"code({default_code}), "
+    constructor_content += f"{initializers}\n    {{}}\n"
+
+    # Generate constructor with && parameters for non-basic types
+    if non_basic_fields:
+        params = ", ".join([f"{field_type}&& _{field_name}" if field_type not in basic_types else f"{field_type} _{field_name}" for field_name, field_type, _ in fields])
+        initializers = ", ".join([f"{field_name}(std::move(_{field_name}))" if field_type not in basic_types else f"{field_name}(_{field_name})" for field_name, field_type, _ in fields])
+        constructor_content += f"    {name}({params}) : "
+        if codefield:
+            constructor_content += f"code({default_code}), "
+        constructor_content += f"{initializers}\n    {{}}\n"
+
+    return constructor_content
 
 def generate_operator_overloads(name, fields, codefield):
     """Generate operator overloads for the class."""
     operator_content = f"    bool operator==(const {name}& rhs) const\n    {{\n        return "
     if codefield:
-        operator_content += "code == rhs.code\n"
+        operator_content += "code == rhs.code"
         if len(fields):
             operator_content += " && "
+        else:
+            operator_content += "\n"
     operator_content += " && ".join([f"{field_name} == rhs.{field_name}" for field_name, _, _ in fields])
     operator_content += ";\n    }\n"
     operator_content += f"    bool operator!=(const {name}& rhs) const {{ return !(*this == rhs); }}\n"
@@ -181,13 +184,16 @@ def generate_virtual_methods(name, maxsize, base_class):
 def generate_codefield_methods(fields, codefield):
     """Generate methods for handling codefield."""
     codefield_methods = ""
-    for field_name, field_type, _ in fields:
+    for field_name, field_type, default_value in fields:
         codefield_methods += f"    void set_{field_name}()\n    {{\n        code |= FIELDS_{field_name.upper()};\n    }}\n"
         codefield_methods += f"    void set_{field_name}(const {field_type}& value)\n    {{\n        code |= FIELDS_{field_name.upper()};\n        {field_name} = value;\n    }}\n"
     codefield_methods += "    void set_all_fields() { code = ALLFIELDS; }\n"
     codefield_methods += "    void clean_default()\n    {\n"
     for field_name, field_type, default_value in fields:
-        codefield_methods += f"        if ({field_name} == {default_value}) code &= ~FIELDS_{field_name.upper()};\n"
+        if default_value == "{}":
+            codefield_methods += f"        if ({field_name} == {field_type}()) code &= ~FIELDS_{field_name.upper()};\n"
+        else:
+            codefield_methods += f"        if ({field_name} == {default_value}) code &= ~FIELDS_{field_name.upper()};\n"
     codefield_methods += "    }\n"
     return codefield_methods
 
@@ -203,9 +209,13 @@ def generate_public_fields(fields, codefield):
     if codefield:
         public_fields += f"    {codefield} code = 0;\n"
     for field_name, field_type, default_value in fields:
-        public_fields += f"    {field_type} {field_name} = {default_value};\n"
+        if default_value == "{}":
+            public_fields += f"    {field_type} {field_name};\n"
+        else:
+            public_fields += f"    {field_type} {field_name} = {default_value};\n"
     public_fields += "};\n\n"
     return public_fields
+
 
 def generate_class_cpp(name, fields, base_class, codefield=None):
     """Generate implementation file content for the class."""
