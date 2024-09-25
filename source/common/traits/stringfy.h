@@ -1,35 +1,34 @@
 #pragma once
 #include "octets.h"
-#include <deque>
+#include "traits.h"
+#include "concept.h"
 #include <utility>
-#include <vector>
-#include <map>
-#include <set>
 #include <string>
-#include <unordered_set>
-#include <unordered_map>
 
 namespace cassobee
 {
+    // forward declaration
+    std::string to_string(const char* val);
+    std::string to_string(const octets& val);
+    std::string to_string(const std::string& val);
+    std::string to_string(const std::string_view& val);
 
-template<typename T> std::string to_string(const std::vector<T>& val);
-template<typename T, size_t N> std::string to_string(const std::array<T, N>& val);
-template<typename T> std::string to_string(const std::deque<T>& val);
-template<typename T> std::string to_string(const std::set<T>& val);
-template<typename T> std::string to_string(const std::unordered_set<T>& val);
-template<typename T1, typename T2> std::string to_string(const std::map<T1, T2>& val);
-template<typename T1, typename T2> std::string to_string(const std::unordered_map<T1, T2>& val);
+    template<typename T> requires std::is_arithmetic_v<T> std::string to_string(T val);
+    template<typename T1, typename T2> std::string to_string(const std::pair<T1, T2>& val);
+    template<typename T> requires cassobee::stl_container<T> std::string to_string(const T& val, bool prefix = false);
+    template<typename... Args> std::string to_string(const std::tuple<Args...>& val);
+}
 
+namespace cassobee
+{
 inline std::string to_string(const char* val) { return val; }
 inline std::string to_string(const octets& val) { return val; }
 inline std::string to_string(const std::string& val) { return val; }
 inline std::string to_string(const std::string_view& val) { return {val.data(), val.size()}; }
 
 template<typename T>
-auto to_string(T val) -> typename std::enable_if<std::is_arithmetic<T>::value, std::string>::type
-{
-    return std::to_string(val);
-}
+requires std::is_arithmetic_v<T>
+std::string to_string(T val) { return std::to_string(val); }
 
 template<typename T1, typename T2>
 std::string to_string(const std::pair<T1, T2>& val)
@@ -40,6 +39,8 @@ std::string to_string(const std::pair<T1, T2>& val)
     return str;
 }
 
+namespace detail
+{
 template<typename STL_CONTAINER>
 std::string container_to_string(const STL_CONTAINER& container, const std::string_view& prefix)
 {
@@ -52,51 +53,25 @@ std::string container_to_string(const STL_CONTAINER& container, const std::strin
     }
     return str.append("}");
 }
+} // namespace cassobee::detail
 
 template<typename T>
-std::string to_string(const std::vector<T>& val)
+requires cassobee::stl_container<T>
+std::string to_string(const T& val, bool prefix)
 {
-    return container_to_string(val, "std::vector:{");
+    return detail::container_to_string(val, prefix ? cassobee::type_name<T>() : "");
 }
-template<typename T, size_t N>
-std::string to_string(const std::array<T, N>& val)
+
+template<typename... Args>
+std::string to_string(const std::tuple<Args...>& val)
 {
-    return container_to_string(val, "std::array:{");
-}
-template<typename T>
-std::string to_string(const std::deque<T>& val)
-{
-    return container_to_string(val, "std::deque:{");
-}
-template<typename T>
-std::string to_string(const std::set<T>& val)
-{
-    return container_to_string(val, "std::set:{");
-}
-template<typename T>
-std::string to_string(const std::unordered_set<T>& val)
-{
-    return container_to_string(val, "std::unordered_set:{");
-}
-template<typename T1, typename T2>
-std::string to_string(const std::map<T1, T2>& val)
-{
-    return container_to_string(val, "std::map:{");
-}
-template<typename T1, typename T2>
-std::string to_string(const std::unordered_map<T1, T2>& val)
-{
-    return container_to_string(val, "std::unordered_map:{");
-}
-template<typename... types>
-std::string to_string(const std::tuple<types...>& val)
-{
-    std::string str("std::tuple:{ ");
+    constexpr size_t tuple_size = sizeof...(Args);
+    std::string str("{");
     [&]<size_t... Is>(std::index_sequence<Is...>&&)
     {
-        str + ((to_string(std::get<Is>(val)) + " ") + ...);
-    }(std::make_index_sequence<sizeof...(types)>());
+        str += ((to_string(std::get<Is>(val)) + ((Is != tuple_size - 1) ? " " : "")) + ...);
+    }(std::make_index_sequence<tuple_size>());
     return str.append("}");
 }
 
-}
+} // namespace cassobee
