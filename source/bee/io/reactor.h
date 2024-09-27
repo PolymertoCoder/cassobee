@@ -46,5 +46,7 @@ private:
     TIMEREVENT_MAP _timer_events;
 };
 
+std::thread start_threadpool_and_timer();
+
 int add_timer(TIMETYPE timeout/*ms*/, std::function<bool()> handler);
 int add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, std::function<bool(void*)> handler, void* param);

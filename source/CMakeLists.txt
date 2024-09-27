@@ -1,5 +1,7 @@
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
+cmake_policy(SET CMP0079 NEW)
+
 function(add_common_flags target)
     get_target_property(sources ${target} SOURCES)
 
@@ -7,6 +9,10 @@ function(add_common_flags target)
         get_filename_component(filename ${source} NAME)
         set_source_files_properties(${source} PROPERTIES COMPILE_DEFINITIONS "__FILENAME__=\"${filename}\"")
     endforeach()
+
+    if(${CASSOBEE_SENITIZE_ENABLE})
+        add_sanitize_flag(${target})
+    endif()
 endfunction()
 
 function(gen_startup_script target)
@@ -31,63 +37,25 @@ function(add_sanitize_flag target)
     target_link_libraries(${target} -fsanitize=address)
 endfunction()
 
-include_directories(.
-                    ./common
-                    ./common/io
-                    ./common/logger
-                    ./common/traits
-                    ./common/utility
-                    ./common/security
-                    ./protocol
-                    ./protocol/include
-)
-
-# libbee
-aux_source_directory(./common LIBBEE_SRC)
-aux_source_directory(./common/io LIBBEE_SRC)
-aux_source_directory(./common/traits LIBBEE_SRC)
-aux_source_directory(./common/utility LIBBEE_SRC)
-message("libbee source: " ${LIBBEE_SRC})
-add_library(bee SHARED ${LIBBEE_SRC})
-
-# liblog
-aux_source_directory(./common/logger LIBLOG_SRC)
-message("liblog source: " ${LIBLOG_SRC})
-add_library(log SHARED ${LIBLOG_SRC})
-
 # libprot
 aux_source_directory(./protocol/source LIBPROT_SRC)
-include_directories(./protocol/include)
 add_library(prot SHARED ${LIBPROT_SRC})
+set(LIBPROT_DEPEND_LIB bee)
+add_dependencies(prot ${LIBPROT_DEPEND_LIB})
+target_link_libraries(prot ${LIBPROT_DEPEND_LIB})
+target_include_directories(prot PUBLIC ./protocol/include)
 
-# libsecurity
-aux_source_directory(./common/security LIBSECURITY_SRC)
-message("libsecurity source: " ${LIBSECURITY_SRC})
-add_library(security SHARED ${LIBSECURITY_SRC})
-find_library(LIBCRYTOPP_PATH cryptopp ${THIRDPARTY_PATH}/cryptopp)
-target_link_libraries(security ${LIBCRYTOPP_PATH})
+# libbee
+add_subdirectory(bee)
 
 # cassobee exe
-set(CASSOBEE_DEPEND_LIB bee log security prot)
-
-add_executable(cassobee main.cpp)
-add_dependencies(cassobee ${CASSOBEE_DEPEND_LIB})
-target_link_libraries(cassobee pthread ${CASSOBEE_DEPEND_LIB})
+add_subdirectory(casso)
 
 # client exe
 add_subdirectory(client)
 
-add_common_flags(bee)
-add_common_flags(log)
-add_common_flags(cassobee)
-
-gen_startup_script(cassobee)
-
-if(${CASSOBEE_SENITIZE_ENABLE})
-    add_sanitize_flag(bee)
-    add_sanitize_flag(log)
-    add_sanitize_flag(cassobee)
-endif()
+# logserver exe
+add_subdirectory(logserver)
 
 if(${CASSOBEE_BENCHMARK_ENABLE})
     set(BENCHMARK_ENABLE_TESTING OFF)

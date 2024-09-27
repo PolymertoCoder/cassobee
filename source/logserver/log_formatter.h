@@ -5,6 +5,8 @@
 
 #include "log.h"
 
+class log_event;
+
 namespace cassobee
 {
 

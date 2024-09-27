@@ -3,7 +3,6 @@
 #include <cstring>
 #include <string>
 #include <string_view>
-#include "log.h"
 #include "types.h"
 
 inline constexpr size_t frob_size(size_t n)

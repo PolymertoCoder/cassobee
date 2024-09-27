@@ -1,12 +1,10 @@
-
-#include <ctype.h>
-#include <stdio.h>
+#include <cctype>
+#include <cstdio>
 #include <functional>
-#include <map>
 #include <sstream>
-#include <tuple>
 #include <utility>
 
+#include "log_manager.h"
 #include "log_formatter.h"
 #include "systemtime.h"
 #include "macros.h"
@@ -20,7 +18,7 @@ public:
     message_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
-        os << event->get_content();
+        os << event->content;
     }
 };
 
@@ -49,7 +47,7 @@ public:
     elapse_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
-        os << event->get_elapse();
+        os << event->elapse;
     }
 };
 
@@ -69,7 +67,7 @@ public:
     threadid_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
-        os << event->get_threadid();
+        os << event->threadid;
     }
 };
 
@@ -79,7 +77,7 @@ public:
     fiberid_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
-        os << event->get_fiberid();
+        os << event->fiberid;
     }
 };
 
@@ -89,7 +87,7 @@ public:
     datetime_format_item(const std::string& fmt = "%Y-%m-%d %H:%M:%S") : _fmt(fmt) {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
-        os << systemtime::format_time(event->get_time(), _fmt.data());
+        os << systemtime::format_time(event->timestamp, _fmt.data());
     }
 private:
     std::string _fmt;
@@ -101,7 +99,7 @@ public:
     filename_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
-        os << event->get_filename();
+        os << event->filename;
     }
 };
 
@@ -111,7 +109,7 @@ public:
     line_format_item(const std::string& str = "") {}
     void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
     {
-        os << event->get_line();
+        os << event->line;
     }
 };
 

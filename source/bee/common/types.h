@@ -1,5 +1,6 @@
 #pragma once
-#include <stdint.h>
+#include <cstdint>
+#include <cassert>
 
 using TIMETYPE = int64_t;
 using SID = uint64_t;

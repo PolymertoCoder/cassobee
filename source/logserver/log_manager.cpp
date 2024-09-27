@@ -1,43 +1,11 @@
-#include <cstdarg>
-#include "log.h"
+#include "log_manager.h"
 #include "log_appender.h"
-#include "systemtime.h"
 #include "config.h"
 
 namespace cassobee
 {
+
 std::string log_manager::_process_name;
-
-void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...)
-{
-    thread_local char content[1024];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(content, sizeof(content)-1, fmt, args);
-    va_end(args);
-    log_manager::get_instance()->log(level, filename, line, systemtime::get_time(), gettid(), 0, std::to_string(get_process_elapse()), content);
-}
-
-void console_log(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...)
-{
-    thread_local char content[1024];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(content, sizeof(content)-1, fmt, args);
-    va_end(args);
-    log_manager::get_instance()->console_log(level, filename, line, systemtime::get_time(), gettid(), 0, std::to_string(get_process_elapse()), content);
-}
-
-void log_event::assign(std::string filename, int line, TIMETYPE time, int threadid, int fiberid, std::string elapse, std::string content)
-{
-    _filename = std::move(filename);
-    _line = line;
-    _time = time;
-    _threadid = threadid;
-    _fiberid = fiberid;
-    _elapse.swap(elapse);
-    _content.swap(content);
-}
 
 logger::logger(LOG_LEVEL level, log_appender* appender)
     : _loglevel(level), _root_appender(appender)
@@ -132,4 +100,4 @@ bool log_manager::del_logger(std::string name)
     return false;
 }
 
-}
+} // namespace cassobee

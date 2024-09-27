@@ -1,6 +1,7 @@
 #pragma once
 
 #include <exception>
+#include <type_traits>
 #include "concept.h"
 #include "octets.h"
 #include "traits.h"
@@ -65,14 +66,14 @@ public:
 
 public:
     // 标准布局类型 push & pop
-    template<typename T> octetsstream& push(const T& val)
+    template<typename T> requires std::is_trivial_v<T> octetsstream& push(const T& val)
     {
         T temp = bytes_order(val);
         _data.append((char*)&temp, sizeof(T));
         return *this;
     }
 
-    template<typename T> octetsstream& pop(T& val)
+    template<typename T> requires std::is_trivial_v<T> octetsstream& pop(T& val)
     {
         size_t len = sizeof(val);
         if(_pos + len > _data.size())

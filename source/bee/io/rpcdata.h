@@ -3,5 +3,5 @@
 
 struct rpcdata : public marshal
 {
-    
+    virtual ~rpcdata() = default;
 };

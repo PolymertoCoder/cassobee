@@ -1,0 +1,16 @@
+<application>
+    <rpcdata name="log_event" codefield="short">
+        <field name="filename" type="std::string" default="{}"/> <!-- 文件名 -->
+        <field name="line" type="uint16_t" default="0"/> <!-- 行号 -->
+        <field name="timestamp" type="uint32_t" default="0"/> <!-- 时间戳 -->
+        <field name="threadid" type="uint32_t" default="0"/> <!-- 线程id -->
+        <field name="fiberid" type="uint32_t" default="0"/> <!-- 协程id -->
+        <field name="elapse" type="std::string" default="{}"/> <!-- 程序从启动到现在的毫秒数 -->
+        <field name="content" type="std::string" default="{}"/> <!-- 日志内容 -->
+    </rpcdata>
+
+    <protocol name="remotelog" maxsize="2048">
+        <field name="loglevel" type="uint8_t" default="0"/>
+        <field name="logevent" type="log_event" default="log_event()"/>
+    </protocol>
+</application>

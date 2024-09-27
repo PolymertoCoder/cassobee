@@ -8,3 +8,4 @@ echo 'start process...'
 
 cd $rootpath/bin
 ./run_cassobee.sh
+./run_logserver.sh

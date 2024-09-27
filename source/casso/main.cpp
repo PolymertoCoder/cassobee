@@ -18,21 +18,7 @@
 #include "common.h"
 #include "factory.h"
 #include "client_manager.h"
-
-std::thread start_threadpool_and_timer()
-{
-    threadpool::get_instance()->start();
-    if(reactor::get_instance()->use_timer_thread())
-    {
-        return std::thread([]()
-        {
-            printf("timer thread tid:%d.", gettid());
-            timewheel::get_instance()->init();
-            timewheel::get_instance()->run();
-        });
-    }
-    return {};
-}
+#include "logserver_manager.h"
 
 bool sigusr1_handler(int signum)
 {
@@ -67,8 +53,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    cassobee::log_manager::get_instance()->init();
-    cassobee::log_manager::set_process_name("cassobee");
+    // cassobee::log_manager::set_process_name("cassobee");
     auto* looper = reactor::get_instance();
     looper->init();
     looper->add_signal(SIGUSR1, sigusr1_handler);
@@ -147,6 +132,10 @@ int main(int argc, char* argv[])
     auto clientmgr = client_manager::get_instance();
     clientmgr->init();
     server(clientmgr);
+
+    auto logservermgr = logserver_manager::get_instance();
+    logservermgr->init();
+    server(logservermgr);
 
     looper->run();
     timer_thread.join();

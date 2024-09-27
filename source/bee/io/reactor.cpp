@@ -8,6 +8,7 @@
 #include "timewheel.h"
 #include "log.h"
 #include "demultiplexer.h"
+#include "threadpool.h"
 #include "types.h"
 
 void reactor::init()
@@ -146,6 +147,21 @@ void reactor::handle_timer_event()
             add_event(tm, EVENT_TIMER);
         }
     }
+}
+
+std::thread start_threadpool_and_timer()
+{
+    threadpool::get_instance()->start();
+    if(reactor::get_instance()->use_timer_thread())
+    {
+        return std::thread([]()
+        {
+            printf("timer thread tid:%d.", gettid());
+            timewheel::get_instance()->init();
+            timewheel::get_instance()->run();
+        });
+    }
+    return {};
 }
 
 int add_timer(TIMETYPE timeout, std::function<bool()> handler)

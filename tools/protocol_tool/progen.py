@@ -60,6 +60,8 @@ def generate_class_header(name, base_class, fields, maxsize=None, codefield=None
         header_content.append(generate_operator_overloads(name, fields, codefield))
     else:
         header_content.append(f"    {name}() = default;\n")
+
+    header_content.append(f"    virtual ~{name}() override = default;\n")
     
     if maxsize:
         header_content.append(generate_virtual_methods(name, maxsize, base_class))

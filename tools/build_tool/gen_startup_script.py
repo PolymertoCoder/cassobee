@@ -29,14 +29,16 @@ if __name__ == "__main__":
     target = sys.argv[3]
 
     options = ""
+    gdbrun_options = ""
     if len(sys.argv) >= 5:
         config_path = sys.argv[4]
         config_filename = f"{target}.conf"
         options += (f"--config {os.path.join(config_path, config_filename)} ")
+        gdbrun_options += (f"--config {os.path.join(config_path, config_filename)} ")
     if len(sys.argv) >= 6:
         output_path = sys.argv[5]
         output_filename = f"{target}.log"
         options += (f"> {os.path.join(output_path, output_filename)} 2>&1 & ")
     
     generate_run_script(executable_path, script_path, target, options)
-    generate_gdb_run_script(executable_path, script_path, target, options)
+    generate_gdb_run_script(executable_path, script_path, target, gdbrun_options)
