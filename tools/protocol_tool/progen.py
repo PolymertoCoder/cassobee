@@ -9,6 +9,8 @@ protocol_enum_entries = []
 
 basic_types = ["bool", "char", "int8_t", "uint8_t", "short", "int16_t", "uint16_t", "int", "int32_t", "uint32_t", "float", "double", "long", "long long", "int64_t", "uint64_t"]
 
+stl_types = ["std::vector", "std::map", "std::set", "std::map", "std::string", "std::pair", "std::unordered_set", "std::unordered_map"]
+
 def check_regenerate(header_filename, cpp_filename, xml_mtime):
     """Check if regeneration of code is necessary."""
     if os.path.exists(header_filename) and os.path.exists(cpp_filename):
@@ -92,7 +94,7 @@ def generate_included_headers(fields):
             included_headers.add("#include <unordered_set>\n")
         if "std::unordered_map" in field_type:
             included_headers.add("#include <unordered_map>\n")
-        if field_type not in basic_types and not any(stl in field_type for stl in ["std::vector", "std::map", "std::set", "std::string", "std::pair", "std::unordered_set", "std::unordered_map"]):
+        if field_type not in basic_types and not any(stl in field_type for stl in stl_types):
             included_headers.add(f'#include "{field_type}.h"\n')
     return included_headers
 
@@ -107,15 +109,7 @@ def generate_enum_fields(fields, default_code):
 def generate_constructors(name, fields, codefield, default_code):
     """Generate constructors for the class."""
     constructor_content = ""
-    default_params, default_initializers = generate_default_constructor_params(fields)
-    constructor_content += f"    {name}({', '.join(default_params)}) : "
-    if codefield:
-        constructor_content += f"code({default_code})"
-        if default_initializers:
-            constructor_content += ", "
-    constructor_content += ", ".join(default_initializers)
-    constructor_content += "\n    {}\n"
-
+    constructor_content += generate_default_constructor_params(name, fields, codefield, default_code)
     constructor_content += generate_non_basic_type_constructors(name, fields, codefield, default_code)
 
     constructor_content += f"    {name}(const {name}& rhs) = default;\n"
@@ -124,17 +118,27 @@ def generate_constructors(name, fields, codefield, default_code):
     
     return constructor_content
 
-def generate_default_constructor_params(fields):
+def generate_default_constructor_params(name, fields, codefield, default_code):
     """Generate default constructor parameters."""
-    default_params = []
-    default_initializers = []
-    for field_name, field_type, default_value in fields:
-        if default_value == "{}":
-            default_params.append(f"{field_type} _{field_name} = {field_type}()")
-        else:
-            default_params.append(f"{field_type} _{field_name} = {default_value}")
-        default_initializers.append(f"{field_name}(_{field_name})")
-    return default_params, default_initializers
+    constructor_content = ""
+    # default_params = []
+    # default_initializers = []
+    # for field_name, field_type, default_value in fields:
+    #     if default_value == "{}":
+    #         default_params.append(f"{field_type} _{field_name} = {field_type}()")
+    #     else:
+    #         default_params.append(f"{field_type} _{field_name} = {default_value}")
+    #     default_initializers.append(f"{field_name}(_{field_name})")
+
+    # constructor_content += f"    {name}({', '.join(default_params)}) : "
+    # if codefield:
+    #     constructor_content += f"code({default_code})"
+    #     if default_initializers:
+    #         constructor_content += ", "
+    # constructor_content += ", ".join(default_initializers)
+    # constructor_content += "\n    {}\n"
+    constructor_content += f"    {name}() = default;\n"
+    return constructor_content
 
 def generate_non_basic_type_constructors(name, fields, codefield, default_code):
     """Generate constructors for non-basic types with const& and && parameters."""
