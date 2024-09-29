@@ -14,11 +14,11 @@ class log_formatter
 {
 public:
     log_formatter(const std::string pattern);
-    std::string format(LOG_LEVEL level, log_event* event);
+    std::string format(LOG_LEVEL level, const log_event& event);
     class format_item
     {
     public:
-        virtual void format(std::ostream& os, LOG_LEVEL level, log_event* event) = 0;
+        virtual void format(std::ostream& os, LOG_LEVEL level, const log_event& event) = 0;
     };
 
 private:

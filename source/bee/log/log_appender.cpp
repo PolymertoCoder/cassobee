@@ -22,7 +22,7 @@ log_appender::log_appender()
     _formatter = new log_formatter(format_pattern);
 }
 
-void console_appender::log(LOG_LEVEL level, log_event* event)
+void console_appender::log(LOG_LEVEL level, const log_event& event)
 {
     std::string msg = _formatter->format(level, event);
 
@@ -104,7 +104,7 @@ file_appender::~file_appender()
     }
 }
 
-void file_appender::log(LOG_LEVEL level, log_event* event)
+void file_appender::log(LOG_LEVEL level, const log_event& event)
 {
     if(!_running) return;
     std::string msg = _formatter->format(level, event);
@@ -144,7 +144,7 @@ async_appender::~async_appender()
     stop();
 }
 
-void async_appender::log(LOG_LEVEL level, log_event* event)
+void async_appender::log(LOG_LEVEL level, const log_event& event)
 {
     if(!_running) return;
     std::string msg = _formatter->format(level, event);

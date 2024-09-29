@@ -4,7 +4,6 @@
 #include <sstream>
 #include <utility>
 
-#include "log_manager.h"
 #include "log_formatter.h"
 #include "systemtime.h"
 #include "macros.h"
@@ -16,9 +15,9 @@ class message_format_item : public log_formatter::format_item
 {
 public:
     message_format_item(const std::string& str = "") {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
-        os << event->content;
+        os << event.content;
     }
 };
 
@@ -26,7 +25,7 @@ class loglevel_format_item : public log_formatter::format_item
 {
 public:
     loglevel_format_item(const std::string& str = "") {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
         switch(level)
         {
@@ -45,9 +44,9 @@ class elapse_format_item : public log_formatter::format_item
 {
 public:
     elapse_format_item(const std::string& str = "") {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
-        os << event->elapse;
+        os << event.elapse;
     }
 };
 
@@ -55,9 +54,9 @@ class procname_format_item : public log_formatter::format_item
 {
 public:
     procname_format_item(const std::string& str = "") {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
-        os << log_manager::get_process_name();
+        os << event.process_name;
     }
 };
 
@@ -65,9 +64,9 @@ class threadid_format_item : public log_formatter::format_item
 {
 public:
     threadid_format_item(const std::string& str = "") {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
-        os << event->threadid;
+        os << event.threadid;
     }
 };
 
@@ -75,9 +74,9 @@ class fiberid_format_item : public log_formatter::format_item
 {
 public:
     fiberid_format_item(const std::string& str = "") {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
-        os << event->fiberid;
+        os << event.fiberid;
     }
 };
 
@@ -85,9 +84,9 @@ class datetime_format_item : public log_formatter::format_item
 {
 public:
     datetime_format_item(const std::string& fmt = "%Y-%m-%d %H:%M:%S") : _fmt(fmt) {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
-        os << systemtime::format_time(event->timestamp, _fmt.data());
+        os << systemtime::format_time(event.timestamp, _fmt.data());
     }
 private:
     std::string _fmt;
@@ -97,9 +96,9 @@ class filename_format_item : public log_formatter::format_item
 {
 public:
     filename_format_item(const std::string& str = "") {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
-        os << event->filename;
+        os << event.filename;
     }
 };
 
@@ -107,9 +106,9 @@ class line_format_item : public log_formatter::format_item
 {
 public:
     line_format_item(const std::string& str = "") {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
-        os << event->line;
+        os << event.line;
     }
 };
 
@@ -117,7 +116,7 @@ class newline_format_item : public log_formatter::format_item
 {
 public:
     newline_format_item(const std::string& str = "") {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
         os << std::endl;
     }
@@ -127,7 +126,7 @@ class string_format_item : public log_formatter::format_item
 {
 public:
     string_format_item(const std::string& str) : _str(str) {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
         os << _str;
     }
@@ -139,7 +138,7 @@ class tab_format_item : public log_formatter::format_item
 {
 public:
     tab_format_item(const std::string& str = "") {}
-    void format(std::ostream& os, LOG_LEVEL level, log_event* event) override
+    void format(std::ostream& os, LOG_LEVEL level, const log_event& event) override
     {
         os << "\t";
     }
@@ -301,7 +300,7 @@ log_formatter::log_formatter(const std::string pattern)
     printf("format_items size:%zu\n", _items.size());
 }
 
-std::string log_formatter::format(LOG_LEVEL level, log_event* event)
+std::string log_formatter::format(LOG_LEVEL level, const log_event& event)
 {
     std::stringstream os;
     for(format_item* item : _items)

@@ -2,9 +2,14 @@
 #include <cstdint>
 #include <cstring>
 #include <endian.h>
+#include <type_traits>
 
 template<typename T>
-T bytes_order(T value);
+requires std::is_arithmetic_v<T>
+T bytes_order(T value)
+{
+    return value;
+}
 
 template<>
 inline int16_t bytes_order<int16_t>(int16_t value)

@@ -1,60 +1,13 @@
 #include "log_manager.h"
 #include "log_appender.h"
+#include "logger.h"
 #include "config.h"
+#include "remotelog.h"
 
 namespace cassobee
 {
 
 std::string log_manager::_process_name;
-
-logger::logger(LOG_LEVEL level, log_appender* appender)
-    : _loglevel(level), _root_appender(appender)
-{
-}
-
-logger::~logger()
-{
-    delete _root_appender;
-    _root_appender = nullptr;
-    clr_appender();
-}
-
-void logger::log(LOG_LEVEL level, log_event* event)
-{
-    //if(level >= _loglevel) return;
-    _root_appender->log(level, event);
-}
-
-log_appender* logger::get_appender(const std::string& name)
-{
-    auto iter = _appenders.find(name);
-    return iter != _appenders.end() ? iter->second : nullptr;
-}
-
-bool logger::add_appender(const std::string& name, log_appender* appender)
-{
-    return _appenders.emplace(name, appender).second;
-}
-
-bool logger::del_appender(const std::string& name)
-{
-    if(auto iter = _appenders.find(name); iter != _appenders.end())
-    {
-        delete iter->second;
-        return true;
-    }
-    return false;
-}
-
-void logger::clr_appender()
-{
-    for(auto& [name, appender] : _appenders)
-    {
-        delete appender;
-        appender = nullptr;
-    }
-    _appenders.clear();
-}
 
 void log_manager::init()
 {
@@ -72,11 +25,11 @@ void log_manager::init()
     {
         _file_logger = new logger((LOG_LEVEL)loglevel, new file_appender(logdir, filename));
     }
+}
 
-    _console_logger = new logger((LOG_LEVEL)loglevel, new console_appender());
-
-    size_t poolsize = cfg->get<int>("log", "poolsize");
-    _eventpool.init(poolsize);
+void log_manager::log(LOG_LEVEL level, const log_event& evt)
+{
+    _file_logger->log(level, evt);
 }
 
 logger* log_manager::get_logger(std::string name)
@@ -98,6 +51,11 @@ bool log_manager::del_logger(std::string name)
         return true;
     }
     return false;
+}
+
+void remotelog::run()
+{
+    log_manager::get_instance()->log((LOG_LEVEL)loglevel, logevent);
 }
 
 } // namespace cassobee

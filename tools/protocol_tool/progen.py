@@ -48,6 +48,8 @@ def generate_class_header(name, base_class, fields, maxsize=None, codefield=None
     header_content.extend(included_headers)
     
     header_content.append("\n")
+    header_content.append("namespace cassobee\n")
+    header_content.append("{\n\n")
     header_content.append(f"class {name} : public {base_class}\n")
     header_content.append("{\npublic:\n")
 
@@ -73,6 +75,9 @@ def generate_class_header(name, base_class, fields, maxsize=None, codefield=None
     
     header_content.append(generate_pack_unpack_methods(name))
     header_content.append(generate_public_fields(fields, codefield))
+
+    header_content.append("\n")
+    header_content.append("} // namespace cassobee\n")
     
     return header_content
 
@@ -219,7 +224,7 @@ def generate_public_fields(fields, codefield):
             public_fields += f"    {field_type} {field_name};\n"
         else:
             public_fields += f"    {field_type} {field_name} = {default_value};\n"
-    public_fields += "};\n\n"
+    public_fields += "};\n"
     return public_fields
 
 
@@ -228,10 +233,14 @@ def generate_class_cpp(name, fields, base_class, codefield=None):
     cpp_content = []
 
     cpp_content.append(f'#include "{name}.h"\n\n')
+    cpp_content.append("namespace cassobee\n")
+    cpp_content.append("{\n\n")
     cpp_content.append(generate_pack_method(name, fields, codefield))
     cpp_content.append(generate_unpack_method(name, fields, codefield))
     if base_class == "protocol":
-        cpp_content.append(f"__attribute__((weak)) void {name}::run() {{}}")
+        cpp_content.append(f"\n__attribute__((weak)) void {name}::run() {{}}\n")
+    cpp_content.append("\n")
+    cpp_content.append("} // namespace cassobee")
 
     return cpp_content
 
@@ -258,7 +267,7 @@ def generate_unpack_method(name, fields, codefield):
     else:
         for field_name, _, _ in fields:
             unpack_method += f"    os >> {field_name};\n"
-    unpack_method += "    return os;\n}\n\n"
+    unpack_method += "    return os;\n}\n"
     return unpack_method
 
 def parse_element(element, xml_mtime, base_class, header_output_directory, cpp_output_directory, force, codefield=None, default_code=None):

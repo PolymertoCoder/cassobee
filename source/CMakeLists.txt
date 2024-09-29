@@ -38,7 +38,7 @@ function(add_sanitize_flag target)
 endfunction()
 
 # libprot
-aux_source_directory(./protocol/source LIBPROT_SRC)
+file(GLOB LIBPROT_SRC ${SOURCE_PATH}/protocol/source/*.cpp)
 add_library(prot SHARED ${LIBPROT_SRC})
 set(LIBPROT_DEPEND_LIB bee)
 add_dependencies(prot ${LIBPROT_DEPEND_LIB})

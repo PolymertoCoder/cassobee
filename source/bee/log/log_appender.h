@@ -23,7 +23,7 @@ class log_appender
 public:
     log_appender();
     virtual ~log_appender() = default;
-    virtual void log(LOG_LEVEL level, log_event* event) = 0;
+    virtual void log(LOG_LEVEL level, const log_event& event) = 0;
 
 protected:
     std::mutex _locker;
@@ -34,7 +34,7 @@ protected:
 class console_appender : public log_appender
 {
 public:
-    virtual void log(LOG_LEVEL level, log_event* event) override;
+    virtual void log(LOG_LEVEL level, const log_event& event) override;
 };
 
 // 负责日志的流转功能
@@ -74,7 +74,7 @@ class file_appender : public log_appender
 public:
     file_appender(std::string logdir, std::string filename);
     ~file_appender();
-    virtual void log(LOG_LEVEL level, log_event* event) override;
+    virtual void log(LOG_LEVEL level, const log_event& event) override;
 
 protected:
     bool reopen();
@@ -95,7 +95,7 @@ class async_appender : public file_appender
 public:
     async_appender(std::string logdir, std::string filename);
     ~async_appender();
-    virtual void log(LOG_LEVEL level, log_event* event) override;
+    virtual void log(LOG_LEVEL level, const log_event& event) override;
 
     void start();
     void stop();

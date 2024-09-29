@@ -1,5 +1,6 @@
 <application>
     <rpcdata name="log_event" codefield="short">
+        <field name="process_name" type="std::string" default="{}"/> <!-- 进程名 -->
         <field name="filename" type="std::string" default="{}"/> <!-- 文件名 -->
         <field name="line" type="uint16_t" default="0"/> <!-- 行号 -->
         <field name="timestamp" type="uint32_t" default="0"/> <!-- 时间戳 -->

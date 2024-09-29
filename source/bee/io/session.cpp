@@ -57,7 +57,6 @@ void session::close()
     _manager->del_session(_sid);
 }
 
-#include "ExampleProtocol.h"
 void session::on_recv(size_t len)
 {
     TRACELOG("session::on_recv len=%zu.", len);
@@ -67,16 +66,15 @@ void session::on_recv(size_t len)
     std::string content;
     _reados >> content;
     TRACELOG("receive client data:%s.", content.data());
-    _manager->send_protocol(_sid, ExampleProtocol());
 
-    // while(protocol* prot = protocol::decode(_reados, this))
-    // {
-    //     threadpool::get_instance()->add_task(prot->thread_group_idx(), [prot]()
-    //     {
-    //         prot->run();
-    //         delete prot;
-    //     });
-    // }
+    while(protocol* prot = protocol::decode(_reados, this))
+    {
+        threadpool::get_instance()->add_task(prot->thread_group_idx(), [prot]()
+        {
+            prot->run();
+            delete prot;
+        });
+    }
 }
 
 void session::on_send(size_t len)
