@@ -1,10 +1,9 @@
 #pragma once
 #include <string>
 #include "common.h"
-#include "objectpool.h"
-#include "session_manager.h"
+#include "remotelog.h"
 #include "types.h"
-#include "log_event.h"
+#include "logserver_manager.h"
 
 #ifndef __FILENAME__
 #define __FILENAME__ __FILE__
@@ -26,6 +25,7 @@
 namespace cassobee
 {
 class logger;
+class remotelog;
 
 enum LOG_LEVEL
 {
@@ -43,15 +43,17 @@ public:
     void init();
     void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...) FORMAT_PRINT_CHECK(8, 9);
     void console_log(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...) FORMAT_PRINT_CHECK(8, 9);
-    void send(const protocol& prot);
+
+    void set_process_name(const std::string& process_name);
+    void set_logserver(logserver_manager* logserver);
+    void send(remotelog& remotelog);
 
 private:
-    std::string _process_name;
-    SID _logsever_sid;
-    session_manager* _logserver;
+    bool _is_logserver = false;
     LOG_LEVEL _loglevel;
+    std::string _process_name;
+    logserver_manager* _logserver;
     logger* _console_logger = nullptr;
-    objectpool<log_event> _eventpool;
 };
 
 }

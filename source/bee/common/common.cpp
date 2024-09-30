@@ -70,7 +70,7 @@ void set_process_affinity(int cpu_num)
 
 std::string format_string(const char* fmt, ...)
 {
-    thread_local char buf[1024];
+    thread_local char buf[1024*4];
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);

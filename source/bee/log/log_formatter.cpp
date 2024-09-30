@@ -7,6 +7,7 @@
 #include "log_formatter.h"
 #include "systemtime.h"
 #include "macros.h"
+#include "log_event.h"
 
 namespace cassobee
 {

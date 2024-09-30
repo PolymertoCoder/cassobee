@@ -11,10 +11,10 @@
 #include "ring_buffer.h"
 #include "types.h"
 
-class log_event;
 
 namespace cassobee
 {
+class log_event;
 class log_formatter;
 
 // 日志输出器

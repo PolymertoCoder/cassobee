@@ -7,8 +7,6 @@
 namespace cassobee
 {
 
-std::string log_manager::_process_name;
-
 void log_manager::init()
 {
     auto cfg = config::get_instance();

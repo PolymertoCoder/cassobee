@@ -18,14 +18,6 @@ public:
     return_type get(const std::string section, const std::string item, return_type default_value = {})
     {
         std::string value = get(section, item);
-        if constexpr(std::is_integral_v<return_type>)
-        {
-            return atoi(value.data());
-        }
-        if constexpr(std::is_floating_point_v<return_type>)
-        {
-            return atof(value.data());
-        }
         if constexpr(std::is_same_v<return_type, bool>)
         {
             if(value == "true" || value == "1")
@@ -37,6 +29,14 @@ public:
                 return false;
             }
             return false;
+        }
+        if constexpr(std::is_integral_v<return_type>)
+        {
+            return atoi(value.data());
+        }
+        if constexpr(std::is_floating_point_v<return_type>)
+        {
+            return atof(value.data());
         }
         return default_value;
     }

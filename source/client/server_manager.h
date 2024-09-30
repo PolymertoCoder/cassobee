@@ -6,7 +6,7 @@ class server_manager : public session_manager
 public:
     FORCE_INLINE virtual const char* identity() const override
     {
-        return "server_manager";
+        return "server";
     }
 
 private:

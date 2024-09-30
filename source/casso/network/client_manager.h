@@ -7,7 +7,7 @@ class client_manager : public session_manager, public singleton_support<client_m
 public:
     FORCE_INLINE virtual const char* identity() const override
     {
-        return "client_manager";
+        return "client";
     }
 
 private:

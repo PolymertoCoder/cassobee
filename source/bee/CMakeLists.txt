@@ -1,5 +1,5 @@
 # liblog
-set(LIBLOG_SRC ./log/log.cpp)
+file(GLOB LIBLOG_SRC ${SOURCE_PATH}/bee/log/*.cpp)
 message("liblog source: " ${LIBLOG_SRC})
 add_library(log SHARED ${LIBLOG_SRC})
 target_include_directories(log

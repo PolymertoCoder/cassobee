@@ -1,6 +1,5 @@
 #include "session.h"
 
-#include "ExampleProtocol.h"
 #include "address.h"
 #include "event.h"
 #include "log.h"
@@ -62,10 +61,6 @@ void session::on_recv(size_t len)
     TRACELOG("session::on_recv len=%zu.", len);
     set_state(SESSION_STATE_RECVING);
     _reados << _readbuf;
-
-    std::string content;
-    _reados >> content;
-    TRACELOG("receive client data:%s.", content.data());
 
     while(protocol* prot = protocol::decode(_reados, this))
     {

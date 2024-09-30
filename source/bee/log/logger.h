@@ -3,6 +3,7 @@
 
 namespace cassobee
 {
+class log_event;
 class log_appender;
 
 class logger

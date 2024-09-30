@@ -23,6 +23,14 @@ session_manager::~session_manager()
     _sessions.clear();
 }
 
+void session_manager::on_add_session(SID sid)
+{
+}
+
+void session_manager::on_del_session(SID sid)
+{
+}
+
 session* session_manager::create_session()
 {
     return new session(this);
@@ -69,6 +77,7 @@ void session_manager::add_session(SID sid, session* ses)
     cassobee::rwlock::wrscoped l(_locker);
     ASSERT(!_sessions.contains(sid) && ses);
     _sessions.emplace(sid, ses);
+    on_add_session(sid);
     TRACELOG("session_manager add_session %lu.", sid);
 }
 
@@ -76,6 +85,7 @@ void session_manager::del_session(SID sid)
 {
     cassobee::rwlock::wrscoped l(_locker);
     _sessions.erase(sid);
+    on_del_session(sid);
     TRACELOG("session_manager del_session %lu.", sid);
 }
 

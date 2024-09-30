@@ -45,6 +45,7 @@ template<typename STL_CONTAINER>
 std::string container_to_string(const STL_CONTAINER& container, const std::string_view& prefix)
 {
     std::string str(prefix.data(), prefix.size());
+    str.append("{");
     size_t i = 0, sz = container.size();
     for(typename STL_CONTAINER::const_iterator iter = container.begin(); iter != container.end(); ++iter, ++i)
     {

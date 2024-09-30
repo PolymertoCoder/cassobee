@@ -7,9 +7,12 @@ class logserver_manager : public session_manager, public singleton_support<logse
 public:
     FORCE_INLINE virtual const char* identity() const override
     {
-        return "logserver_manager";
+        return "logserver";
     }
+    virtual void on_add_session(SID sid) override;
+    virtual void on_del_session(SID sid) override;
+    bool send(const protocol& prot);
 
 private:
-
+    SID _localsid = 0;
 };

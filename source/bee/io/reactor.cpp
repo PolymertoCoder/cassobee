@@ -10,14 +10,22 @@
 #include "demultiplexer.h"
 #include "threadpool.h"
 #include "types.h"
+#include "config.h"
 
 void reactor::init()
 {
-    _dispatcher = new epoller();
+    auto cfg = config::get_instance();
+    if(cfg->get("reactor", "demultiplexer") == "epoller")
+    {
+        _dispatcher = new epoller();
+    }
     _dispatcher->init();
     _stop = false;
-    _use_timer_thread = true;
-    _timeout = 1;
+    _use_timer_thread = cfg->get<bool>("reactor", "use_timer_thread");
+    if(!_use_timer_thread)
+    {
+        _timeout = cfg->get<bool>("reactor", "timeout");
+    }
 
     add_event(new sigio_event(),   EVENT_RECV  );
     add_event(new control_event(), EVENT_WAKEUP);
@@ -30,7 +38,7 @@ int reactor::run()
     while(!_stop)
     {
         int timeout = _timeout;
-        if(_timer_events.size())
+        if(!use_timer_thread() && _timer_events.size())
         {
             TIMETYPE nowtime = systemtime::get_millseconds();
             TIMETYPE diff = _timer_events.begin()->first - nowtime;
@@ -134,6 +142,7 @@ bool reactor::handle_signal_event(int signum)
 
 void reactor::handle_timer_event()
 {
+    if(use_timer_thread()) return;
     TIMETYPE nowtime = systemtime::get_millseconds();
     while(_timer_events.size())
     {

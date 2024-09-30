@@ -1,9 +1,11 @@
 #include <csignal>
 #include "config.h"
 #include "reactor.h"
+#include "session_manager.h"
 #include "timewheel.h"
 #include "threadpool.h"
 #include "log_manager.h"
+#include "logclient_manager.h"
 
 bool sigusr1_handler(int signum)
 {
@@ -38,12 +40,20 @@ int main(int argc, char* argv[])
         }
     }
 
+    auto logclient = cassobee::logclient::get_instance();
+    logclient->init();
+    logclient->set_process_name("logserver");
+
     auto* looper = reactor::get_instance();
     looper->init();
     looper->add_signal(SIGUSR1, sigusr1_handler);
     std::thread timer_thread = start_threadpool_and_timer();
 
     cassobee::log_manager::get_instance()->init();
+
+    auto logclientmgr = logclient_manager::get_instance();
+    logclientmgr->init();
+    server(logclientmgr);
     
     looper->run();
     timer_thread.join();

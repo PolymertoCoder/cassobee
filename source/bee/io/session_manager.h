@@ -26,6 +26,9 @@ public:
 
     FORCE_INLINE bool check_protocol(PROTOCOLID type) { return _state._permited_protocols.test(type); }
 
+    virtual void on_add_session(SID sid);
+    virtual void on_del_session(SID sid);
+
     session* create_session();
     void add_session(SID sid, session* ses);
     void del_session(SID sid);
