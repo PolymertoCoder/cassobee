@@ -25,6 +25,7 @@ bool control_event::handle_event(int active_events)
     // {
     //     CHECK_BUG(data == 0, return false);
     // }
+    printf("control_event wakeup...\n");
     return true;
 }
 

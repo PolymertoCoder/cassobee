@@ -1,5 +1,4 @@
 #pragma once
-#include "concept.h"
 #include "log.h"
 #include "stringfy.h"
 #include "traits.h"
@@ -43,7 +42,7 @@ protected:
     [[nodiscard]] static consteval bool static_check_helper(const std::string_view& id)
     {
         return id == product_wrapper<I>::value &&
-                cassobee::has_constructor<typename product_wrapper<I>::type, create_params...>;
+                std::constructible_from<typename product_wrapper<I>::type, create_params...>;
     }
 
     template<typename... create_params>
@@ -58,7 +57,7 @@ protected:
     template<size_t I, typename... create_params>
     [[nodiscard]] static base_product* create_helper(const std::string_view& id, create_params&&... params)
     {
-        if constexpr(cassobee::has_constructor<typename product_wrapper<I>::type, create_params...>)
+        if constexpr(std::constructible_from<typename product_wrapper<I>::type, create_params...>)
         {
             if(id == product_wrapper<I>::value)
             {

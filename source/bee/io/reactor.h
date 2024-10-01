@@ -39,7 +39,7 @@ private:
     demultiplexer* _dispatcher;
     bool _wakeup = true;
     bool _use_timer_thread = true;
-    int  _timeout = 0; // ms
+    int  _timeout = -1; // ms
 
     EVENTS_MAP _io_events;
     EVENTS_MAP _signal_events;

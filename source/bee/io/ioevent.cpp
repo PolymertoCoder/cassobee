@@ -8,10 +8,13 @@
 
 #include "ioevent.h"
 #include "address.h"
+#include "event.h"
 #include "log.h"
 #include "common.h"
 #include "reactor.h"
 #include "session.h"
+
+netio_event::~netio_event() { delete _ses; }
 
 passiveio_event::passiveio_event(session_manager* manager)
     : netio_event(manager->create_session())
@@ -22,6 +25,13 @@ passiveio_event::passiveio_event(session_manager* manager)
     {
         int family = manager->family();
         int listenfd = socket(family, socktype, 0);
+        int opt = 1;
+        if(setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+        {
+            perror("setsockopt");
+            close(listenfd);
+            exit(EXIT_FAILURE);
+        }    
         set_nonblocking(listenfd);
 
         struct sockaddr* addr = manager->get_addr()->addr();
@@ -104,17 +114,21 @@ activeio_event::activeio_event(session_manager* manager)
         return;
     }
     set_nonblocking(_fd);
-    struct sockaddr* addr = _ses->get_manager()->get_addr()->addr();
-    if(connect(_fd, addr, sizeof(*addr)) < 0)
-    {
-        perror("connect");
-        return;
-    }
 }
 
 bool activeio_event::handle_event(int active_events)
 {
-    // TODO   
+    struct sockaddr* addr = _ses->get_manager()->get_addr()->addr();
+    if(connect(_fd, addr, sizeof(*addr)) < 0)
+    {
+        perror("connect");
+        return false;
+    }
+
+    if(_base == nullptr) return false;
+    _base->add_event(new streamio_event(_fd, _ses->dup()), EVENT_SEND);
+    printf("activeio_event handle_event run _fd=%d.\n", _fd);
+    _base->del_event(this);
     return true;
 }
 
@@ -143,6 +157,7 @@ streamio_event::streamio_event(int fd, session* ses)
         exit(-1);
     }
     ses->open();
+    printf("streamio_event constructor run\n");
 }
 
 bool streamio_event::handle_event(int active_events)
@@ -151,11 +166,13 @@ bool streamio_event::handle_event(int active_events)
     {
         handle_recv();
         _ses->permit_send();
+        printf("streamio_event handle_event EVENT_RECV fd=%d\n", _fd);
     }
     else if(active_events & EVENT_SEND)
     {
         handle_send();
         _ses->permit_recv();
+        printf("streamio_event handle_event EVENT_SEND fd=%d\n", _fd);
     }
     return true;
 }

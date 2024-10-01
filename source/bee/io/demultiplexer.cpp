@@ -98,13 +98,14 @@ void epoller::dispatch(reactor* base, int timeout)
     struct epoll_event events[EPOLL_ITEM_MAX];
     int nready = epoll_wait(_epfd, events, EPOLL_ITEM_MAX, timeout);
     _wakeup = true;
-    //TRACELOG("epoller wakeup...");
+    printf("epoller wakeup... timeout=%d nready=%d\n", timeout, nready);
 
     for(int i = 0; i < nready; i++)
     {
         event* ev = base->get_event(events[i].data.fd);
         if(ev == nullptr) continue;
 
+        printf("event fd=%d events=%d\n", events[i].data.fd, events[i].events);
         if(events[i].events & EPOLLIN || events[i].events & EPOLLHUP)
         {
             if(_listenfds.contains(events[i].data.fd))

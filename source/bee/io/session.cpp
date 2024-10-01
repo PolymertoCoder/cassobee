@@ -58,6 +58,7 @@ void session::close()
 
 void session::on_recv(size_t len)
 {
+    printf("session::on_recv len=%zu.\n", len);
     TRACELOG("session::on_recv len=%zu.", len);
     set_state(SESSION_STATE_RECVING);
     _reados << _readbuf;
@@ -74,6 +75,7 @@ void session::on_recv(size_t len)
 
 void session::on_send(size_t len)
 {
+    printf("session::on_send len=%zu.\n", len);
     set_state(SESSION_STATE_SENDING);
     if(len == _writebuf.size())
     {

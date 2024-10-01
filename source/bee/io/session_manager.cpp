@@ -142,7 +142,7 @@ void session_manager::send_octets(SID sid, const octets& oct)
 
 void client(session_manager* manager)
 {
-    reactor::get_instance()->add_event(new activeio_event(manager), EVENT_ACCEPT);
+    reactor::get_instance()->add_event(new activeio_event(manager), EVENT_SEND);
 }
 
 void server(session_manager* manager)

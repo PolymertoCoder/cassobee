@@ -4,13 +4,13 @@
 void logserver_manager::on_add_session(SID sid)
 {
     _localsid = sid;
-    local_log("logserver_manager on_add_session %lu.", sid);
+    printf("logserver_manager on_add_session %lu.\n", sid);
 }
 
 void logserver_manager::on_del_session(SID sid)
 {
     _localsid = 0;
-    local_log("logserver_manager on_del_session %lu.", sid);
+    printf("logserver_manager on_del_session %lu.\n", sid);
 }
 
 bool logserver_manager::send(const protocol& prot)

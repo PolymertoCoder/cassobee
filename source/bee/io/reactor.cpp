@@ -95,6 +95,7 @@ int reactor::add_event(event* ev, int events)
     }
     ev->_base = this;
     wakeup();
+    printf("reactor::add_event fd=%d events=%d\n", ev->get_handle(), events);
     return 0;
 }
 
@@ -165,7 +166,7 @@ std::thread start_threadpool_and_timer()
     {
         return std::thread([]()
         {
-            printf("timer thread tid:%d.", gettid());
+            printf("timer thread tid:%d.\n", gettid());
             timewheel::get_instance()->init();
             timewheel::get_instance()->run();
         });
