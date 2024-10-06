@@ -29,7 +29,7 @@ void reactor::init()
     }
 
     add_event(new sigio_event(),   EVENT_RECV  );
-    //add_event(new control_event(), EVENT_WAKEUP);
+    add_event(new control_event(), EVENT_WAKEUP);
 }
 
 int reactor::run()
@@ -71,38 +71,40 @@ int reactor::add_event(event* ev, int events)
 {
     if(_dispatcher == nullptr || ev == nullptr) return -1;
 
-    cassobee::rwlock::wrscoped l(_locker);
-    if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP || events & EVENT_WAKEUP)
     {
-        _io_events.emplace(ev->get_handle(), ev);
-        if(int ret = _dispatcher->add_event(ev, events))
+        cassobee::rwlock::wrscoped l(_locker);
+        if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP || events & EVENT_WAKEUP)
         {
-            ERRORLOG("add_io_event error, ret=%d.", ret);
-            return ret;
+            _io_events.emplace(ev->get_handle(), ev);
+            if(int ret = _dispatcher->add_event(ev, events))
+            {
+                ERRORLOG("add_io_event error, ret=%d.", ret);
+                return ret;
+            }
+            TRACELOG("add_io_event handle=%d events=%d.", ev->get_handle(), events);
         }
-        TRACELOG("add_io_event handle=%d events=%d.", ev->get_handle(), events);
+        else if(events & EVENT_TIMER)
+        {
+            timer_event* tm = dynamic_cast<timer_event*>(ev);
+            TIMETYPE nowtime = systemtime::get_millseconds();
+            TIMETYPE expiretime = tm->_delay ? (nowtime + tm->_timeout) : nowtime;
+            tm->_delay = true;
+            _timer_events.insert(std::make_pair(expiretime, ev));
+            TRACELOG("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.", nowtime, tm->_delay, tm->_timeout, expiretime);
+        }
+        else if(events & EVENT_SIGNAL)
+        {
+            _signal_events.emplace(ev->get_handle(), ev);
+            TRACELOG("add_signal_event signum=%d.", ev->get_handle());
+        }
+        else
+        {
+            CHECK_BUG(false, ERRORLOG("reactor add_event unknown events:%d.", events); return -2);
+        }
+        ev->_base = this;
+        printf("reactor::add_event fd=%d events=%d\n", ev->get_handle(), events);
     }
-    else if(events & EVENT_TIMER)
-    {
-        timer_event* tm = dynamic_cast<timer_event*>(ev);
-        TIMETYPE nowtime = systemtime::get_millseconds();
-        TIMETYPE expiretime = tm->_delay ? (nowtime + tm->_timeout) : nowtime;
-        tm->_delay = true;
-        _timer_events.insert(std::make_pair(expiretime, ev));
-        TRACELOG("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.", nowtime, tm->_delay, tm->_timeout, expiretime);
-    }
-    else if(events & EVENT_SIGNAL)
-    {
-        _signal_events.emplace(ev->get_handle(), ev);
-        TRACELOG("add_signal_event signum=%d.", ev->get_handle());
-    }
-    else
-    {
-        CHECK_BUG(false, ERRORLOG("reactor add_event unknown events:%d.", events); return -2);
-    }
-    ev->_base = this;
     wakeup();
-    printf("reactor::add_event fd=%d events=%d\n", ev->get_handle(), events);
     return 0;
 }
 

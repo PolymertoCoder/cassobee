@@ -141,7 +141,6 @@ public:
     }
     ~rwlock()
     {
-        printf("rwlock destroy\n");
         pthread_rwlock_destroy(&_locker);
     }
     FORCE_INLINE void rdlock()
