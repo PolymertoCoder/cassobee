@@ -91,7 +91,7 @@ void logclient::send(remotelog& remotelog)
     {
         _console_logger->log((LOG_LEVEL)remotelog.loglevel, remotelog.logevent);
     }
-    printf("logclient::send run\n");
+    //printf("logclient::send run\n");
 }
 
 } // namespace cassobee

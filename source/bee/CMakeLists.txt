@@ -6,6 +6,7 @@ target_include_directories(log
                            PRIVATE
                            ${SOURCE_PATH}/bee/common
                            ${SOURCE_PATH}/bee/io
+                           ${SOURCE_PATH}/bee/log
                            ${SOURCE_PATH}/bee/traits
                            ${SOURCE_PATH}/bee/utility
                            ${SOURCE_PATH}/protocol/

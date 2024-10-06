@@ -20,11 +20,11 @@ control_event::control_event()
 
 bool control_event::handle_event(int active_events)
 {
-    // char data;
-    // if(int n = read(_control_pipe[0], &data, sizeof(data)); n > 0)
-    // {
-    //     CHECK_BUG(data == 0, return false);
-    // }
+    char data;
+    if(int n = read(_control_pipe[0], &data, sizeof(data)); n > 0)
+    {
+        CHECK_BUG(data == 0, return false);
+    }
     printf("control_event wakeup...\n");
     return true;
 }

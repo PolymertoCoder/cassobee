@@ -41,8 +41,11 @@ bool config::reload()
         printf("config file %s cannot open?!\n", _config_file.data());
         return false;
     }
+    SECTION_MAP old_config;
+    old_config.swap(_sections);
     if(!parse(ifs))
     {
+        _sections.swap(old_config);
         printf("parse config file:%s failed, an error occured!!!\n", _config_file.data());
         return false;
     }

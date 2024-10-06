@@ -14,7 +14,11 @@
 #include "reactor.h"
 #include "session.h"
 
-netio_event::~netio_event() { delete _ses; }
+netio_event::~netio_event()
+{
+    _ses->close();
+    delete _ses;
+}
 
 passiveio_event::passiveio_event(session_manager* manager)
     : netio_event(manager->create_session())
@@ -118,17 +122,20 @@ activeio_event::activeio_event(session_manager* manager)
 
 bool activeio_event::handle_event(int active_events)
 {
+    if(_base == nullptr) return false;
     struct sockaddr* addr = _ses->get_manager()->get_addr()->addr();
     if(connect(_fd, addr, sizeof(*addr)) < 0)
     {
         perror("connect");
+        _base->del_event(this);
+        delete this;
         return false;
     }
 
-    if(_base == nullptr) return false;
-    _base->add_event(new streamio_event(_fd, _ses->dup()), EVENT_SEND);
-    printf("activeio_event handle_event run _fd=%d.\n", _fd);
     _base->del_event(this);
+    _base->add_event(new streamio_event(_fd, _ses->dup()), EVENT_SEND);
+    printf("activeio_event handle_event run fd=%d.\n", _fd);
+    delete this;
     return true;
 }
 

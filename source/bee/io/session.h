@@ -26,6 +26,7 @@ public:
     session(session_manager* manager);
     ~session();
 
+    void clear();
     session* dup();
 
     SID get_next_sessionid();

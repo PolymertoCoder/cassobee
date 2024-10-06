@@ -9,7 +9,7 @@ target_include_directories(logserver
 
 set(LOGSERVER_DEPEND_LIB bee prot)
 add_dependencies(logserver ${LOGSERVER_DEPEND_LIB})
-target_link_libraries(logserver ${LOGSERVER_DEPEND_LIB})
+target_link_libraries(logserver pthread ${LOGSERVER_DEPEND_LIB})
 
 gen_startup_script(logserver)
 add_common_flags(logserver)

@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "event.h"
+#include "lock.h"
 #include "systemtime.h"
 #include "timewheel.h"
 #include "log.h"
@@ -28,7 +29,7 @@ void reactor::init()
     }
 
     add_event(new sigio_event(),   EVENT_RECV  );
-    add_event(new control_event(), EVENT_WAKEUP);
+    //add_event(new control_event(), EVENT_WAKEUP);
 }
 
 int reactor::run()
@@ -37,6 +38,7 @@ int reactor::run()
 
     while(!_stop)
     {
+        cassobee::rwlock::rdscoped l(_locker);
         int timeout = _timeout;
         if(!use_timer_thread() && _timer_events.size())
         {
@@ -47,17 +49,21 @@ int reactor::run()
         }
         _dispatcher->dispatch(this, timeout);
         handle_timer_event();
+        printf("reactor::run end\n");
     }
     return 0;
 }
 
 void reactor::stop()
 {
+    cassobee::rwlock::wrscoped l(_locker);
     _stop = true;
+    wakeup();
 }
 
 void reactor::wakeup()
 {
+    cassobee::rwlock::rdscoped l(_locker);
     _dispatcher->wakeup();
 }
 
@@ -65,6 +71,7 @@ int reactor::add_event(event* ev, int events)
 {
     if(_dispatcher == nullptr || ev == nullptr) return -1;
 
+    cassobee::rwlock::wrscoped l(_locker);
     if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP || events & EVENT_WAKEUP)
     {
         _io_events.emplace(ev->get_handle(), ev);
@@ -101,17 +108,14 @@ int reactor::add_event(event* ev, int events)
 
 void reactor::del_event(event* ev)
 {
+    cassobee::rwlock::wrscoped l(_locker);
     if(_dispatcher == nullptr || ev == nullptr) return;
 
     _dispatcher->del_event(ev);
     
     int fd = ev->get_handle();
-    auto iter = _io_events.find(fd);
-    if(iter == _io_events.end()) return;
-
-    event* temp = iter->second;
-    _io_events.erase(iter);
-    delete temp;
+    _io_events.erase(fd);
+    printf("reactor del_event fd=%d.\n", fd);
 }
 
 void reactor::add_signal(int signum, bool(*callback)(int))
@@ -121,12 +125,14 @@ void reactor::add_signal(int signum, bool(*callback)(int))
 
 event* reactor::get_event(int fd)
 {
+    cassobee::rwlock::rdscoped l(_locker);
     EVENTS_MAP::iterator itr = _io_events.find(fd);
     return itr != _io_events.end() ? itr->second : nullptr;
 }
 
-bool& reactor::get_wakeup()
+bool reactor::get_wakeup()
 {
+    cassobee::rwlock::rdscoped l(_locker);
     return _dispatcher->get_wakeup();
 }
 

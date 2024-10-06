@@ -31,6 +31,16 @@ void session_manager::on_del_session(SID sid)
 {
 }
 
+void session_manager::reconnect()
+{
+    add_timer(2000, [this]()
+    {
+        client(this);
+        printf("session_manager::reconnect run\n");
+        return false;
+    });
+}
+
 session* session_manager::create_session()
 {
     return new session(this);
@@ -75,24 +85,34 @@ void session_manager::init()
 void session_manager::add_session(SID sid, session* ses)
 {
     cassobee::rwlock::wrscoped l(_locker);
-    ASSERT(!_sessions.contains(sid) && ses);
-    _sessions.emplace(sid, ses);
-    on_add_session(sid);
-    TRACELOG("session_manager add_session %lu.", sid);
+    add_session_nolock(sid, ses);
 }
 
 void session_manager::del_session(SID sid)
 {
     cassobee::rwlock::wrscoped l(_locker);
-    _sessions.erase(sid);
-    on_del_session(sid);
-    TRACELOG("session_manager del_session %lu.", sid);
+    del_session_nolock(sid);
 }
 
 session* session_manager::find_session(SID sid)
 {
     cassobee::rwlock::rdscoped l(_locker);
     return find_session_nolock(sid);
+}
+
+void session_manager::add_session_nolock(SID sid, session* ses)
+{
+    ASSERT(!_sessions.contains(sid) && ses);
+    _sessions.emplace(sid, ses);
+    on_add_session(sid);
+    TRACELOG("session_manager add_session %lu.", sid);
+}
+
+void session_manager::del_session_nolock(SID sid)
+{
+    _sessions.erase(sid);
+    on_del_session(sid);
+    TRACELOG("session_manager del_session %lu.", sid);
 }
 
 session* session_manager::find_session_nolock(SID sid)

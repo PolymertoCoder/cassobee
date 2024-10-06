@@ -3,6 +3,7 @@
 #include <atomic>
 #include <mutex>
 #include <pthread.h>
+#include <stdexcept>
 #include <thread>
 #include <unistd.h>
 #include <immintrin.h>
@@ -16,11 +17,11 @@ class lock_support
 public:
     struct scoped
     {
-        scoped(lock_type& locker) : _locker(locker)
+        explicit scoped(lock_type& locker) noexcept : _locker(locker)
         {
             _locker.lock();
         }
-        ~scoped()
+        ~scoped() noexcept
         {
             _locker.unlock();
         }
@@ -108,11 +109,11 @@ class rwlock
 public:
     struct rdscoped
     {
-        rdscoped(rwlock& locker) : _locker(locker)
+        explicit rdscoped(rwlock& locker) noexcept : _locker(locker)
         {
             _locker.rdlock();
         }
-        ~rdscoped()
+        ~rdscoped() noexcept
         {
             _locker.unlock();
         }
@@ -120,11 +121,11 @@ public:
     };
     struct wrscoped
     {
-        wrscoped(rwlock& locker) : _locker(locker)
+        explicit wrscoped(rwlock& locker) noexcept : _locker(locker)
         {
             _locker.wrlock();
         }
-        ~wrscoped()
+        ~wrscoped() noexcept
         {
             _locker.unlock();
         }
@@ -133,10 +134,14 @@ public:
 
     rwlock()
     {
-        pthread_rwlock_init(&_locker, NULL);
+        if(pthread_rwlock_init(&_locker, NULL) != 0)
+        {
+            throw std::runtime_error("failed to initialize rwlock");
+        }
     }
     ~rwlock()
     {
+        printf("rwlock destroy\n");
         pthread_rwlock_destroy(&_locker);
     }
     FORCE_INLINE void rdlock()
@@ -165,4 +170,4 @@ private:
 };
 
 #endif // #ifndef _REENTRANT
-}
+} // namespace cassobee

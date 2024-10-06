@@ -17,7 +17,7 @@ class session_manager
 {
 public:
     session_manager();
-    ~session_manager();
+    virtual ~session_manager();
     void init();
     FORCE_INLINE virtual const char* identity() const { return "session_manager"; }
     FORCE_INLINE address* get_addr() { return _addr; }
@@ -28,11 +28,15 @@ public:
 
     virtual void on_add_session(SID sid);
     virtual void on_del_session(SID sid);
+    void reconnect();
 
     session* create_session();
     void add_session(SID sid, session* ses);
     void del_session(SID sid);
     session* find_session(SID sid);
+
+    void add_session_nolock(SID sid, session* ses);
+    void del_session_nolock(SID sid);
     session* find_session_nolock(SID sid);
 
     void send_protocol(SID sid, const protocol& prot);

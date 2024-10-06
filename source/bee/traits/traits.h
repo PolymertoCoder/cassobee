@@ -98,15 +98,19 @@ auto short_type_name_string() -> std::string
 template<size_t N>
 struct string_literal
 {
-    constexpr string_literal(const char (&str)[N]) // 数组引用，不会退化成指针，能保留数组的大小信息
+    consteval string_literal(const char (&str)[N]) // 数组引用，不会退化成指针，能保留数组的大小信息
     {
         std::copy_n(str, N, data);
     }
-    constexpr operator std::string_view() const
+    consteval string_literal(const string_literal& rhs)
+    {
+        std::copy_n(rhs.data, N, data);
+    }
+    consteval operator std::string_view() const
     {
         return std::string_view(data, N - 1); // N-1 to exclude the null terminator
     }
-    constexpr bool operator==(std::string_view other) const
+    consteval bool operator==(std::string_view other) const
     {
         return std::string_view(data, N - 1) == other;
     }

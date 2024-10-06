@@ -1,9 +1,9 @@
 #pragma once
+#include <tuple>
+#include <utility>
 #include "log.h"
 #include "stringfy.h"
 #include "traits.h"
-#include <tuple>
-#include <utility>
 
 template<typename base_product, typename... products>
 class factory_base
@@ -38,35 +38,26 @@ protected:
     template<size_t I>
     using product_wrapper = std::tuple_element_t<I, decltype(_stubs)>;
 
-    template<size_t I, typename... create_params>
-    [[nodiscard]] static consteval bool static_check_helper(const std::string_view& id)
-    {
-        return id == product_wrapper<I>::value &&
-                std::constructible_from<typename product_wrapper<I>::type, create_params...>;
-    }
-
-    template<typename... create_params>
-    [[nodiscard]] static consteval bool static_check(const std::string_view& id)
+    template<cassobee::string_literal id, typename... create_params>
+    [[nodiscard]] static consteval bool static_check()
     {
         return [&]<size_t... Is>(std::index_sequence<Is...>&&)
         {
-            return ((static_check_helper<Is, create_params...>(id)) || ...);
+            return ((id == product_wrapper<Is>::value &&
+                     std::constructible_from<typename product_wrapper<Is>::type, create_params...>) || ...);
         }(std::make_index_sequence<sizeof...(products)>());
     }
 
     template<size_t I, typename... create_params>
-    [[nodiscard]] static base_product* create_helper(const std::string_view& id, create_params&&... params)
+    [[nodiscard]] static base_product* create_helper(create_params&&... params)
     {
         if constexpr(std::constructible_from<typename product_wrapper<I>::type, create_params...>)
         {
-            if(id == product_wrapper<I>::value)
-            {
-                return new product_wrapper<I>::type(std::forward<create_params>(params)...);
-            }
+            return new product_wrapper<I>::type(std::forward<create_params>(params)...);
         }
         else
         {
-            ERRORLOG("factory %s cannot find product %s constructor, params=%s.", std::string(factory_name).data(), id.data(), cassobee::to_string(std::tie(std::forward<create_params>(params)...)).data());
+            ERRORLOG("factory %s cannot find product %s constructor, params=%s.", std::string(factory_name).data(), std::string(product_wrapper<I>::value).data(), cassobee::to_string(std::tie(std::forward<create_params>(params)...)).data());
         }
         return nullptr;
     }
@@ -82,7 +73,8 @@ public:
         base_product* product = nullptr;
         [&]<size_t... Is>(std::index_sequence<Is...>&&)
         {
-            ((product = create_helper<Is>(id, std::forward<create_params>(params)...)) || ...);
+            (((id == product_wrapper<Is>::value) &&
+               (product = create_helper<Is>(std::forward<create_params>(params)...))) || ...);
         }(std::make_index_sequence<sizeof...(products)>());
         return product;
     }
@@ -90,7 +82,7 @@ public:
     template<cassobee::string_literal id, typename... create_params>
     [[nodiscard]] static auto* create2(create_params&&... params)
     {
-        static_assert(static_check<create_params...>(id));
+        static_assert(static_check<id, create_params...>());
         return create(id, std::forward<create_params>(params)...);
     }
 };

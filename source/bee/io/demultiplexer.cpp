@@ -4,6 +4,7 @@
 #include "demultiplexer.h"
 #include "log.h"
 #include "event.h"
+#include "macros.h"
 #include "reactor.h"
 #include "types.h"
 
@@ -46,9 +47,11 @@ int epoller::add_event(event* ev, int events)
     }
     if(events & EVENT_WAKEUP)
     {
-        event.events |= (EPOLLET | EPOLLOUT);
+        event.events |= EPOLLIN;
+        //event.events |= (EPOLLET | EPOLLOUT);
         _ctrl_event = dynamic_cast<control_event*>(ev);
         CHECK_BUG(_ctrl_event, );
+        printf("add wakeup events\n");  
     }
 
     int op;
@@ -72,6 +75,7 @@ int epoller::add_event(event* ev, int events)
         local_log("add_event failed %d, ret=%d epfd=%d", ev->get_handle(), ret, _epfd);
         return -3;
     }
+    printf("epoller::add_event success\n");
     return 0;
 }
 
@@ -126,8 +130,10 @@ void epoller::dispatch(reactor* base, int timeout)
 
 void epoller::wakeup()
 {
+    printf("epoller::wakeup() begin _wakeup=%s\n", expr2boolstr(_wakeup));
     if(_ctrl_event == nullptr || _wakeup) return;
     this->add_event(_ctrl_event, EVENT_WAKEUP);
-    // write(_ctrl_event->_pipe[1], "0", 1);
+    write(_ctrl_event->_control_pipe[1], "\0", 1);
     _wakeup = false;
+    printf("epoller::wakeup() run success\n");
 }

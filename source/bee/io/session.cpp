@@ -21,6 +21,20 @@ session::~session()
     delete _peer;
 }
 
+void session::clear()
+{
+    _sid = 0;
+    _sockfd = 0;
+    _state = SESSION_STATE_NONE;
+    _peer->dup();
+
+    _event = nullptr;
+    _readbuf.clear();
+    _writebuf.clear();
+    _reados.clear();
+    _writeos.clear();
+}
+
 session* session::dup()
 {
     auto ses = new session(*this);
@@ -30,10 +44,10 @@ session* session::dup()
     ses->_peer->dup();
 
     ses->_event = nullptr;
-    _readbuf.clear();
-    _writebuf.clear();
-    _reados.clear();
-    _writeos.clear();
+    ses->_readbuf.clear();
+    ses->_writebuf.clear();
+    ses->_reados.clear();
+    ses->_writeos.clear();
     return ses;
 }
 
@@ -54,6 +68,7 @@ void session::close()
 {
     set_state(SESSION_STATE_CLOSING);
     _manager->del_session(_sid);
+    clear();
 }
 
 void session::on_recv(size_t len)
