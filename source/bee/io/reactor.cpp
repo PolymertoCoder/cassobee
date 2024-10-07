@@ -13,6 +13,36 @@
 #include "types.h"
 #include "config.h"
 
+reactor::~reactor()
+{
+    delete _dispatcher;
+    for(auto& item : _changelist.get_write_buffer())
+    {
+        if(item.value.evt->_status != EVENT_STATUS_NONE) return;
+        delete item.value.evt;
+    }
+    for(auto& item : _changelist.get_read_buffer())
+    {
+        if(item.value.evt->_status != EVENT_STATUS_NONE) return;
+        delete item.value.evt;
+    }
+    for(auto& [fd, evt]: _io_events)
+    {
+        if(evt->_status != EVENT_STATUS_ADD) continue;
+        delete evt;
+    }
+    for(auto& [signum, evt]: _signal_events)
+    {
+        if(evt->_status != EVENT_STATUS_ADD) continue;
+        delete evt;
+    }
+    for(auto& [timeout, evt]: _timer_events)
+    {
+        if(evt->_status != EVENT_STATUS_ADD) continue;
+        delete evt;
+    }
+}
+
 void reactor::init()
 {
     auto cfg = config::get_instance();
@@ -38,7 +68,7 @@ int reactor::run()
 
     while(!_stop)
     {
-        cassobee::rwlock::rdscoped l(_locker);
+        load_event();
         int timeout = _timeout;
         if(!use_timer_thread() && _timer_events.size())
         {
@@ -56,68 +86,23 @@ int reactor::run()
 
 void reactor::stop()
 {
-    cassobee::rwlock::wrscoped l(_locker);
     _stop = true;
     wakeup();
 }
 
 void reactor::wakeup()
 {
-    cassobee::rwlock::rdscoped l(_locker);
     _dispatcher->wakeup();
 }
 
-int reactor::add_event(event* ev, int events)
+void reactor::add_event(event* ev, int events)
 {
-    if(_dispatcher == nullptr || ev == nullptr) return -1;
-
-    {
-        cassobee::rwlock::wrscoped l(_locker);
-        if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP || events & EVENT_WAKEUP)
-        {
-            _io_events.emplace(ev->get_handle(), ev);
-            if(int ret = _dispatcher->add_event(ev, events))
-            {
-                ERRORLOG("add_io_event error, ret=%d.", ret);
-                return ret;
-            }
-            TRACELOG("add_io_event handle=%d events=%d.", ev->get_handle(), events);
-        }
-        else if(events & EVENT_TIMER)
-        {
-            timer_event* tm = dynamic_cast<timer_event*>(ev);
-            TIMETYPE nowtime = systemtime::get_millseconds();
-            TIMETYPE expiretime = tm->_delay ? (nowtime + tm->_timeout) : nowtime;
-            tm->_delay = true;
-            _timer_events.insert(std::make_pair(expiretime, ev));
-            TRACELOG("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.", nowtime, tm->_delay, tm->_timeout, expiretime);
-        }
-        else if(events & EVENT_SIGNAL)
-        {
-            _signal_events.emplace(ev->get_handle(), ev);
-            TRACELOG("add_signal_event signum=%d.", ev->get_handle());
-        }
-        else
-        {
-            CHECK_BUG(false, ERRORLOG("reactor add_event unknown events:%d.", events); return -2);
-        }
-        ev->_base = this;
-        printf("reactor::add_event fd=%d events=%d\n", ev->get_handle(), events);
-    }
-    wakeup();
-    return 0;
+    _changelist.write(event_entry{ev, events}, Operation::ADD);
 }
 
 void reactor::del_event(event* ev)
 {
-    cassobee::rwlock::wrscoped l(_locker);
-    if(_dispatcher == nullptr || ev == nullptr) return;
-
-    _dispatcher->del_event(ev);
-    
-    int fd = ev->get_handle();
-    _io_events.erase(fd);
-    printf("reactor del_event fd=%d.\n", fd);
+    _changelist.write(event_entry{ev, 0}, Operation::DEL);
 }
 
 void reactor::add_signal(int signum, bool(*callback)(int))
@@ -127,15 +112,82 @@ void reactor::add_signal(int signum, bool(*callback)(int))
 
 event* reactor::get_event(int fd)
 {
-    cassobee::rwlock::rdscoped l(_locker);
     EVENTS_MAP::iterator itr = _io_events.find(fd);
     return itr != _io_events.end() ? itr->second : nullptr;
 }
 
 bool reactor::get_wakeup()
 {
-    cassobee::rwlock::rdscoped l(_locker);
     return _dispatcher->get_wakeup();
+}
+
+void reactor::load_event()
+{
+    using changelist_type = decltype(_changelist)::list_type;
+    _changelist.read([this](changelist_type& list)
+    {
+        for(const auto& [entry, op] : list)
+        {
+            if(op == Operation::ADD)
+            {
+                readd_event(entry.evt, entry.events);
+            }
+            else if(op == Operation::DEL)
+            {
+                remove_event(entry.evt);
+            }
+        }
+    });
+}
+
+int reactor::readd_event(event* ev, int events)
+{
+    if(_dispatcher == nullptr || ev == nullptr) return -1;
+
+    if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP || events & EVENT_WAKEUP)
+    {
+        _io_events.emplace(ev->get_handle(), ev);
+        if(int ret = _dispatcher->add_event(ev, events))
+        {
+            ERRORLOG("add_io_event error, ret=%d.", ret);
+            return ret;
+        }
+        TRACELOG("add_io_event handle=%d events=%d.", ev->get_handle(), events);
+    }
+    else if(events & EVENT_TIMER)
+    {
+        timer_event* tm = dynamic_cast<timer_event*>(ev);
+        TIMETYPE nowtime = systemtime::get_millseconds();
+        TIMETYPE expiretime = tm->_delay ? (nowtime + tm->_timeout) : nowtime;
+        tm->_delay = true;
+        _timer_events.insert(std::make_pair(expiretime, ev));
+        TRACELOG("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.", nowtime, tm->_delay, tm->_timeout, expiretime);
+    }
+    else if(events & EVENT_SIGNAL)
+    {
+        _signal_events.emplace(ev->get_handle(), ev);
+        TRACELOG("add_signal_event signum=%d.", ev->get_handle());
+    }
+    else
+    {
+        CHECK_BUG(false, ERRORLOG("reactor add_event unknown events:%d.", events); return -2);
+    }
+    ev->_base = this;
+    printf("reactor::add_event fd=%d events=%d\n", ev->get_handle(), events);
+
+    wakeup();
+    return 0;
+}
+
+void reactor::remove_event(event* ev)
+{
+    if(_dispatcher == nullptr || ev == nullptr) return;
+
+    _dispatcher->del_event(ev);
+    
+    int fd = ev->get_handle();
+    _io_events.erase(fd);
+    printf("reactor del_event fd=%d.\n", fd);
 }
 
 bool reactor::handle_signal_event(int signum)
@@ -195,6 +247,7 @@ int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool(void
     }
     else
     {
-        return reactor::get_instance()->add_event(new timer_event(delay, timeout, repeats, handler, param), EVENT_TIMER);
+        reactor::get_instance()->add_event(new timer_event(delay, timeout, repeats, handler, param), EVENT_TIMER);
+        return 0;
     }
 }

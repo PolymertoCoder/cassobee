@@ -47,10 +47,11 @@ template<typename id_type, typename lock_type>
 requires std::is_base_of_v<cassobee::lock_support<lock_type>, lock_type>
 struct sequential_id_generator
 {
+    static constexpr id_type INVALID_ID = id_type(); // 默认值作为无效值使用
     id_type gen()
     {
         typename lock_type::scoped l(_locker);
-        static id_type maxid = id_type(); // 第一个值作为无效值使用
+        static id_type maxid = INVALID_ID;
         return ++maxid;
     }
     lock_type _locker;
@@ -62,7 +63,7 @@ pid_t gettid();
 TIMETYPE get_process_elapse();
 int rand(int min, int max);
 void set_process_affinity(int num);
-std::string format_string(const char* fmt, ...);
+std::string format_string(const char* fmt, ...) FORMAT_PRINT_CHECK(1, 2);
 
 // 去掉字符串首尾的字符
 std::string trim(const std::string_view& str, const char c = ' ');

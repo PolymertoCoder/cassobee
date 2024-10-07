@@ -19,6 +19,7 @@ session::session(session_manager* manager)
 session::~session()
 {
     delete _peer;
+    delete _event;
 }
 
 void session::clear()
@@ -26,7 +27,6 @@ void session::clear()
     _sid = 0;
     _sockfd = 0;
     _state = SESSION_STATE_NONE;
-    _peer->dup();
 
     _event = nullptr;
     _readbuf.clear();
@@ -41,7 +41,7 @@ session* session::dup()
     ses->_sid = 0;
     ses->_sockfd = 0;
     ses->_state = SESSION_STATE_NONE;
-    ses->_peer->dup();
+    ses->_peer = _peer->dup();
 
     ses->_event = nullptr;
     ses->_readbuf.clear();

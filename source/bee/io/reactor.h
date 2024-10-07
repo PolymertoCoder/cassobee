@@ -2,6 +2,7 @@
 #include <map>
 #include <functional>
 
+#include "cc_changelist.h"
 #include "common.h"
 #include "event.h"
 #include "lock.h"
@@ -16,11 +17,12 @@ public:
     using EVENTS_MAP = std::map<int, event*>;
     using TIMEREVENT_MAP = std::multimap<TIMETYPE, event*>;
 
+    ~reactor();
     void init();
     int  run();
     void stop();
     void wakeup();
-    int  add_event(event* ev, int events);
+    void add_event(event* ev, int events);
     void del_event(event* ev);
 
     void add_signal(int signum, bool(*callback)(int));
@@ -32,16 +34,26 @@ public:
 
 private:
     friend struct sigio_event;
+    void load_event();
+    int  readd_event(event* ev, int events);
+    void remove_event(event* ev);
+
     bool handle_signal_event(int signum);
     void handle_timer_event();
 
 private:
     bool _stop = true;
-    cassobee::rwlock _locker;
     demultiplexer* _dispatcher;
     bool _wakeup = true;
     bool _use_timer_thread = true;
     int  _timeout = -1; // ms
+
+    struct event_entry
+    {
+        event* evt = nullptr;
+        int events = 0;
+    };
+    cassobee::cc_changelist<event_entry> _changelist;
 
     EVENTS_MAP _io_events;
     EVENTS_MAP _signal_events;

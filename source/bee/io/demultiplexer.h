@@ -8,6 +8,7 @@ class reactor;
 class demultiplexer
 {
 public:
+    virtual ~demultiplexer() { delete _ctrl_event; }
     virtual bool init() = 0;
     virtual int  add_event(event* ev, int events) = 0;
     virtual void del_event(event* ev) = 0;
@@ -24,6 +25,7 @@ protected:
 class epoller : public demultiplexer
 {
 public:
+    virtual ~epoller() override {}
     virtual bool init() override;
     virtual int  add_event(event* ev, int events) override;
     virtual void del_event(event* ev) override;
