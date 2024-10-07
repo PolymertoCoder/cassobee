@@ -128,14 +128,12 @@ bool activeio_event::handle_event(int active_events)
     {
         perror("connect");
         _base->del_event(this);
-        delete this;
         return false;
     }
 
     _base->del_event(this);
     _base->add_event(new streamio_event(_fd, _ses->dup()), EVENT_SEND);
     printf("activeio_event handle_event run fd=%d.\n", _fd);
-    delete this;
     return true;
 }
 

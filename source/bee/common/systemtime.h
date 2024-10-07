@@ -5,7 +5,7 @@
 #include "macros.h"
 #include "types.h"
 
-#define INVAL_TIME -1
+static constexpr TIMETYPE INVALID_TIME = -1;
 
 class systemtime
 {
@@ -35,18 +35,18 @@ public:
         gettimeofday(&tv, NULL);
         return (tv.tv_sec*1000000 + tv.tv_usec);
     }
-    static std::string format_time(TIMETYPE now = INVAL_TIME, const char* fmt = "%Y-%m-%d %H:%M:%S")
+    static std::string format_time(TIMETYPE now = INVALID_TIME, const char* fmt = "%Y-%m-%d %H:%M:%S")
     {
         thread_local char timestr[20];
-        if(now == INVAL_TIME) now = time(NULL);
+        if(now == INVALID_TIME) now = time(NULL);
         struct tm tm;
         localtime_r(&now, &tm);
         ::strftime(timestr, sizeof(timestr), fmt, &tm);
         return timestr;
     }
-    static TIMETYPE get_today_start(TIMETYPE curtime = INVAL_TIME)
+    static TIMETYPE get_today_start(TIMETYPE curtime = INVALID_TIME)
     {
-        if(curtime == INVAL_TIME) curtime = time(NULL);
+        if(curtime == INVALID_TIME) curtime = time(NULL);
         struct tm tm1;
         localtime_r(&curtime, &tm1);
 
@@ -56,14 +56,14 @@ public:
         tm2.tm_mday = tm1.tm_mday;
         return mktime(&tm2);
     }
-    static TIMETYPE get_nextday_start(TIMETYPE curtime = INVAL_TIME)
+    static TIMETYPE get_nextday_start(TIMETYPE curtime = INVALID_TIME)
     {
         TIMETYPE today_start = get_today_start(curtime);
         return today_start + ONEDAY;
     }
-    static TIMETYPE get_curhour_start(TIMETYPE curtime = INVAL_TIME)
+    static TIMETYPE get_curhour_start(TIMETYPE curtime = INVALID_TIME)
     {
-        if(curtime == INVAL_TIME) curtime = time(NULL);
+        if(curtime == INVALID_TIME) curtime = time(NULL);
         struct tm tm1;
         localtime_r(&curtime, &tm1);
 
@@ -74,7 +74,7 @@ public:
         tm2.tm_hour = tm1.tm_hour;
         return mktime(&tm2);
     }
-    static TIMETYPE get_nexthour_start(TIMETYPE curtime = INVAL_TIME)
+    static TIMETYPE get_nexthour_start(TIMETYPE curtime = INVALID_TIME)
     {
         TIMETYPE curhour_start = get_curhour_start(curtime);
         return curhour_start + ONEHOUR;

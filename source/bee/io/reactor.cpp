@@ -98,11 +98,14 @@ void reactor::wakeup()
 void reactor::add_event(event* ev, int events)
 {
     _changelist.write(event_entry{ev, events}, Operation::ADD);
+    wakeup();
 }
 
 void reactor::del_event(event* ev)
 {
+    ev->set_status(EVENT_STATUS_DEL);
     _changelist.write(event_entry{ev, 0}, Operation::DEL);
+    wakeup();
 }
 
 void reactor::add_signal(int signum, bool(*callback)(int))
@@ -174,8 +177,6 @@ int reactor::readd_event(event* ev, int events)
     }
     ev->_base = this;
     printf("reactor::add_event fd=%d events=%d\n", ev->get_handle(), events);
-
-    wakeup();
     return 0;
 }
 
@@ -186,7 +187,11 @@ void reactor::remove_event(event* ev)
     _dispatcher->del_event(ev);
     
     int fd = ev->get_handle();
-    _io_events.erase(fd);
+    if(auto iter = _io_events.find(fd); iter != _io_events.end())
+    {
+        delete iter->second;
+        _io_events.erase(iter);
+    }
     printf("reactor del_event fd=%d.\n", fd);
 }
 

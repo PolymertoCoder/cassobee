@@ -75,7 +75,7 @@ int epoller::add_event(event* ev, int events)
         local_log("add_event failed %d, ret=%d epfd=%d", ev->get_handle(), ret, _epfd);
         return -3;
     }
-    printf("epoller::add_event success\n");
+    printf("epoller::add_event success handle=%d events=%d\n", ev->get_handle(), events);
     return 0;
 }
 
@@ -107,9 +107,9 @@ void epoller::dispatch(reactor* base, int timeout)
     for(int i = 0; i < nready; i++)
     {
         event* ev = base->get_event(events[i].data.fd);
-        if(ev == nullptr) continue;
+        if(ev == nullptr || ev->get_status() != EVENT_STATUS_ADD) continue;
 
-        printf("event fd=%d events=%d\n", events[i].data.fd, events[i].events);
+        printf("epoller dispatch event fd=%d events=%d\n", events[i].data.fd, events[i].events);
         if(events[i].events & EPOLLIN || events[i].events & EPOLLHUP)
         {
             if(_listenfds.contains(events[i].data.fd))

@@ -5,7 +5,6 @@
 #include "cc_changelist.h"
 #include "common.h"
 #include "event.h"
-#include "lock.h"
 #include "types.h"
 
 class demultiplexer;

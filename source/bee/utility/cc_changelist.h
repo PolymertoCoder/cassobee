@@ -25,10 +25,11 @@ public:
 
     auto read(const read_callback& func)
     {
+        swap();
         auto& read_buf = get_read_buffer();
         func(read_buf);
+        printf("cc_changelist read size=%zu\n", read_buf.size());
         read_buf.clear();
-        swap();
     }
 
     void write(const value_type& value, Operation op)

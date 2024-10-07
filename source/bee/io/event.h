@@ -22,6 +22,7 @@ enum EVENT_STATUS
 {
     EVENT_STATUS_NONE = 0,
     EVENT_STATUS_ADD = 1,
+    EVENT_STATUS_DEL = 2,
 };
 
 struct event

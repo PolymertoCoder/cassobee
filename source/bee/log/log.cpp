@@ -49,6 +49,7 @@ void logclient::console_log(LOG_LEVEL level, const char* filename, int line, int
     vsnprintf(content, sizeof(content), fmt, args);
     va_end(args);
 
+    g_logevent.set_process_name(_process_name);
     g_logevent.set_filename(filename);
     g_logevent.set_line(line);
     g_logevent.set_timestamp(systemtime::get_time());
@@ -67,8 +68,6 @@ void logclient::set_process_name(const std::string& process_name)
         printf("i am logserver!!!\n");
     }
     _process_name = process_name;
-    g_remotelog.logevent.set_process_name(_process_name);
-    g_logevent.set_process_name(_process_name);
 }
 
 void logclient::set_logserver(logserver_manager* logserver)
@@ -91,7 +90,7 @@ void logclient::send(remotelog& remotelog)
     {
         _console_logger->log((LOG_LEVEL)remotelog.loglevel, remotelog.logevent);
     }
-    //printf("logclient::send run\n");
+    printf("logclient::send run\n");
 }
 
 } // namespace cassobee
