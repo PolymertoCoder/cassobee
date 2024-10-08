@@ -34,8 +34,8 @@ public:
 private:
     friend struct sigio_event;
     void load_event();
-    int  readd_event(event* ev, int events);
-    void remove_event(event* ev);
+    int  add_event_inner(event* ev, int events);
+    void del_event_inner(event* ev);
 
     bool handle_signal_event(int signum);
     void handle_timer_event();

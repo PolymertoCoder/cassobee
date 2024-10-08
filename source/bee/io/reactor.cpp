@@ -133,17 +133,17 @@ void reactor::load_event()
         {
             if(op == Operation::ADD)
             {
-                readd_event(entry.evt, entry.events);
+                add_event_inner(entry.evt, entry.events);
             }
             else if(op == Operation::DEL)
             {
-                remove_event(entry.evt);
+                del_event_inner(entry.evt);
             }
         }
     });
 }
 
-int reactor::readd_event(event* ev, int events)
+int reactor::add_event_inner(event* ev, int events)
 {
     if(_dispatcher == nullptr || ev == nullptr) return -1;
 
@@ -180,7 +180,7 @@ int reactor::readd_event(event* ev, int events)
     return 0;
 }
 
-void reactor::remove_event(event* ev)
+void reactor::del_event_inner(event* ev)
 {
     if(_dispatcher == nullptr || ev == nullptr) return;
 

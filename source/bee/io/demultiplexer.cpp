@@ -134,6 +134,5 @@ void epoller::wakeup()
     if(_ctrl_event == nullptr || _wakeup) return;
     this->add_event(_ctrl_event, EVENT_WAKEUP);
     write(_ctrl_event->_control_pipe[1], "\0", 1);
-    _wakeup = false;
     printf("epoller::wakeup() run success\n");
 }

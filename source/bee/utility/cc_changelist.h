@@ -28,7 +28,7 @@ public:
         swap();
         auto& read_buf = get_read_buffer();
         func(read_buf);
-        printf("cc_changelist read size=%zu\n", read_buf.size());
+        printf("cc_changelist read _writeidx=%d size=%zu\n", _writeidx, read_buf.size());
         read_buf.clear();
     }
 
@@ -37,6 +37,7 @@ public:
         cassobee::spinlock::scoped l(_locker);
         auto& write_buf = get_write_buffer();
         write_buf.insert(std::cend(write_buf), value_node{value, op});
+        printf("cc_changelist write _writeidx=%d size=%zu\n", _writeidx, write_buf.size());
     }
 
     FORCE_INLINE auto& get_write_buffer() { return _buffer[_writeidx];  }

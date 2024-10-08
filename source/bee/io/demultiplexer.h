@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <set>
 #include "event.h"
 
@@ -15,10 +16,10 @@ public:
     virtual void dispatch(reactor* base, int timeout/*ms*/ = 1000) = 0;
     virtual void wakeup() = 0;
 
-    bool& get_wakeup() { return _wakeup; }
+    bool get_wakeup() { return _wakeup; }
 
 protected:
-    bool _wakeup = false;
+    std::atomic_bool _wakeup = false;
     control_event* _ctrl_event = nullptr;
 };
 
