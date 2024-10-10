@@ -46,6 +46,13 @@ endif()
 
 add_compile_options(-DCMAKE_CROSSCOMPILING=true)
 
+add_custom_target(
+    generate_protocol ALL
+    COMMAND pg
+    DEPENDS ${CASSOBEE_ROOT_PATH}/progen/*.xml
+    COMMENT "Generating protocol..."
+)
+
 add_subdirectory(source)
 
 set(tinyxml2_BUILD_TESTING OFF)

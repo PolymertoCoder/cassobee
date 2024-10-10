@@ -8,8 +8,7 @@ protocol_id_counter = 1
 protocol_enum_entries = []
 
 basic_types = ["bool", "char", "int8_t", "uint8_t", "short", "int16_t", "uint16_t", "int", "int32_t", "uint32_t", "float", "double", "long", "long long", "int64_t", "uint64_t"]
-
-stl_types = ["std::vector", "std::map", "std::set", "std::map", "std::string", "std::pair", "std::unordered_set", "std::unordered_map"]
+stl_types = ["std::vector", "std::map", "std::set", "std::string", "std::pair", "std::unordered_set", "std::unordered_map"]
 
 def check_regenerate(header_filename, cpp_filename, xml_mtime):
     """Check if regeneration of code is necessary."""
@@ -26,39 +25,33 @@ def create_directories(header_output_directory, cpp_output_directory):
     os.makedirs(cpp_output_directory, exist_ok=True)
 
 def clean_old_files(header_output_directory, cpp_output_directory, force):
-    """Delete old files if force is True."""
+    """If force is True, delete old files."""
     if force:
-        for file in os.listdir(header_output_directory):
-            file_path = os.path.join(header_output_directory, file)
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
-        for file in os.listdir(cpp_output_directory):
-            file_path = os.path.join(cpp_output_directory, file)
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
+        for directory in [header_output_directory, cpp_output_directory]:
+            for file in os.listdir(directory):
+                file_path = os.path.join(directory, file)
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
 
-def generate_class_header(name, base_class, fields, maxsize=None, codefield=None, default_code=None):
-    """Generate header content for the class."""
+def generate_header_content(name, base_class, fields, maxsize=None, codefield=None, default_code=None):
+    """Generate the content of the header file for the class."""
     header_content = []
-    
+
     header_content.append(f"#pragma once\n")
     header_content.append(f'#include "{base_class}.h"\n\n')
-    
+
     included_headers = generate_included_headers(fields)
     header_content.extend(included_headers)
-    
-    header_content.append("\n")
-    header_content.append("namespace cassobee\n")
-    header_content.append("{\n\n")
-    header_content.append(f"class {name} : public {base_class}\n")
-    header_content.append("{\npublic:\n")
+
+    header_content.append("\nnamespace cassobee\n{\n\n")
+    header_content.append(f"class {name} : public {base_class}\n{{\npublic:\n")
 
     if base_class == "protocol":
         header_content.append(f"    static constexpr PROTOCOLID TYPE = {protocol_id_counter};\n")
-    
+
     if codefield:
         header_content.append(generate_enum_fields(fields, default_code))
-    
+
     if fields:
         header_content.append(generate_constructors(name, fields, codefield, default_code))
         header_content.append(generate_operator_overloads(name, fields, codefield))
@@ -66,19 +59,18 @@ def generate_class_header(name, base_class, fields, maxsize=None, codefield=None
         header_content.append(f"    {name}() = default;\n")
 
     header_content.append(f"    virtual ~{name}() override = default;\n")
-    
+
     if maxsize:
         header_content.append(generate_virtual_methods(name, maxsize, base_class))
-    
+
     if codefield:
         header_content.append(generate_codefield_methods(fields, codefield))
-    
+
     header_content.append(generate_pack_unpack_methods(name))
     header_content.append(generate_public_fields(fields, codefield))
 
-    header_content.append("\n")
-    header_content.append("} // namespace cassobee\n")
-    
+    header_content.append("\n}; // namespace cassobee\n")
+
     return header_content
 
 def generate_included_headers(fields):
@@ -120,37 +112,21 @@ def generate_constructors(name, fields, codefield, default_code):
     constructor_content += f"    {name}(const {name}& rhs) = default;\n"
     constructor_content += f"    {name}({name}&& rhs) = default;\n\n"
     constructor_content += f"    {name}& operator=(const {name}& rhs) = default;\n"
-    
+
     return constructor_content
 
 def generate_default_constructor_params(name, fields, codefield, default_code):
     """Generate default constructor parameters."""
     constructor_content = ""
-    # default_params = []
-    # default_initializers = []
-    # for field_name, field_type, default_value in fields:
-    #     if default_value == "{}":
-    #         default_params.append(f"{field_type} _{field_name} = {field_type}()")
-    #     else:
-    #         default_params.append(f"{field_type} _{field_name} = {default_value}")
-    #     default_initializers.append(f"{field_name}(_{field_name})")
-
-    # constructor_content += f"    {name}({', '.join(default_params)}) : "
-    # if codefield:
-    #     constructor_content += f"code({default_code})"
-    #     if default_initializers:
-    #         constructor_content += ", "
-    # constructor_content += ", ".join(default_initializers)
-    # constructor_content += "\n    {}\n"
     constructor_content += f"    {name}() = default;\n"
     return constructor_content
 
 def generate_non_basic_type_constructors(name, fields, codefield, default_code):
-    """Generate constructors for non-basic types with const& and && parameters."""
+    """Generate constructors with const& and && parameters for non-basic types."""
     constructor_content = ""
     non_basic_fields = [(field_name, field_type) for field_name, field_type, _ in fields if field_type not in basic_types]
 
-    # Generate constructor with const& parameters for non-basic types
+    # Generate constructors with const& parameters
     params = ", ".join([f"const {field_type}& _{field_name}" if field_type not in basic_types else f"{field_type} _{field_name}" for field_name, field_type, _ in fields])
     initializers = ", ".join([f"{field_name}(_{field_name})" for field_name, _, _ in fields])
     constructor_content += f"    {name}({params}) : "
@@ -158,7 +134,7 @@ def generate_non_basic_type_constructors(name, fields, codefield, default_code):
         constructor_content += f"code({default_code}), "
     constructor_content += f"{initializers}\n    {{}}\n"
 
-    # Generate constructor with && parameters for non-basic types
+    # Generate constructors with && parameters
     if non_basic_fields:
         params = ", ".join([f"{field_type}&& _{field_name}" if field_type not in basic_types else f"{field_type} _{field_name}" for field_name, field_type, _ in fields])
         initializers = ", ".join([f"{field_name}(std::move(_{field_name}))" if field_type not in basic_types else f"{field_name}(_{field_name})" for field_name, field_type, _ in fields])
@@ -193,7 +169,7 @@ def generate_virtual_methods(name, maxsize, base_class):
     return virtual_methods
 
 def generate_codefield_methods(fields, codefield):
-    """Generate methods for handling codefield."""
+    """Generate methods to handle codefield."""
     codefield_methods = ""
     for field_name, field_type, default_value in fields:
         codefield_methods += f"    void set_{field_name}()\n    {{\n        code |= FIELDS_{field_name.upper()};\n    }}\n"
@@ -227,25 +203,22 @@ def generate_public_fields(fields, codefield):
     public_fields += "};\n"
     return public_fields
 
-
-def generate_class_cpp(name, fields, base_class, codefield=None):
-    """Generate implementation file content for the class."""
+def generate_cpp_content(name, fields, base_class, codefield=None):
+    """Generate the content of the cpp file for the class."""
     cpp_content = []
 
     cpp_content.append(f'#include "{name}.h"\n\n')
-    cpp_content.append("namespace cassobee\n")
-    cpp_content.append("{\n\n")
+    cpp_content.append("namespace cassobee\n{\n\n")
     cpp_content.append(generate_pack_method(name, fields, codefield))
     cpp_content.append(generate_unpack_method(name, fields, codefield))
     if base_class == "protocol":
         cpp_content.append(f"\n__attribute__((weak)) void {name}::run() {{}}\n")
-    cpp_content.append("\n")
-    cpp_content.append("} // namespace cassobee")
+    cpp_content.append("\n} // namespace cassobee")
 
     return cpp_content
 
 def generate_pack_method(name, fields, codefield):
-    """Generate pack method for the class."""
+    """Generate the pack method for the class."""
     pack_method = f"octetsstream& {name}::pack(octetsstream& os) const\n{{\n"
     if codefield:
         pack_method += f"    os << code;\n"
@@ -258,7 +231,7 @@ def generate_pack_method(name, fields, codefield):
     return pack_method
 
 def generate_unpack_method(name, fields, codefield):
-    """Generate unpack method for the class."""
+    """Generate the unpack method for the class."""
     unpack_method = f"octetsstream& {name}::unpack(octetsstream& os)\n{{\n"
     if codefield:
         unpack_method += f"    os >> code;\n"
@@ -271,26 +244,26 @@ def generate_unpack_method(name, fields, codefield):
     return unpack_method
 
 def parse_element(element, xml_mtime, base_class, header_output_directory, cpp_output_directory, force, codefield=None, default_code=None):
-    """Parse protocol or RPC data element and generate corresponding header and implementation files."""
+    """Parse protocol or rpcdata element and generate corresponding header and cpp files."""
     global protocol_id_counter
     name = element.get('name')
     maxsize = element.get('maxsize')
-    
+
     if base_class == "protocol" and maxsize is None:
-        raise ValueError(f"Protocol '{name}' must have 'maxsize' attribute defined")
+        raise ValueError(f"Protocol '{name}' must define 'maxsize' attribute")
 
     fields = parse_fields(element, base_class, name)
     header_filename = os.path.join(header_output_directory, f"{name}.h")
     cpp_filename = os.path.join(cpp_output_directory, f"{name}.cpp")
 
     if not force and not check_regenerate(header_filename, cpp_filename, xml_mtime):
-        print(f"Skipping generation for {name}, files are up to date.")
+        #print(f"Skipping generation of {name}, files are up-to-date.")
         return
 
-    print(f"Generating header and cpp for {base_class}: {name}...")
+    print(f"Generating {base_class} header and cpp files: {name}...")
 
-    header_content = generate_class_header(name, base_class, fields, maxsize, codefield, default_code)
-    cpp_content = generate_class_cpp(name, fields, base_class, codefield)
+    header_content = generate_header_content(name, base_class, fields, maxsize, codefield, default_code)
+    cpp_content = generate_cpp_content(name, fields, base_class, codefield)
 
     write_file(header_filename, header_content)
     write_file(cpp_filename, cpp_content)
@@ -306,9 +279,9 @@ def parse_fields(element, base_class, name):
         field_name = field.get('name')
         field_type = field.get('type')
         default_value = field.get('default')
-        
+
         if default_value is None:
-            raise ValueError(f"Field '{field_name}' in {base_class} '{name}' does not have a default value")
+            raise ValueError(f"{base_class} '{name}' field '{field_name}' has no default value")
 
         fields.append((field_name, field_type, default_value))
     return fields
@@ -324,6 +297,8 @@ def write_file(filename, content):
 def parse_xml_files(xmlpath, header_output_directory, cpp_output_directory, force):
     """Parse XML files and generate code."""
     xml_files = [file for file in os.listdir(xmlpath) if file.endswith('.xml')]
+    any_changes_detected = False
+
     for xml_file in xml_files:
         xml_path = os.path.join(xmlpath, xml_file)
         try:
@@ -333,14 +308,37 @@ def parse_xml_files(xmlpath, header_output_directory, cpp_output_directory, forc
             continue
         root = tree.getroot()
         xml_mtime = os.path.getmtime(xml_path)
+
         for element in root:
+            if not force:
+                if not check_regenerate(os.path.join(header_output_directory, f"{element.get('name')}.h"), os.path.join(cpp_output_directory, f"{element.get('name')}.cpp"), xml_mtime):
+                    print(f"Skipping generation of {element.tag} {element.get('name')}, files are up-to-date.")
+                    continue
+                else:
+                    print(f"XML file {xml_file} has been modified, regenerating {element.tag}: {element.get('name')}")
+            else:
+                print(f"Force to regenerate {element.tag}: {element.get('name')}")
+
             if element.tag == 'protocol':
-                parse_element(element, xml_mtime, "protocol", header_output_directory, cpp_output_directory, force, element.get('codefield'), element.get('default_code', '0'))
+                    parse_element(element, xml_mtime, "protocol", header_output_directory, cpp_output_directory, force, element.get('codefield'), element.get('default_code', '0'))
+                    any_changes_detected = True
             elif element.tag == 'rpcdata':
-                parse_element(element, xml_mtime, "rpcdata", header_output_directory, cpp_output_directory, force, element.get('codefield'), element.get('default_code', '0'))
+                    parse_element(element, xml_mtime, "rpcdata", header_output_directory, cpp_output_directory, force, element.get('codefield'), element.get('default_code', '0'))
+                    any_changes_detected = True
+
+    if not any_changes_detected:
+        print("No XML files were modified. Exiting.")
+        return
+
+    generate_protocol_definitions(header_output_directory)
+    print("Protocol definitions generated successfully.")
 
 def generate_protocol_definitions(outpath):
     """Generate protocol type definition file."""
+    if not protocol_enum_entries:
+        print("No protocol enum entries to generate.")
+        return
+
     define_filename = os.path.join(outpath, "prot_define.h")
     try:
         with open(define_filename, 'w') as define_file:
@@ -370,8 +368,6 @@ def main():
     create_directories(header_output_directory, cpp_output_directory)
     clean_old_files(header_output_directory, cpp_output_directory, args.force)
     parse_xml_files(args.xmlpath, header_output_directory, cpp_output_directory, args.force)
-    generate_protocol_definitions(args.outpath)
-    print("Protocol definitions generated successfully.")
 
 if __name__ == "__main__":
     main()

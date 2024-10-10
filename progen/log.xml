@@ -12,6 +12,7 @@
 
     <protocol name="remotelog" maxsize="2048">
         <field name="loglevel" type="uint8_t" default="0"/>
+        <field name="level1" type="int" default="0"/>
         <field name="logevent" type="log_event" default="log_event()"/>
     </protocol>
 </application>

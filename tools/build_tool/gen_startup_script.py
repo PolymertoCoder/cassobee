@@ -9,7 +9,7 @@ def generate_run_script(executable_path, script_path, target, options):
         #f.write("#!/bin/sh\n")
         f.write(f"nohup {os.path.join(executable_path, target)} {options}\n")
     os.chmod(script_path, 0o755)
-    print(f"Generated {script_path}")
+    #print(f"Generated {script_path}")
 
 def generate_gdb_run_script(executable_path, script_path, target, options):
     script_path = os.path.join(script_path, f"gdbrun_{target}.sh")
@@ -17,7 +17,7 @@ def generate_gdb_run_script(executable_path, script_path, target, options):
         #f.write("#!/bin/sh\n")
         f.write(f"gdb --args {os.path.join(executable_path, target)} {options}\n")
     os.chmod(script_path, 0o755)
-    print(f"Generated {script_path}")
+    #print(f"Generated {script_path}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:

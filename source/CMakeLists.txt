@@ -20,16 +20,14 @@ function(gen_startup_script target)
         OUTPUT ${BINARY_PATH}/run_${target}.sh ${BINARY_PATH}/gdbrun_${target}.sh
         COMMAND ${CMAKE_COMMAND} -E env python3 ${TOOLS_PATH}/build_tool/gen_startup_script.py ${EXECUTABLE_OUTPUT_PATH} ${BINARY_PATH} ${target} ${CONFIG_PATH} ${DEBUG_PATH}
         DEPENDS ${target} ${TOOLS_PATH}/build_tool/gen_startup_script.py
-        #COMMENT Generating run_${target}.sh and gdbrun_${target}.sh
+        #COMMENT "Generating run_${target}.sh and gdbrun_${target}.sh"
     )
 
     add_custom_target(
         gen_startup_script_${target} ALL
         DEPENDS ${BINARY_PATH}/run_${target}.sh ${BINARY_PATH}/gdbrun_${target}.sh
-        #COMMENT Generating all startup scripts for ${target}
+        #COMMENT "Generating all startup scripts for ${target}"
     )
-
-    #add_dependencies(${target} gen_startup_script_${target})
 endfunction()
 
 function(add_sanitize_flag target)
