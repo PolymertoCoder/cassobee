@@ -10,9 +10,9 @@
         <field name="content" type="std::string" default="{}"/> <!-- 日志内容 -->
     </rpcdata>
 
-    <protocol name="remotelog" maxsize="2048">
+    <protocol name="remotelog" maxsize="2048" type="1">
         <field name="loglevel" type="uint8_t" default="0"/>
-        <field name="level1" type="int" default="0"/>
+        <field name="level" type="int" default="0"/>
         <field name="logevent" type="log_event" default="log_event()"/>
     </protocol>
 </application>

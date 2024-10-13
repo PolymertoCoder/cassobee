@@ -1,5 +1,5 @@
 <application>
-    <protocol name="ExampleProtocol" maxsize="1024" codefield="uint32_t" default_code="ALLFIELDS">
+    <protocol name="ExampleProtocol" type="2" maxsize="1024" codefield="uint32_t" default_code="ALLFIELDS">
         <field name="field1" type="int" default="0"/>
         <field name="field2" type="std::string" default="std::string()"/>
         <field name="field3" type="std::vector&lt;int&gt;" default="std::vector&lt;int&gt;()"/>
@@ -11,10 +11,10 @@
         <field name="fieldB" type="std::map&lt;int, std::string&gt;" default="std::map&lt;int, std::string&gt;()"/>
     </rpcdata>
 
-    <protocol name="EmptyProtocol" maxsize="1024">
+    <protocol name="EmptyProtocol" type="20000" maxsize="1024">
     </protocol>
 
-    <protocol name="EmptyProtocol2" maxsize="1024" codefield="uint32_t">
+    <protocol name="EmptyProtocol2" type="20001" maxsize="1024" codefield="uint32_t">
     </protocol>
 
     <rpcdata name="EmptyRpcData">

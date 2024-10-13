@@ -3,37 +3,55 @@
 import xml.etree.ElementTree as ET
 import os
 import argparse
+from collections import OrderedDict
 
-protocol_id_counter = 1
-protocol_enum_entries = []
+protocol_enum_entries = dict()
+
+modified_xml_files = []
 
 basic_types = ["bool", "char", "int8_t", "uint8_t", "short", "int16_t", "uint16_t", "int", "int32_t", "uint32_t", "float", "double", "long", "long long", "int64_t", "uint64_t"]
 stl_types = ["std::vector", "std::map", "std::set", "std::string", "std::pair", "std::unordered_set", "std::unordered_map"]
 
-def check_regenerate(header_filename, cpp_filename, xml_mtime):
+def check_regenerate(xmlpath, header_output_directory, cpp_output_directory):
     """Check if regeneration of code is necessary."""
-    if os.path.exists(header_filename) and os.path.exists(cpp_filename):
-        header_mtime = os.path.getmtime(header_filename)
-        cpp_mtime = os.path.getmtime(cpp_filename)
-        if xml_mtime <= header_mtime and xml_mtime <= cpp_mtime:
-            return False
-    return True
+    any_change_detected = False
+    header_mtime = os.path.getmtime(header_output_directory)
+    cpp_mtime = os.path.getmtime(cpp_output_directory)
+
+    xml_files = [file for file in os.listdir(xmlpath) if file.endswith('.xml')]
+    for xml_file in xml_files:
+        xml_path = os.path.join(xmlpath, xml_file)
+        xml_mtime = os.path.getmtime(xml_path)
+
+        if xml_mtime > header_mtime or xml_mtime > cpp_mtime:
+            any_change_detected = True
+            modified_xml_files.append(xml_file)
+
+    return any_change_detected
 
 def create_directories(header_output_directory, cpp_output_directory):
     """Create necessary directories."""
     os.makedirs(header_output_directory, exist_ok=True)
     os.makedirs(cpp_output_directory, exist_ok=True)
 
-def clean_old_files(header_output_directory, cpp_output_directory, force):
+def clean_old_files(xmlpath, header_output_directory, cpp_output_directory, force):
     """If force is True, delete old files."""
     if force:
-        for directory in [header_output_directory, cpp_output_directory]:
-            for file in os.listdir(directory):
-                file_path = os.path.join(directory, file)
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
+        print("Force to regenerate protocol")
+    elif not check_regenerate(xmlpath, header_output_directory, cpp_output_directory):
+        print("No need to regenerate protocol because there are no xml files were modified")
+        exit(0)
+    
+    for xml_file in modified_xml_files:
+        print(f"{xml_file} has modified")
 
-def generate_header_content(name, base_class, fields, maxsize=None, codefield=None, default_code=None):
+    for directory in [header_output_directory, cpp_output_directory]:
+        for file in os.listdir(directory):
+            file_path = os.path.join(directory, file)
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+
+def generate_header_content(name, base_class, fields, type, maxsize, codefield=None, default_code=None):
     """Generate the content of the header file for the class."""
     header_content = []
 
@@ -47,7 +65,7 @@ def generate_header_content(name, base_class, fields, maxsize=None, codefield=No
     header_content.append(f"class {name} : public {base_class}\n{{\npublic:\n")
 
     if base_class == "protocol":
-        header_content.append(f"    static constexpr PROTOCOLID TYPE = {protocol_id_counter};\n")
+        header_content.append(f"    static constexpr PROTOCOLID TYPE = {type};\n")
 
     if codefield:
         header_content.append(generate_enum_fields(fields, default_code))
@@ -243,34 +261,34 @@ def generate_unpack_method(name, fields, codefield):
     unpack_method += "    return os;\n}\n"
     return unpack_method
 
-def parse_element(element, xml_mtime, base_class, header_output_directory, cpp_output_directory, force, codefield=None, default_code=None):
+def parse_element(element, base_class, header_output_directory, cpp_output_directory, type=None, codefield=None, default_code=None):
     """Parse protocol or rpcdata element and generate corresponding header and cpp files."""
-    global protocol_id_counter
+    global protocol_enum_entries
     name = element.get('name')
     maxsize = element.get('maxsize')
 
-    if base_class == "protocol" and maxsize is None:
-        raise ValueError(f"Protocol '{name}' must define 'maxsize' attribute")
+    if base_class == "protocol":
+        if type is None:
+            raise ValueError(f"Protocol '{name}' must define 'type' attribute")
+        if maxsize is None:
+            raise ValueError(f"Protocol '{name}' must define 'maxsize' attribute")
 
     fields = parse_fields(element, base_class, name)
     header_filename = os.path.join(header_output_directory, f"{name}.h")
     cpp_filename = os.path.join(cpp_output_directory, f"{name}.cpp")
 
-    if not force and not check_regenerate(header_filename, cpp_filename, xml_mtime):
-        #print(f"Skipping generation of {name}, files are up-to-date.")
-        return
-
     print(f"Generating {base_class} header and cpp files: {name}...")
 
-    header_content = generate_header_content(name, base_class, fields, maxsize, codefield, default_code)
+    header_content = generate_header_content(name, base_class, fields, type, maxsize, codefield, default_code)
     cpp_content = generate_cpp_content(name, fields, base_class, codefield)
 
     write_file(header_filename, header_content)
     write_file(cpp_filename, cpp_content)
 
     if base_class == "protocol":
-        protocol_enum_entries.append(f"PROTOCOL_TYPE_{name.upper()} = {protocol_id_counter}")
-        protocol_id_counter += 1
+        if protocol_enum_entries.get(type) != None:
+            raise ValueError(f"Protocol '{name}' has duplicate type: {type}")
+        protocol_enum_entries[type] = f"PROTOCOL_TYPE_{name.upper()}"
 
 def parse_fields(element, base_class, name):
     """Parse fields from XML element."""
@@ -297,7 +315,6 @@ def write_file(filename, content):
 def parse_xml_files(xmlpath, header_output_directory, cpp_output_directory, force):
     """Parse XML files and generate code."""
     xml_files = [file for file in os.listdir(xmlpath) if file.endswith('.xml')]
-    any_changes_detected = False
 
     for xml_file in xml_files:
         xml_path = os.path.join(xmlpath, xml_file)
@@ -307,31 +324,9 @@ def parse_xml_files(xmlpath, header_output_directory, cpp_output_directory, forc
             print(f"Error parsing XML file {xml_path}: {e}")
             continue
         root = tree.getroot()
-        xml_mtime = os.path.getmtime(xml_path)
 
         for element in root:
-            if not force:
-                if not check_regenerate(os.path.join(header_output_directory, f"{element.get('name')}.h"), os.path.join(cpp_output_directory, f"{element.get('name')}.cpp"), xml_mtime):
-                    print(f"Skipping generation of {element.tag} {element.get('name')}, files are up-to-date.")
-                    continue
-                else:
-                    print(f"XML file {xml_file} has been modified, regenerating {element.tag}: {element.get('name')}")
-            else:
-                print(f"Force to regenerate {element.tag}: {element.get('name')}")
-
-            if element.tag == 'protocol':
-                    parse_element(element, xml_mtime, "protocol", header_output_directory, cpp_output_directory, force, element.get('codefield'), element.get('default_code', '0'))
-                    any_changes_detected = True
-            elif element.tag == 'rpcdata':
-                    parse_element(element, xml_mtime, "rpcdata", header_output_directory, cpp_output_directory, force, element.get('codefield'), element.get('default_code', '0'))
-                    any_changes_detected = True
-
-    if not any_changes_detected:
-        print("No XML files were modified. Exiting.")
-        return
-
-    generate_protocol_definitions(header_output_directory)
-    print("Protocol definitions generated successfully.")
+            parse_element(element, element.tag, header_output_directory, cpp_output_directory, element.get('type'), element.get('codefield'), element.get('default_code', '0'))
 
 def generate_protocol_definitions(outpath):
     """Generate protocol type definition file."""
@@ -339,16 +334,18 @@ def generate_protocol_definitions(outpath):
         print("No protocol enum entries to generate.")
         return
 
+    sorted_protocol_enum_entries = sorted(protocol_enum_entries.items())
     define_filename = os.path.join(outpath, "prot_define.h")
     try:
         with open(define_filename, 'w') as define_file:
             define_file.write("#pragma once\n")
             define_file.write("#include \"types.h\"\n\n")
-            define_file.write(f"static constexpr PROTOCOLID MAXPROTOCOLID = {len(protocol_enum_entries)};\n\n")
+            lasttype, lastenum = sorted_protocol_enum_entries[-1]
+            define_file.write(f"static constexpr PROTOCOLID MAXPROTOCOLID = {lasttype};\n\n")
             define_file.write("enum PROTOCOL_TYPE\n")
             define_file.write("{\n")
-            for entry in protocol_enum_entries:
-                define_file.write(f"    {entry},\n")
+            for type, enum in sorted_protocol_enum_entries:
+                define_file.write(f"    {enum} = {type},\n")
             define_file.write("};\n\n")
     except IOError as e:
         print(f"Error writing to file {define_filename}: {e}")
@@ -366,8 +363,10 @@ def main():
     cpp_output_directory = os.path.join(args.outpath, "source")
 
     create_directories(header_output_directory, cpp_output_directory)
-    clean_old_files(header_output_directory, cpp_output_directory, args.force)
+    clean_old_files(args.xmlpath, header_output_directory, cpp_output_directory, args.force)
     parse_xml_files(args.xmlpath, header_output_directory, cpp_output_directory, args.force)
+    generate_protocol_definitions(args.outpath)
+    print("Protocol definitions generated successfully.")
 
 if __name__ == "__main__":
     main()

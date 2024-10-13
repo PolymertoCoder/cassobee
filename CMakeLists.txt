@@ -17,6 +17,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" OFF)
 option(CASSOBEE_IWYU_ENABLE "enable include-what-you-use" OFF)
 option(CASSOBEE_SENITIZE_ENABLE "enable google senitizer" ON)
+option(CASSOBEE_CCACHE_ENABLE "enable ccache" ON)
 
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
@@ -45,6 +46,15 @@ elif(${CMAKE_BUILD_TYPE} EQUAL Release)
 endif()
 
 add_compile_options(-DCMAKE_CROSSCOMPILING=true)
+
+if(${CASSOBEE_CCACHE_ENABLE})
+    find_program(CCACHE_PROGRAM ccache)
+    if(CCACHE_PROGRAM)
+        message("Find ccache path: ${CCACHE_PROGRAM}")
+        set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+        set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    endif()
+endif()
 
 add_custom_target(
     generate_protocol ALL
