@@ -131,7 +131,8 @@ void epoller::dispatch(reactor* base, int timeout)
 void epoller::wakeup()
 {
     printf("epoller::wakeup() begin _wakeup=%s\n", expr2boolstr(_wakeup));
-    if(_ctrl_event == nullptr || _wakeup) return;
+    if(_ctrl_event == nullptr || !_wakeup) return;
+    _wakeup = false;
     this->add_event(_ctrl_event, EVENT_WAKEUP);
     write(_ctrl_event->_control_pipe[1], "\0", 1);
     printf("epoller::wakeup() run success\n");

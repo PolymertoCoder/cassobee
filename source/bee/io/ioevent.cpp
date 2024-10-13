@@ -23,6 +23,7 @@ netio_event::~netio_event()
 passiveio_event::passiveio_event(session_manager* manager)
     : netio_event(manager->create_session())
 {
+    set_events(EVENT_ACCEPT);
     int socktype = _ses->get_manager()->socktype();
     
     if(socktype == SOCK_STREAM)
@@ -83,7 +84,10 @@ bool passiveio_event::handle_event(int active_events)
         int ret = set_nonblocking(clientfd);
         if(ret < 0) return false;
 
-        _base->add_event(new streamio_event(clientfd, _ses->dup()), EVENT_RECV);
+
+        auto evt = new streamio_event(clientfd, _ses->dup());
+        evt->set_events(EVENT_RECV);
+        _base->add_event(evt);
         TRACELOG("accept clientid=%d.\n", clientfd);
     }
     else if(family  == AF_INET6)
@@ -102,7 +106,9 @@ bool passiveio_event::handle_event(int active_events)
 
         if(set_nonblocking(clientfd) < 0) return false;
 
-        _base->add_event(new streamio_event(clientfd, _ses->dup()), EVENT_RECV);
+        auto evt = new streamio_event(clientfd, _ses->dup());
+        evt->set_events(EVENT_RECV);
+        _base->add_event(evt);
         TRACELOG("accept clientid=%d.\n", clientfd);
     }
     return 0;
@@ -111,6 +117,7 @@ bool passiveio_event::handle_event(int active_events)
 activeio_event::activeio_event(session_manager* manager)
     : netio_event(manager->create_session())
 {
+    set_events(EVENT_SEND);
     _fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(_fd < 0)
     {
@@ -132,7 +139,9 @@ bool activeio_event::handle_event(int active_events)
     }
 
     _base->del_event(this);
-    _base->add_event(new streamio_event(_fd, _ses->dup()), EVENT_SEND);
+    auto evt = new streamio_event(_fd, _ses->dup());
+    evt->set_events(EVENT_SEND);
+    _base->add_event(evt);
     printf("activeio_event handle_event run fd=%d.\n", _fd);
     return true;
 }

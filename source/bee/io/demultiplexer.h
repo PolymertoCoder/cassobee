@@ -16,10 +16,10 @@ public:
     virtual void dispatch(reactor* base, int timeout/*ms*/ = 1000) = 0;
     virtual void wakeup() = 0;
 
-    bool get_wakeup() { return _wakeup; }
+    bool& get_wakeup() { return _wakeup; }
 
 protected:
-    std::atomic_bool _wakeup = false;
+    bool _wakeup = false;
     control_event* _ctrl_event = nullptr;
 };
 

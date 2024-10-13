@@ -9,6 +9,7 @@
 
 control_event::control_event()
 {
+    set_events(EVENT_WAKEUP);
     if(pipe(_control_pipe) == -1)
     {
         perror("pipe");
@@ -32,6 +33,7 @@ bool control_event::handle_event(int active_events)
 timer_event::timer_event(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)
     : _delay(delay), _timeout(timeout), _repeats(repeats), _handler(handler), _param(param)
 {
+    set_events(EVENT_TIMER);
 }
 
 bool timer_event::handle_event(int active_events)
@@ -48,6 +50,7 @@ int sigio_event::_signal_pipe[2] = { -1, -1 };
 
 sigio_event::sigio_event()
 {
+    set_events(EVENT_RECV);
     if(pipe(_signal_pipe) == -1)
     {
         perror("pipe");

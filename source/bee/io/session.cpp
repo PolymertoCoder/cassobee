@@ -106,10 +106,28 @@ void session::on_send(size_t len)
 
 void session::permit_recv()
 {
-    reactor::get_instance()->add_event(_event, EVENT_RECV);
+    if(_event->is_close() || (_event->get_events() & EVENT_RECV)) return;
+    _event->_events |= EVENT_RECV;
+    reactor::get_instance()->add_event(_event);
 }
 
 void session::permit_send()
 {
-    reactor::get_instance()->add_event(_event, EVENT_SEND);
+    if(_event->is_close() || (_event->get_events() & EVENT_SEND)) return;
+    _event->_events |= EVENT_SEND;
+    reactor::get_instance()->add_event(_event);
+}
+
+void session::forbid_recv()
+{
+    if(_event->is_close() || !(_event->get_events() & EVENT_RECV)) return;
+    _event->_events &= ~EVENT_RECV;
+    reactor::get_instance()->add_event(_event);
+}
+
+void session::forbid_send()
+{
+    if(_event->is_close() || !(_event->get_events() & EVENT_SEND)) return;
+    _event->_events &= ~EVENT_SEND;
+    reactor::get_instance()->add_event(_event);
 }

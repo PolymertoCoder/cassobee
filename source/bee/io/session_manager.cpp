@@ -162,10 +162,10 @@ void session_manager::send_octets(SID sid, const octets& oct)
 
 void client(session_manager* manager)
 {
-    reactor::get_instance()->add_event(new activeio_event(manager), EVENT_SEND);
+    reactor::get_instance()->add_event(new activeio_event(manager));
 }
 
 void server(session_manager* manager)
 {
-    reactor::get_instance()->add_event(new passiveio_event(manager), EVENT_ACCEPT);
+    reactor::get_instance()->add_event(new passiveio_event(manager));
 }

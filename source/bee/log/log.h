@@ -44,6 +44,7 @@ public:
     void glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...) FORMAT_PRINT_CHECK(8, 9);
     void console_log(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, std::string elapse, const char* fmt, ...) FORMAT_PRINT_CHECK(8, 9);
 
+    FORCE_INLINE logger* get_console_logger() { return _console_logger; }
     void set_process_name(const std::string& process_name);
     void set_logserver(logserver_manager* logserver);
     void send(remotelog& remotelog);

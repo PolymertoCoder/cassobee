@@ -304,6 +304,8 @@ log_formatter::log_formatter(const std::string pattern)
 std::string log_formatter::format(LOG_LEVEL level, const log_event& event)
 {
     thread_local std::stringstream os;
+    os.str("");
+    os.clear();
     for(format_item* item : _items)
     {
         item->format(os, level, event);

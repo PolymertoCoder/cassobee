@@ -31,6 +31,7 @@ void logclient::glog(LOG_LEVEL level, const char* filename, int line, int thread
     va_end(args);
 
     g_remotelog.loglevel = level;
+    g_remotelog.logevent.set_process_name(_process_name);
     g_remotelog.logevent.set_filename(filename);
     g_remotelog.logevent.set_line(line);
     g_remotelog.logevent.set_timestamp(systemtime::get_time());
@@ -62,7 +63,7 @@ void logclient::console_log(LOG_LEVEL level, const char* filename, int line, int
 
 void logclient::set_process_name(const std::string& process_name)
 {
-    if(_process_name == "logserver")
+    if(process_name == std::string("logserver"))
     {
         _is_logserver = true;
         printf("i am logserver!!!\n");

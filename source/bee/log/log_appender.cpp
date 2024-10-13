@@ -10,6 +10,7 @@
 #include "log_appender.h"
 #include "config.h"
 #include "log_formatter.h"
+#include "reactor.h"
 #include "systemtime.h"
 #include "common.h"
 
@@ -80,7 +81,6 @@ file_appender::file_appender(std::string filedir, std::string filename)
     {
         _filedir = ".";
     }
-    _filepath = _filedir + format_string("/%s.%s.log", _filename.data(), _rotater->get_suffix());
     int ret = mkdir(_filedir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if(ret != 0 && errno != EEXIST)
     {
@@ -89,6 +89,8 @@ file_appender::file_appender(std::string filedir, std::string filename)
     }
     reopen();
     _running = true;
+
+    add_timer(10*1000, [this](){ if(_rotater->is_rotate()) reopen(); return true; });
 }
 
 file_appender::~file_appender()
@@ -110,17 +112,13 @@ void file_appender::log(LOG_LEVEL level, const log_event& event)
     std::string msg = _formatter->format(level, event);
 
     std::unique_lock<std::mutex> lock(_locker);
-    if(_rotater->is_rotate())
-    {
-        _filepath = _filedir + format_string("/%s.%s.log", _filename.data(), _rotater->get_suffix());
-        reopen();
-    }
     _filestream << msg;
     _filestream.flush();
 }
 
 bool file_appender::reopen() // no lock
 {
+    _filepath = _filedir + format_string("/%s.%s.log", _filename.data(), _rotater->get_suffix());
     if(_filestream.is_open())
     {
         _filestream.close();
@@ -175,11 +173,6 @@ void async_appender::start()
                     [this](){ return _buf.size() >= _threshold || !_running; });
             }
 
-            if(_rotater->is_rotate())
-            {
-                _filepath = _filedir + format_string("/%s.%s.log", _filename.data(), _rotater->get_suffix());
-                reopen();
-            }
             if(size_t length = _buf.read(_filestream, _buf.size()); length > 0)
             {
                 _filestream.flush();

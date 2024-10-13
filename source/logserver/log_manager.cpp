@@ -3,7 +3,7 @@
 #include "logger.h"
 #include "config.h"
 #include "remotelog.h"
-
+#include "log.h"
 namespace cassobee
 {
 
@@ -27,6 +27,11 @@ void log_manager::init()
 
 void log_manager::log(LOG_LEVEL level, const log_event& evt)
 {
+    if(PREDICT_FALSE(!_file_logger))
+    {
+        logclient::get_instance()->get_console_logger()->log(level, evt);
+        return;
+    }
     _file_logger->log(level, evt);
 }
 

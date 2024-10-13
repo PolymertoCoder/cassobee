@@ -1,5 +1,6 @@
 #include "reactor.h"
 
+#include <filesystem>
 #include <map>
 #include <utility>
 
@@ -18,27 +19,27 @@ reactor::~reactor()
     delete _dispatcher;
     for(auto& item : _changelist.get_write_buffer())
     {
-        if(item.value.evt->_status != EVENT_STATUS_NONE) return;
-        delete item.value.evt;
+        if(item.value->get_status() != EVENT_STATUS_NONE) return;
+        delete item.value;
     }
     for(auto& item : _changelist.get_read_buffer())
     {
-        if(item.value.evt->_status != EVENT_STATUS_NONE) return;
-        delete item.value.evt;
+        if(item.value->get_status() != EVENT_STATUS_NONE) return;
+        delete item.value;
     }
     for(auto& [fd, evt]: _io_events)
     {
-        if(evt->_status != EVENT_STATUS_ADD) continue;
+        if(evt->is_close()) continue;
         delete evt;
     }
     for(auto& [signum, evt]: _signal_events)
     {
-        if(evt->_status != EVENT_STATUS_ADD) continue;
+        if(evt->is_close()) continue;
         delete evt;
     }
     for(auto& [timeout, evt]: _timer_events)
     {
-        if(evt->_status != EVENT_STATUS_ADD) continue;
+        if(evt->is_close()) continue;
         delete evt;
     }
 }
@@ -58,8 +59,8 @@ void reactor::init()
         _timeout = cfg->get<bool>("reactor", "timeout");
     }
 
-    add_event(new sigio_event(),   EVENT_RECV  );
-    add_event(new control_event(), EVENT_WAKEUP);
+    add_event(new sigio_event());
+    add_event(new control_event());
 }
 
 int reactor::run()
@@ -95,22 +96,24 @@ void reactor::wakeup()
     _dispatcher->wakeup();
 }
 
-void reactor::add_event(event* ev, int events)
+void reactor::add_event(event* ev)
 {
-    _changelist.write(event_entry{ev, events}, Operation::ADD);
+    _changelist.write(ev, Operation::ADD);
     wakeup();
 }
 
 void reactor::del_event(event* ev)
 {
     ev->set_status(EVENT_STATUS_DEL);
-    _changelist.write(event_entry{ev, 0}, Operation::DEL);
+    _changelist.write(ev, Operation::DEL);
     wakeup();
 }
 
 void reactor::add_signal(int signum, bool(*callback)(int))
 {
-    add_event(new signal_event(signum, callback), EVENT_SIGNAL);
+    auto evt = new signal_event(signum, callback);
+    evt->set_events(EVENT_SIGNAL);
+    add_event(evt);
 }
 
 event* reactor::get_event(int fd)
@@ -119,34 +122,36 @@ event* reactor::get_event(int fd)
     return itr != _io_events.end() ? itr->second : nullptr;
 }
 
-bool reactor::get_wakeup()
+bool& reactor::get_wakeup()
 {
     return _dispatcher->get_wakeup();
 }
 
 void reactor::load_event()
 {
+    get_wakeup() = true;
     using changelist_type = decltype(_changelist)::list_type;
     _changelist.read([this](changelist_type& list)
     {
-        for(const auto& [entry, op] : list)
+        for(const auto& [evt, op] : list)
         {
             if(op == Operation::ADD)
             {
-                add_event_inner(entry.evt, entry.events);
+                add_event_inner(evt);
             }
             else if(op == Operation::DEL)
             {
-                del_event_inner(entry.evt);
+                del_event_inner(evt);
             }
         }
     });
 }
 
-int reactor::add_event_inner(event* ev, int events)
+int reactor::add_event_inner(event* ev)
 {
     if(_dispatcher == nullptr || ev == nullptr) return -1;
 
+    int events = ev->get_events();
     if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP || events & EVENT_WAKEUP)
     {
         _io_events.emplace(ev->get_handle(), ev);
@@ -219,7 +224,7 @@ void reactor::handle_timer_event()
         if(expiretime <= nowtime) break;
         if(tm->handle_event(EVENT_TIMER))
         {
-            add_event(tm, EVENT_TIMER);
+            add_event(tm);
         }
     }
 }
@@ -252,7 +257,7 @@ int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool(void
     }
     else
     {
-        reactor::get_instance()->add_event(new timer_event(delay, timeout, repeats, handler, param), EVENT_TIMER);
+        reactor::get_instance()->add_event(new timer_event(delay, timeout, repeats, handler, param));
         return 0;
     }
 }

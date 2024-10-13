@@ -54,6 +54,15 @@ int main(int argc, char* argv[])
     auto logclientmgr = logclient_manager::get_instance();
     logclientmgr->init();
     server(logclientmgr);
+
+    while(true)
+    {
+        threadpool::get_instance()->add_task(rand(0, 3), [](){ DEBUGLOG("DEBUG=%s", "多线程测试"); });
+        threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+        threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+        threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+        usleep(1000);
+    }
     
     looper->run();
     timer_thread.join();

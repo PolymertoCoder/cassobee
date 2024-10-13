@@ -1,0 +1,14 @@
+#!/bin/bash
+
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
+thirdparty_path=$rootpath/thirdparty
+
+cd $thirdparty_path
+
+git clone https://github.com/google/benchmark.git
+git clone https://github.com/include-what-you-use/include-what-you-use.git
+git clone https://github.com/weidai11/cryptopp.git
+git clone https://github.com/leethomason/tinyxml2.git
+git clone https://github.com/mysql/mysql-connector-cpp.git
+git clone https://github.com/brendangregg/FlameGraph.git
+

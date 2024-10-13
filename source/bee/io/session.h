@@ -40,6 +40,9 @@ public:
     void permit_recv();
     void permit_send();
 
+    void forbid_recv();
+    void forbid_send();
+
     FORCE_INLINE size_t max_rbuf_size() const { return _manager->_read_buffer_size;  }
     FORCE_INLINE size_t max_wbuf_size() const { return _manager->_write_buffer_size; }
     FORCE_INLINE octets& rbuffer() { return _readbuf;  }

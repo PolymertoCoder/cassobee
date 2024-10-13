@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <set>
 #include <functional>
 
 #include "cc_changelist.h"
@@ -21,20 +22,20 @@ public:
     int  run();
     void stop();
     void wakeup();
-    void add_event(event* ev, int events);
+    void add_event(event* ev);
     void del_event(event* ev);
 
     void add_signal(int signum, bool(*callback)(int));
 
     event* get_event(int fd);
-    bool get_wakeup();
+    bool& get_wakeup();
     FORCE_INLINE demultiplexer* get_dispatcher() const { return _dispatcher; }
     FORCE_INLINE bool use_timer_thread() { return _use_timer_thread; }
 
 private:
     friend struct sigio_event;
     void load_event();
-    int  add_event_inner(event* ev, int events);
+    int  add_event_inner(event* ev);
     void del_event_inner(event* ev);
 
     bool handle_signal_event(int signum);
@@ -47,12 +48,7 @@ private:
     bool _use_timer_thread = true;
     int  _timeout = -1; // ms
 
-    struct event_entry
-    {
-        event* evt = nullptr;
-        int events = 0;
-    };
-    cassobee::cc_changelist<event_entry> _changelist;
+    cassobee::cc_changelist<event*, std::set> _changelist;
 
     EVENTS_MAP _io_events;
     EVENTS_MAP _signal_events;

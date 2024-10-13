@@ -18,6 +18,7 @@ public:
     {
         value_type value;
         Operation  op;
+        bool operator<(const value_node& rhs) const { return value < rhs.value; }
     };
 
     using list_type = container_type<value_node>;

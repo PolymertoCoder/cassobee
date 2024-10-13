@@ -1,0 +1,101 @@
+#!/bin/bash
+
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
+thirdparty_path=$rootpath/thirdparty
+debug_path=$rootpath/debug
+
+echo $thirdparty_path
+echo $debug_path
+
+# 设置程序名称和FlameGraph目录
+PID=""
+PROGRAM_NAME=""
+FLAMEGRAPH_DIR=$thirdparty_path/FlameGraph
+DURATION=30
+RESULT_DIR=$debug_path/FlameGraph
+
+# 帮助信息
+usage()
+{
+    echo "Usage: $0 [-p pid] [-n program_name] [-d duration] [-f flamegraph_dir]"
+    echo "  -p pid           Specify the PID of the process to analyze."
+    echo "  -n program_name  Specify the name of the program to analyze."
+    echo "  -d duration      Duration to record performance data (default: 30 seconds)."
+    echo "  -f flamegraph_dir Path to the FlameGraph directory (default: $debug_path/FlameGraph)."
+    exit 1
+}
+
+# 解析命令行参数
+while getopts "p:n:d:f:h" opt; do
+    case "$opt" in
+        p) PID=$OPTARG ;;
+        n) PROGRAM_NAME=$OPTARG ;;
+        d) DURATION=$OPTARG ;;
+        f) FLAMEGRAPH_DIR=$OPTARG ;;
+        h) usage ;;
+        *) usage ;;
+    esac
+done
+
+# 检查FlameGraph目录是否存在
+if [ ! -d "$FLAMEGRAPH_DIR" ]; then
+    echo "FlameGraph directory not found: $FLAMEGRAPH_DIR"
+    exit -1
+fi
+
+# 检查是否同时指定了PID和程序名称，或者都未指定
+if [ -n "$PID" ] && [ -n "$PROGRAM_NAME" ]; then
+    echo "Please specify either -p or -n, not both."
+    usage
+elif [ -z "$PID" ] && [ -z "$PROGRAM_NAME" ]; then
+    echo "Either -p or -n must be specified."
+    usage
+fi
+
+# 如果没有指定PID，通过程序名称查找
+if [ -z "$PID" ]; then
+    PID=$(pidof $PROGRAM_NAME)
+    if [ -z "$PID" ]; then
+        echo "Process $PROGRAM_NAME not found."
+        exit 1
+    fi
+fi
+
+echo "Analyzing process with PID $PID"
+
+# 获取当前时间
+CURRENT_TIME=$(date +"%y%m%d-%H:%M:%S")
+
+# 如果指定了程序名称，使用程序名称，否则使用PID
+if [ -n "$PROGRAM_NAME" ]; then
+    RESULT_DIR=$RESULT_DIR/"${PROGRAM_NAME}-${PID}.${CURRENT_TIME}"
+else
+    RESULT_DIR=$RESULT_DIR/"pid-${PID}.${CURRENT_TIME}"
+fi
+
+# 目录不存在则创建
+if [ ! -d $RESULT_DIR ]; then
+    mkdir -p $RESULT_DIR
+     if [ $? -ne 0 ]; then
+        echo "Failed to create FlameGraph directory: $RESULT_DIR"
+        exit 1
+    fi
+fi
+
+# 记录性能数据
+echo "Recording performance data for $DURATION seconds..."
+perf record -F 99 -p $PID -g -- sleep $DURATION
+
+# 生成性能数据脚本
+echo "Generating performance data script..."
+perf script > out.perf
+
+# 生成火焰图数据
+echo "Generating flame graph data..."
+$FLAMEGRAPH_DIR/stackcollapse-perf.pl out.perf > $RESULT_DIR/out.folded
+
+# 生成火焰图
+echo "Generating flame graph..."
+$FLAMEGRAPH_DIR/flamegraph.pl out.folded > $RESULT_DIR/flamegraph.svg
+
+echo "Flame graph generated: $RESULT_DIR/flamegraph.svg"

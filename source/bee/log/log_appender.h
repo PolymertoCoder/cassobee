@@ -65,6 +65,7 @@ public:
 
 private:
     ROTATE_TYPE _rotate_type;
+    TIMETYPE    _last_check_time = 0;
     TIMETYPE    _next_rotate_time = 0; // 下一次分割日志的时间
 };
 
@@ -106,7 +107,7 @@ private:
     size_t   _threshold = 0;
     std::condition_variable _cond;
     std::thread* _thread = nullptr;
-    buffer_type<4096*8> _buf;
+    buffer_type<4096*128> _buf;
 };
 
 }
