@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# 获取脚本所在目录的上一级目录路径
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
 thirdparty_path=$rootpath/thirdparty
 debug_path=$rootpath/debug
@@ -13,25 +14,28 @@ PROGRAM_NAME=""
 FLAMEGRAPH_DIR=$thirdparty_path/FlameGraph
 DURATION=30
 RESULT_DIR=$debug_path/FlameGraph
+MODE="oncpu"  # 默认模式为 ON-CPU
 
 # 帮助信息
-usage()
-{
-    echo "Usage: $0 [-p pid] [-n program_name] [-d duration] [-f flamegraph_dir]"
-    echo "  -p pid           Specify the PID of the process to analyze."
-    echo "  -n program_name  Specify the name of the program to analyze."
-    echo "  -d duration      Duration to record performance data (default: 30 seconds)."
-    echo "  -f flamegraph_dir Path to the FlameGraph directory (default: $debug_path/FlameGraph)."
+usage() {
+    echo "Usage: $0 [-p pid] [-n program_name] [-d duration] [-f flamegraph_dir] [-m mode] [-h]"
+    echo "  -p pid            Specify the PID of the process to analyze."
+    echo "  -n program_name   Specify the name of the program to analyze."
+    echo "  -d duration       Duration to record performance data (default: 30 seconds)."
+    echo "  -f flamegraph_dir Path to the FlameGraph directory (default: $thirdparty_path/FlameGraph)."
+    echo "  -m mode           Mode of analysis: oncpu or offcpu (default: oncpu)."
+    echo "  -h                Display this help message."
     exit 1
 }
 
 # 解析命令行参数
-while getopts "p:n:d:f:h" opt; do
+while getopts "p:n:d:f:m:h" opt; do
     case "$opt" in
         p) PID=$OPTARG ;;
         n) PROGRAM_NAME=$OPTARG ;;
         d) DURATION=$OPTARG ;;
         f) FLAMEGRAPH_DIR=$OPTARG ;;
+        m) MODE=$OPTARG ;;
         h) usage ;;
         *) usage ;;
     esac
@@ -40,7 +44,7 @@ done
 # 检查FlameGraph目录是否存在
 if [ ! -d "$FLAMEGRAPH_DIR" ]; then
     echo "FlameGraph directory not found: $FLAMEGRAPH_DIR"
-    exit -1
+    exit 1
 fi
 
 # 检查是否同时指定了PID和程序名称，或者都未指定
@@ -76,26 +80,81 @@ fi
 # 目录不存在则创建
 if [ ! -d $RESULT_DIR ]; then
     mkdir -p $RESULT_DIR
-     if [ $? -ne 0 ]; then
+    if [ $? -ne 0 ]; then
         echo "Failed to create FlameGraph directory: $RESULT_DIR"
         exit 1
     fi
 fi
 
-# 记录性能数据
-echo "Recording performance data for $DURATION seconds..."
-perf record -F 99 -p $PID -g -- sleep $DURATION
+cd $RESULT_DIR
 
-# 生成性能数据脚本
-echo "Generating performance data script..."
-perf script > out.perf
+if [ "$MODE" == "oncpu" ]; then
+    # 记录 ON-CPU 性能数据
+    echo "Recording ON-CPU performance data for $DURATION seconds..."
+    sudo perf record -F 99 -p $PID -a -g -- sleep $DURATION
+    if [ $? -ne 0 ]; then
+        echo "Failed to record ON-CPU performance data."
+        exit 1
+    fi
 
-# 生成火焰图数据
-echo "Generating flame graph data..."
-$FLAMEGRAPH_DIR/stackcollapse-perf.pl out.perf > $RESULT_DIR/out.folded
+    # 生成性能数据脚本
+    echo "Generating ON-CPU performance data script..."
+    perf script > $RESULT_DIR/out.perf
+    if [ $? -ne 0 ]; then
+        echo "Failed to generate ON-CPU performance data script."
+        exit 1
+    fi
 
-# 生成火焰图
-echo "Generating flame graph..."
-$FLAMEGRAPH_DIR/flamegraph.pl out.folded > $RESULT_DIR/flamegraph.svg
+    # 生成火焰图数据
+    echo "Generating ON-CPU flame graph data..."
+    $FLAMEGRAPH_DIR/stackcollapse-perf.pl $RESULT_DIR/out.perf > $RESULT_DIR/out.folded
+    if [ $? -ne 0 ]; then
+        echo "Failed to generate ON-CPU flame graph data."
+        exit 1
+    fi
 
-echo "Flame graph generated: $RESULT_DIR/flamegraph.svg"
+    # 生成火焰图
+    echo "Generating ON-CPU flame graph..."
+    $FLAMEGRAPH_DIR/flamegraph.pl $RESULT_DIR/out.folded > $RESULT_DIR/flamegraph.svg
+    if [ $? -ne 0 ]; then
+        echo "Failed to generate ON-CPU flame graph."
+        exit 1
+    fi
+
+    echo "ON-CPU flame graph generated: $RESULT_DIR/flamegraph.svg"
+elif [ "$MODE" == "offcpu" ]; then
+    # 检查是否安装了 bcc-tools
+    if ! command -v /usr/share/bcc/tools/offcputime &> /dev/null; then
+        echo "bcc-tools is not installed. Please install it first."
+        exit 1
+    fi
+
+    # 记录 OFF-CPU 性能数据
+    echo "Recording OFF-CPU performance data for $DURATION seconds..."
+    sudo /usr/share/bcc/tools/offcputime -df $DURATION > $RESULT_DIR/offcpu_stacks.txt
+    if [ $? -ne 0 ]; then
+        echo "Failed to record OFF-CPU performance data."
+        exit 1
+    fi
+
+    # 生成火焰图数据
+    echo "Generating OFF-CPU flame graph data..."
+    $FLAMEGRAPH_DIR/stackcollapse-bpfcc.pl $RESULT_DIR/offcpu_stacks.txt > $RESULT_DIR/offcpu.folded
+    if [ $? -ne 0 ]; then
+        echo "Failed to generate OFF-CPU flame graph data."
+        exit 1
+    fi
+
+    # 生成火焰图
+    echo "Generating OFF-CPU flame graph..."
+    $FLAMEGRAPH_DIR/flamegraph.pl --color=io --title="Off-CPU Flame Graph" --countname=ms $RESULT_DIR/offcpu.folded > $RESULT_DIR/offcpu_flamegraph.svg
+    if [ $? -ne 0 ]; then
+        echo "Failed to generate OFF-CPU flame graph."
+        exit 1
+    fi
+
+    echo "OFF-CPU flame graph generated: $RESULT_DIR/offcpu_flamegraph.svg"
+else
+    echo "Invalid mode specified: $MODE. Please use 'oncpu' or 'offcpu'."
+    usage
+fi
