@@ -1,3 +1,4 @@
+#include <asm-generic/socket.h>
 #include <unistd.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -14,10 +15,21 @@
 #include "reactor.h"
 #include "session.h"
 
+netio_event::netio_event(session* ses) : _ses(ses)
+{
+    _ses->set_event(this);
+}
+
 netio_event::~netio_event()
 {
-    _ses->close();
+    close_socket();
     delete _ses;
+}
+
+void netio_event::close_socket()
+{
+    _ses->close();
+    close(_fd);
 }
 
 passiveio_event::passiveio_event(session_manager* manager)
@@ -88,7 +100,7 @@ bool passiveio_event::handle_event(int active_events)
         auto evt = new streamio_event(clientfd, _ses->dup());
         evt->set_events(EVENT_RECV);
         _base->add_event(evt);
-        TRACELOG("accept clientid=%d.\n", clientfd);
+        TRACELOG("accept clientid=%d.", clientfd);
     }
     else if(family  == AF_INET6)
     {
@@ -99,7 +111,7 @@ bool passiveio_event::handle_event(int active_events)
         {
             if(errno != EAGAIN || errno != EINTR)
             {
-                TRACELOG("accept: %s\n", strerror(errno));
+                TRACELOG("accept: %s", strerror(errno));
                 return false;
             }
         }
@@ -109,7 +121,7 @@ bool passiveio_event::handle_event(int active_events)
         auto evt = new streamio_event(clientfd, _ses->dup());
         evt->set_events(EVENT_RECV);
         _base->add_event(evt);
-        TRACELOG("accept clientid=%d.\n", clientfd);
+        TRACELOG("accept clientid=%d.", clientfd);
     }
     return 0;
 }
@@ -135,6 +147,13 @@ bool activeio_event::handle_event(int active_events)
     {
         perror("connect");
         _base->del_event(this);
+        return false;
+    }
+    int optval = 0; socklen_t optlen = sizeof(optval);
+    if(getsockopt(_fd, SOL_SOCKET, SO_ERROR, &optval, &optlen) < 0 || optval != 0)
+    {
+        perror("getsockopt");
+        close_socket();
         return false;
     }
 
@@ -231,12 +250,17 @@ int streamio_event::handle_recv()
     }
     else if(len == 0)
     {
+        TRACELOG("sockfd %d disconnected", _fd);
         close(_fd);
     }
     else
     {
         TRACELOG("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
         close(_fd);
+    }
+    if(rbuffer.free_space() == 0)
+    {
+        _ses->forbid_recv();
     }
 #endif
     return len;
@@ -248,14 +272,23 @@ int streamio_event::handle_send()
 
     octets& wbuffer = _ses->wbuffer();
     int len = send(_fd, wbuffer.begin(), wbuffer.size(), 0);
-    if(len >= 0)
+    if(len > 0)
     {
         wbuffer.erase(0, len);
         _ses->on_send(len);
+        _ses->permit_recv();
+    }
+    else if(len == 0)
+    {
+        _ses->permit_send();
     }
     else
     {
-        _ses->permit_send();
+        perror("send");
+    }
+    if(wbuffer.size() == 0)
+    {
+        _ses->forbid_send();
     }
     return len;
 }

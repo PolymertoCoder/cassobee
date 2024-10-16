@@ -13,8 +13,9 @@ struct io_event : event
 
 struct netio_event : io_event
 {
-    netio_event(session* ses) : _ses(ses) {}
+    netio_event(session* ses);
     virtual ~netio_event();
+    void close_socket();
     session* _ses;
 };
 
