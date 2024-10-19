@@ -37,7 +37,7 @@ if(${CASSOBEE_IWYU_ENABLE})
     endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++23 -Wall -Wno-deprecated -Wno-unused-function -D_REENTRANT")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++23 -Wall -Wno-deprecated -Wno-unused-function -Wno-interference-size -D_REENTRANT")
 
 if(${CMAKE_BUILD_TYPE} EQUAL Debug)
    add_compile_options(-O0 -ggdb -g)
