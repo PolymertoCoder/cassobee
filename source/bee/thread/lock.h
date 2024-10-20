@@ -8,20 +8,6 @@
 #include <unistd.h>
 #include <immintrin.h>
 
-#ifndef __cpp_lib_hardware_interference_size
-namespace std
-{
-    // 64 bytes on x86-64 │ L1_CACHE_BYTES │ L1_CACHE_SHIFT │ __cacheline_aligned │ ...
-    constexpr std::size_t hardware_constructive_interference_size = 64;
-    constexpr std::size_t hardware_destructive_interference_size  = 64;
-}
-#endif
-
-static_assert(std::hardware_constructive_interference_size >= alignof(std::max_align_t));
-
-constexpr std::size_t WORD_SIZE        = sizeof(std::size_t);
-constexpr std::size_t CACHE_LINE_WORDS = std::hardware_destructive_interference_size / WORD_SIZE;
-
 namespace cassobee
 {
 

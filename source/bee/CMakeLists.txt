@@ -9,6 +9,7 @@ target_include_directories(log
                            ${SOURCE_PATH}/bee/log
                            ${SOURCE_PATH}/bee/traits
                            ${SOURCE_PATH}/bee/utility
+                           ${SOURCE_PATH}/bee/thread
                            ${SOURCE_PATH}/protocol/
                            ${SOURCE_PATH}/protocol/include
 )
@@ -34,6 +35,7 @@ target_include_directories(bee
                            ${SOURCE_PATH}/bee/log
                            ${SOURCE_PATH}/bee/traits
                            ${SOURCE_PATH}/bee/utility
+                           ${SOURCE_PATH}/bee/thread
                            ${SOURCE_PATH}/protocol
                            ${SOURCE_PATH}/protocol/include
 )

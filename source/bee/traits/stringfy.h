@@ -1,4 +1,5 @@
 #pragma once
+#include "common.h"
 #include "octets.h"
 #include "traits.h"
 #include "concept.h"
@@ -33,10 +34,7 @@ std::string to_string(T val) { return std::to_string(val); }
 template<typename T1, typename T2>
 std::string to_string(const std::pair<T1, T2>& val)
 {
-    std::string str("<");
-    str.append(to_string(val.first) + ", ");
-    str.append(to_string(val.second) + ">");
-    return str;
+    return format_string("<%s, %s>", to_string(val.first).data(), to_string(val.second).data());
 }
 
 namespace detail

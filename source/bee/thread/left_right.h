@@ -1,8 +1,9 @@
 #pragma once
 #include <atomic>
+#include <mutex>
 #include <thread>
 
-#include "lock.h"
+#include "types.h"
 
 // see cassobee/doc/CppCon/How to make your data structures wait-free for reads - Pedro Ramalhete - CppCon 2015.pdf
 
@@ -27,10 +28,12 @@ public:
     {
         _counter.fetch_add(1);
     }
+
     virtual void depart() override
     {
         _counter.fetch_sub(1);
     }
+
     virtual bool is_empty() override
     {
         return _counter.load() == 0;
@@ -51,24 +54,28 @@ public:
         {
             _counters_nums = DEFAULT_COUNTER_NUMS;
         }
-        _counters = new std::atomic<uint64_t>[_counters_nums * CACHE_LINE_WORDS];
+        _counters = new std::atomic<size_t>[_counters_nums * CACHELINE_WORDS];
     }
+
     ~ri_distributed_counter()
     {
         delete[] _counters;
     }
+
     virtual void arrive() override
     {
         _counters[thread_to_idx()].fetch_add(1);
     }
+
     virtual void depart() override
     {
         _counters[thread_to_idx()].fetch_sub(1);
     }
+
     virtual bool is_empty() override
     {
         int idx = _acquire_load.load();
-        for(; idx < _counters_nums * CACHE_LINE_WORDS; idx += CACHE_LINE_WORDS)
+        for(; idx < _counters_nums * (int)CACHELINE_WORDS; idx += CACHELINE_WORDS)
         {
             if(_counters[idx].load(std::memory_order_relaxed) > 0)
             {
@@ -84,40 +91,66 @@ private:
     int thread_to_idx()
     {
         size_t idx = _hash_func(std::this_thread::get_id());
-        return (int)((idx % _counters_nums) * CACHE_LINE_WORDS);
+        return (int)((idx % _counters_nums) * CACHELINE_WORDS);
     }
 
 private:
     int _counters_nums;
-    std::atomic<uint64_t>* _counters;
-    std::atomic<uint64_t>  _acquire_load{0};
+    std::atomic<size_t>*  _counters = nullptr;
+    std::atomic<uint64_t> _acquire_load{0};
     std::hash<std::thread::id> _hash_func;
 };
 
 using lrc_t = ri_distributed_counter;
 
-template<typename T>
+template<typename T, typename lock_type = std::mutex>
 class left_right
 {
 public:
+    template<typename ...Args>
+    left_right(Args&&... args)
+    {
+        void* inst  = ::operator new(sizeof(T) * 2);
+        _left_inst  = new(inst) T(std::forward<Args>(args)...);
+        _right_inst = new((T*)inst + 1) T(std::forward<Args>(args)...);
+    }
+
+    ~left_right()
+    {
+        delete _left_inst;
+        delete _right_inst;
+    }
+
     template<typename Fn, typename ...Args>
-    requires std::invocable<Fn, Args...>
-    auto apply_read(Fn& func, Args&&... args)
+    requires std::invocable<Fn, T*, Args...>
+    auto apply_read(Fn func, Args&&... args)
     {
         const int vi = arrive();
-        T* inst = _left_right.load() == LEFT ? &_left_inst : &_right_inst;
+        T* inst = _left_right.load() == LEFT ? _left_inst : _right_inst;
         auto ret = func(inst, std::forward<Args>(args)...);
         depart(vi);
         return ret;
     }
+
     template<typename Fn, typename ...Args>
-    requires std::invocable<Fn, Args...>
-    auto apply_write(Fn& func, Args&&... args)
+    requires std::invocable<Fn, T*, Args...>
+    auto apply_write(Fn func, Args&&... args)
     {
-        const int vi = arrive();
-        T* inst = _left_right.load() == LEFT ? &_left_inst : &_right_inst;
-        auto ret = func(inst, std::forward<Args>(args)...);
-        return ret;
+        std::lock_guard<lock_type> lock(_writer_lock);
+        if(_left_right.load(std::memory_order_relaxed) == LEFT)
+        {
+            func(_right_inst, std::forward<Args>(args)...);
+            _left_right.store(LEFT);
+            toggle_version_and_wait();
+            return func(_left_inst, std::forward<Args>(args)...);
+        }
+        else
+        {
+            func(_left_inst, std::forward<Args>(args)...);
+            _left_right.store(RIGHT);
+            toggle_version_and_wait();
+            return func(_right_inst, std::forward<Args>(args)...);
+        }
     }
 
 private:
@@ -127,10 +160,12 @@ private:
         _lrc[vi].arrive();
         return vi;
     }
+
     void depart(int vi)
     {
         _lrc[vi].depart();
     }
+
     void toggle_version_and_wait()
     {
         const int vi  = _version_index.load();
@@ -153,8 +188,9 @@ private:
 private:
     lrc_t _lrc[2];
     std::atomic<int> _version_index = 0;
-    std::atomic<int> _left_right    = LEFT;
-    T _left_inst;
-    T _right_inst;
+    std::atomic<int> _left_right = LEFT;
+    lock_type _writer_lock;
+    T* _left_inst  = nullptr;
+    T* _right_inst = nullptr;
 };
 
