@@ -12,6 +12,7 @@ set(DEBUG_PATH              ${CASSOBEE_ROOT_PATH}/debug)
 set(LIBRARY_OUTPUT_PATH     ${CASSOBEE_ROOT_PATH}/debug/libs)
 set(BINARY_PATH             ${CASSOBEE_ROOT_PATH}/bin)
 set(TOOLS_PATH              ${CASSOBEE_ROOT_PATH}/tools)
+set(PROTOCOL_PATH           ${CASSOBEE_ROOT_PATH}/source/protocol)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" OFF)

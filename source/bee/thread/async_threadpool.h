@@ -74,9 +74,9 @@ public:
             std::unique_lock<std::mutex> lock(_queue_lock);
             if(_stop){ throw std::runtime_error("add_task on stopped threadpool"); }
 
-            _tasks.emplace([task](){ (*task)(); }); //把任务加入队列
+            _tasks.emplace([task](){ (*task)(); }); // 把任务加入队列
         }
-        _cond.notify_one(); //通知条件变量，唤醒一个线程
+        _cond.notify_one(); // 通知条件变量，唤醒一个线程
         return res;
     }
 

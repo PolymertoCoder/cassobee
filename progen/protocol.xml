@@ -1,0 +1,5 @@
+<application>
+    <state name="log">
+        <protocol name="remotelog"/>
+    </state>
+</application>

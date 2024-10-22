@@ -144,14 +144,14 @@ int main(int argc, char* argv[])
     // address_factory::create("ipv4_address", "0.0.0.0", 8888);
     // address_factory::create2<"ipv4_address">("0.0.0.0", 8888);
 
-    lr_map<int, int> map;
-    map.emplace(0, 1);
-    map.emplace(1, 2);
-    map.emplace(3, 4);
-    map.emplace(5, 6);
-    printf("empty:%d 1:%d, 5:%d\n", map.empty(), map[1], map[5]);
-    map.clear();
-    printf("empty:%d\n", map.empty());
+    // lr_map<int, int> map;
+    // map.emplace(0, 1);
+    // map.emplace(1, 2);
+    // map.emplace(3, 4);
+    // map.emplace(5, 6);
+    // printf("empty:%d 1:%d, 5:%d\n", map.empty(), map[1], map[5]);
+    // map.clear();
+    // printf("empty:%d\n", map.empty());
 
     looper->run();
     timer_thread.join();

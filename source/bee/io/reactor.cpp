@@ -17,16 +17,6 @@
 reactor::~reactor()
 {
     delete _dispatcher;
-    for(auto& item : _changelist.get_write_buffer())
-    {
-        if(item.value->get_status() != EVENT_STATUS_NONE) return;
-        delete item.value;
-    }
-    for(auto& item : _changelist.get_read_buffer())
-    {
-        if(item.value->get_status() != EVENT_STATUS_NONE) return;
-        delete item.value;
-    }
     for(auto& [fd, evt]: _io_events)
     {
         if(evt->is_close()) continue;
@@ -154,7 +144,7 @@ int reactor::add_event_inner(event* ev)
     int events = ev->get_events();
     if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP || events & EVENT_WAKEUP)
     {
-        _io_events.emplace(ev->get_handle(), ev);
+        _io_events[ev->get_handle()] = ev;
         if(int ret = _dispatcher->add_event(ev, events))
         {
             ERRORLOG("add_io_event error, ret=%d.", ret);

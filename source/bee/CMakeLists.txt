@@ -1,5 +1,7 @@
 # liblog
 file(GLOB LIBLOG_SRC ${SOURCE_PATH}/bee/log/*.cpp)
+set(LIBLOG_SRC ${LIBLOG_SRC}
+               ${PROTOCOL_PATH}/state/state_log.cpp)
 message("liblog source: " ${LIBLOG_SRC})
 add_library(log SHARED ${LIBLOG_SRC})
 target_include_directories(log
@@ -20,6 +22,19 @@ aux_source_directory(./security LIBSECURITY_SRC)
 file(GLOB LIBSECURITY_SRC ./security/*.cpp)
 message("libsecurity source: " ${LIBSECURITY_SRC})
 add_library(security SHARED ${LIBSECURITY_SRC})
+target_include_directories(security
+                           PUBLIC
+                           ${THIRDPARTY_PATH}/cryptopp
+                           PRIVATE
+                           ${SOURCE_PATH}/bee/common
+                           ${SOURCE_PATH}/bee/io
+                           ${SOURCE_PATH}/bee/log
+                           ${SOURCE_PATH}/bee/traits
+                           ${SOURCE_PATH}/bee/utility
+                           ${SOURCE_PATH}/bee/thread
+                           ${SOURCE_PATH}/protocol
+                           ${SOURCE_PATH}/protocol/include
+)
 find_library(LIBCRYTOPP_PATH cryptopp ${THIRDPARTY_PATH}/cryptopp)
 target_link_libraries(security ${LIBCRYTOPP_PATH})
 add_common_flags(security)

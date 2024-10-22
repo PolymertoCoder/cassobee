@@ -56,7 +56,7 @@ protocol* protocol::decode(octetsstream& os, session* ses)
     try
     {
         os >> octetsstream::BEGIN >> id >> size;
-        while(os.data_ready(size))
+        if(!os.data_ready(size))
         {
             DEBUGLOG("protocol decode, data not enough, continue wait... id=%d size=%zu.", id, size);
             os >> octetsstream::ROLLBACK;

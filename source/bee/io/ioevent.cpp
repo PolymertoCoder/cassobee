@@ -146,7 +146,7 @@ bool activeio_event::handle_event(int active_events)
     if(connect(_fd, addr, sizeof(*addr)) < 0)
     {
         perror("connect");
-        _base->del_event(this);
+        //_base->del_event(this);
         return false;
     }
     int optval = 0; socklen_t optlen = sizeof(optval);
@@ -157,9 +157,10 @@ bool activeio_event::handle_event(int active_events)
         return false;
     }
 
-    _base->del_event(this);
+    //_base->del_event(this);
     auto evt = new streamio_event(_fd, _ses->dup());
     evt->set_events(EVENT_SEND);
+    evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
     printf("activeio_event handle_event run fd=%d.\n", _fd);
     return true;

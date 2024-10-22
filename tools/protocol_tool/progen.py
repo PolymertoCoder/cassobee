@@ -29,10 +29,11 @@ def check_regenerate(xmlpath, header_output_directory, cpp_output_directory):
 
     return any_change_detected
 
-def create_directories(header_output_directory, cpp_output_directory):
+def create_directories(header_output_directory, cpp_output_directory, state_output_directory):
     """Create necessary directories."""
     os.makedirs(header_output_directory, exist_ok=True)
     os.makedirs(cpp_output_directory, exist_ok=True)
+    os.makedirs(state_output_directory, exist_ok=True)
 
 def clean_old_files(xmlpath, header_output_directory, cpp_output_directory, force):
     """If force is True, delete old files."""
@@ -71,7 +72,7 @@ def generate_header_content(name, base_class, fields, type, maxsize, codefield=N
         header_content.append(generate_enum_fields(fields, default_code))
 
     if fields:
-        header_content.append(generate_constructors(name, fields, codefield, default_code))
+        header_content.append(generate_constructors(name, base_class, fields, codefield, default_code))
         header_content.append(generate_operator_overloads(name, fields, codefield))
     else:
         header_content.append(f"    {name}() = default;\n")
@@ -121,10 +122,10 @@ def generate_enum_fields(fields, default_code):
     enum_content += f"        ALLFIELDS = (1 << {len(fields)}) - 1\n    }};\n\n"
     return enum_content
 
-def generate_constructors(name, fields, codefield, default_code):
+def generate_constructors(name, base_class, fields, codefield, default_code):
     """Generate constructors for the class."""
     constructor_content = ""
-    constructor_content += generate_default_constructor_params(name, fields, codefield, default_code)
+    constructor_content += generate_default_constructor_params(name, base_class, fields, codefield, default_code)
     constructor_content += generate_non_basic_type_constructors(name, fields, codefield, default_code)
 
     constructor_content += f"    {name}(const {name}& rhs) = default;\n"
@@ -133,10 +134,12 @@ def generate_constructors(name, fields, codefield, default_code):
 
     return constructor_content
 
-def generate_default_constructor_params(name, fields, codefield, default_code):
+def generate_default_constructor_params(name, base_class, fields, codefield, default_code):
     """Generate default constructor parameters."""
     constructor_content = ""
     constructor_content += f"    {name}() = default;\n"
+    if base_class == "protocol":
+        constructor_content += f"    {name}(PROTOCOLID type) : protocol(type)\n    {{}}\n"
     return constructor_content
 
 def generate_non_basic_type_constructors(name, fields, codefield, default_code):
@@ -315,6 +318,7 @@ def write_file(filename, content):
 def parse_xml_files(xmlpath, header_output_directory, cpp_output_directory, force):
     """Parse XML files and generate code."""
     xml_files = [file for file in os.listdir(xmlpath) if file.endswith('.xml')]
+    xml_files.remove("protocol.xml")
 
     for xml_file in xml_files:
         xml_path = os.path.join(xmlpath, xml_file)
@@ -350,6 +354,46 @@ def generate_protocol_definitions(outpath):
     except IOError as e:
         print(f"Error writing to file {define_filename}: {e}")
 
+def parse_state(xmlpath, state_output_directory, force):
+    """Parse XML files and generate corresponding header and cpp files."""
+    xml_file = "protocol.xml"
+    if xml_file.endswith('.xml'):
+        xml_path = os.path.join(xmlpath, xml_file)
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+
+        for element in root:
+            if element.tag == "state":
+                """Parse state element and generate corresponding state_xxx.cpp file."""
+                state_name = element.get('name')
+                if state_name is None:
+                    raise ValueError("State must define 'name' attribute")
+
+                state_filename = os.path.join(state_output_directory, f"state_{state_name}.cpp")
+                state_headers_content = "#include \"protocol.h\"\n"
+                register_content = ""
+
+                enum2type = {}
+                for protocol_type, protocol_enum in protocol_enum_entries.items():
+                    if protocol_enum not in enum2type:
+                        enum2type[protocol_enum] = protocol_type
+                    else:
+                        raise ValueError(f"Protocol name'{protocol_enum}' duplicated")
+
+                for protocol in element.findall('protocol'):
+                    protocol_name = str(protocol.get('name'))
+                    protocol_enum = f"PROTOCOL_TYPE_{protocol_name.upper()}"
+                    if protocol_enum not in enum2type.keys():
+                        raise ValueError(f"Protocol '{protocol_name}' not defined")
+                    protocol_type = enum2type[protocol_enum]
+                    state_headers_content += f"#include \"{protocol_name}.h\"\n"
+                    register_content += f"static cassobee::{protocol_name} __register_{protocol_name}_{protocol_type}({protocol_type});\n"
+
+                state_content = f"{state_headers_content}\n{register_content}"
+                write_file(state_filename, state_content)
+            else:
+                raise ValueError(f"protocol.xml element.tag {element.tag} must be state")
+
 def main():
     """Main function, parses command line arguments and generates code."""
     parser = argparse.ArgumentParser(description="Generate C++ protocol and RPC data classes from XML definitions.")
@@ -361,11 +405,13 @@ def main():
 
     header_output_directory = os.path.join(args.outpath, "include")
     cpp_output_directory = os.path.join(args.outpath, "source")
+    state_output_directory = os.path.join(args.outpath, "state")
 
-    create_directories(header_output_directory, cpp_output_directory)
+    create_directories(header_output_directory, cpp_output_directory, state_output_directory)
     clean_old_files(args.xmlpath, header_output_directory, cpp_output_directory, args.force)
     parse_xml_files(args.xmlpath, header_output_directory, cpp_output_directory, args.force)
     generate_protocol_definitions(args.outpath)
+    parse_state(args.xmlpath, state_output_directory, args.force)
     print("Protocol definitions generated successfully.")
 
 if __name__ == "__main__":
