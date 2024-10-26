@@ -1,4 +1,5 @@
 #include "protocol.h"
+#include "bytes_order.h"
 #include "log.h"
 #include "marshal.h"
 #include "session.h"
@@ -35,14 +36,15 @@ void protocol::encode(octetsstream& os) const
     try
     {
         os << id;
-        size_t size_begin_pos = os.get_pos();
+        size_t size_begin_pos = os.size();
         os << size;
-        size_t begin_pos = os.get_pos();
+        size_t prev_size = os.size();
+        printf("os prev size:%zu\n", prev_size);
         pack(os);
-        size = os.get_pos() - begin_pos;
-        thread_local char sizebuf[32] = {0};
-        size_t n = snprintf(sizebuf, 32, "%zu", size);
-        os.data().replace(size_begin_pos, sizebuf, n);
+        printf("os after size:%zu\n", os.size());
+        size = bytes_order(os.size() - prev_size);
+        printf("id:%d encode size:%zu\n", id, os.size() - prev_size);
+        os.data().replace(size_begin_pos, (char*)(&size), sizeof(size));
     }
     catch(...)
     {
@@ -63,15 +65,16 @@ protocol* protocol::decode(octetsstream& os, session* ses)
             return nullptr;
         }
 
-        if(!check_policy(id, size, ses->get_manager()))
-        {
-            ERRORLOG("protocol check_policy failed, id=%d size=%zu.", id, size);
-            assert(false);
-        }
+        // if(!check_policy(id, size, ses->get_manager()))
+        // {
+        //     ERRORLOG("protocol check_policy failed, id=%d size=%zu.", id, size);
+        //     assert(false);
+        // }
 
         if(protocol* temp = get_protocol(id))
         {
             temp->unpack(os);
+            os >> octetsstream::COMMIT;
             return temp;
         }
     }

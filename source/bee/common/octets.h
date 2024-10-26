@@ -159,6 +159,7 @@ public:
     FORCE_INLINE char* end() const { return _buf + _len; }
     FORCE_INLINE char* data() const { return _buf; }
     FORCE_INLINE char* buf() const { return _buf; }
+    FORCE_INLINE char* peek(size_t pos) const { return _buf + pos; }
     FORCE_INLINE size_t size() const { return _len; }
     FORCE_INLINE size_t capacity() const { return _cap; }
     FORCE_INLINE size_t free_space() const { return _cap - _len; }

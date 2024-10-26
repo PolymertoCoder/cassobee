@@ -29,7 +29,7 @@ public:
         uint8_t old_writeidx = _writeidx.exchange(1 - _writeidx.load());
         auto& read_buf = _buffer[old_writeidx];
         func(read_buf);
-        printf("cc_changelist read _writeidx=%d size=%zu\n", _writeidx.load(), read_buf.size());
+        //printf("cc_changelist read _writeidx=%d size=%zu\n", _writeidx.load(), read_buf.size());
         read_buf.clear();
     }
 
@@ -40,7 +40,7 @@ public:
             cassobee::spinlock::scoped l(_locker);
             write_buf.insert(std::cend(write_buf), value_node{value, op});
         }
-        printf("cc_changelist write _writeidx=%d size=%zu\n", _writeidx.load(), write_buf.size());
+        //printf("cc_changelist write _writeidx=%d size=%zu\n", _writeidx.load(), write_buf.size());
     }
 
 private:

@@ -247,6 +247,7 @@ int streamio_event::handle_recv()
     {
         rbuffer.fast_resize(len);
         // 处理业务
+        printf("recv data:%s\n", std::string(rbuffer.end()-len, len).data());
         _ses->on_recv(len);
     }
     else if(len == 0)
@@ -275,6 +276,7 @@ int streamio_event::handle_send()
     int len = send(_fd, wbuffer.begin(), wbuffer.size(), 0);
     if(len > 0)
     {
+        printf("send data:%s\n", std::string(wbuffer.peek(0), len).data());
         wbuffer.erase(0, len);
         _ses->on_send(len);
         _ses->permit_recv();

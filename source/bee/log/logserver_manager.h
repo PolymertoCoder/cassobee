@@ -13,6 +13,8 @@ public:
     virtual void on_del_session(SID sid) override;
     bool send(const protocol& prot);
 
+    FORCE_INLINE bool is_connect() { return _localsid > 0; }
+
 private:
     SID _localsid = 0;
 };

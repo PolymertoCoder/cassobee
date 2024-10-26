@@ -5,4 +5,4 @@ rootpath=$(cd $(dirname $0) && cd ..; pwd)
 xml_directory=$rootpath/progen
 protocol_root_directory=$rootpath/source/protocol
 
-$rootpath/tools/protocol_tool/progen.py --xml $xml_directory --out $protocol_root_directory --force
+$rootpath/tools/protocol_tool/progen.py --xml $xml_directory --out $protocol_root_directory

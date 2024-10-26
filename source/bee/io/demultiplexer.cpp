@@ -75,7 +75,7 @@ int epoller::add_event(event* ev, int events)
         local_log("add_event failed %d, ret=%d epfd=%d", ev->get_handle(), ret, _epfd);
         return -3;
     }
-    printf("epoller::add_event success handle=%d events=%d\n", ev->get_handle(), events);
+    //printf("epoller::add_event success handle=%d events=%d\n", ev->get_handle(), events);
     return 0;
 }
 
@@ -102,14 +102,14 @@ void epoller::dispatch(reactor* base, int timeout)
     struct epoll_event events[EPOLL_ITEM_MAX];
     int nready = epoll_wait(_epfd, events, EPOLL_ITEM_MAX, timeout);
     _wakeup = true;
-    printf("epoller wakeup... timeout=%d nready=%d\n", timeout, nready);
+    //printf("epoller wakeup... timeout=%d nready=%d\n", timeout, nready);
 
     for(int i = 0; i < nready; i++)
     {
         event* ev = base->get_event(events[i].data.fd);
         if(ev == nullptr || ev->get_status() != EVENT_STATUS_ADD) continue;
 
-        printf("epoller dispatch event fd=%d events=%d\n", events[i].data.fd, events[i].events);
+        //printf("epoller dispatch event fd=%d events=%d\n", events[i].data.fd, events[i].events);
         if(events[i].events & EPOLLIN || events[i].events & EPOLLHUP)
         {
             if(_listenfds.contains(events[i].data.fd))
@@ -130,10 +130,10 @@ void epoller::dispatch(reactor* base, int timeout)
 
 void epoller::wakeup()
 {
-    printf("epoller::wakeup() begin _wakeup=%s\n", expr2boolstr(_wakeup));
+    //printf("epoller::wakeup() begin _wakeup=%s\n", expr2boolstr(_wakeup));
     if(_ctrl_event == nullptr || !_wakeup) return;
     _wakeup = false;
     this->add_event(_ctrl_event, EVENT_WAKEUP);
     write(_ctrl_event->_control_pipe[1], "\0", 1);
-    printf("epoller::wakeup() run success\n");
+    //printf("epoller::wakeup() run success\n");
 }

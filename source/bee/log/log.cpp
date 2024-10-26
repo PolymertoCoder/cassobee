@@ -83,7 +83,7 @@ void logclient::send(remotelog& remotelog)
         remotelog.run();
         return;
     }
-    if(_logserver)
+    if(_logserver && _logserver->is_connect())
     {
         _logserver->send(remotelog);
     }

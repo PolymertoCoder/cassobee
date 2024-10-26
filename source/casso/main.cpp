@@ -9,6 +9,7 @@
 #include "config.h"
 #include "marshal.h"
 #include "reactor.h"
+#include "remotelog.h"
 #include "stringfy.h"
 #include "address.h"
 #include "threadpool.h"
@@ -152,6 +153,14 @@ int main(int argc, char* argv[])
     // printf("empty:%d 1:%d, 5:%d\n", map.empty(), map[1], map[5]);
     // map.clear();
     // printf("empty:%d\n", map.empty());
+
+    octetsstream os;
+    cassobee::remotelog prot(123, {});
+    prot.logevent.set_all_fields();
+    prot.encode(os);
+    auto temp = protocol::decode(os, nullptr);
+    auto prot2 = dynamic_cast<cassobee::remotelog*>(temp);
+    printf("prot2 loglevel:%d\n", prot2->loglevel),
 
     looper->run();
     timer_thread.join();

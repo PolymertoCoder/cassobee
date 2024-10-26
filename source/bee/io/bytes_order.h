@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#include <cstring>
 #include <endian.h>
 #include <type_traits>
 
@@ -22,6 +21,7 @@ inline uint16_t bytes_order<uint16_t>(uint16_t value)
 {
     return htobe16(value);
 }
+
 template<>
 inline int32_t bytes_order<int32_t>(int32_t value)
 {

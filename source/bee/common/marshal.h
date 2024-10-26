@@ -4,7 +4,6 @@
 #include <type_traits>
 #include "concept.h"
 #include "octets.h"
-#include "traits.h"
 #include "types.h"
 #include "bytes_order.h"
 
@@ -59,7 +58,7 @@ public:
     FORCE_INLINE void try_shrink() { if(_pos > 0x100000) { _data.erase(0, _pos); } }
     FORCE_INLINE void clear() { _data.clear(); _pos = 0; _transpos = 0; }
 
-    FORCE_INLINE bool data_ready(size_t len) const { return _data.size() - _pos >= len; }
+    FORCE_INLINE bool data_ready(size_t len) const { return (_data.size() - _pos) >= len; }
     FORCE_INLINE size_t get_pos() const { return _pos; }
     FORCE_INLINE size_t size() const { return _data.size(); }
     FORCE_INLINE size_t capacity() const { return _data.capacity(); }
