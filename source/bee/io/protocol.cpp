@@ -39,11 +39,9 @@ void protocol::encode(octetsstream& os) const
         size_t size_begin_pos = os.size();
         os << size;
         size_t prev_size = os.size();
-        printf("os prev size:%zu\n", prev_size);
         pack(os);
-        printf("os after size:%zu\n", os.size());
-        size = bytes_order(os.size() - prev_size);
-        printf("id:%d encode size:%zu\n", id, os.size() - prev_size);
+        size = hostToNetwork(os.size() - prev_size);
+        //printf("id:%d encode size:%zu\n", id, os.size() - prev_size);
         os.data().replace(size_begin_pos, (char*)(&size), sizeof(size));
     }
     catch(...)
@@ -60,10 +58,11 @@ protocol* protocol::decode(octetsstream& os, session* ses)
         os >> octetsstream::BEGIN >> id >> size;
         if(!os.data_ready(size))
         {
-            DEBUGLOG("protocol decode, data not enough, continue wait... id=%d size=%zu.", id, size);
+            DEBUGLOG("protocol decode, data not enough, continue wait... id=%d size=%zu actual_size=%zu.", id, size, os.size());
             os >> octetsstream::ROLLBACK;
             return nullptr;
         }
+        //printf("id:%d decode size:%zu\n", id, size);
 
         // if(!check_policy(id, size, ses->get_manager()))
         // {

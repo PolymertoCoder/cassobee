@@ -4,7 +4,6 @@
 #include "demultiplexer.h"
 #include "log.h"
 #include "event.h"
-#include "macros.h"
 #include "reactor.h"
 #include "types.h"
 
@@ -102,7 +101,7 @@ void epoller::dispatch(reactor* base, int timeout)
     struct epoll_event events[EPOLL_ITEM_MAX];
     int nready = epoll_wait(_epfd, events, EPOLL_ITEM_MAX, timeout);
     _wakeup = true;
-    //printf("epoller wakeup... timeout=%d nready=%d\n", timeout, nready);
+    printf("epoller wakeup... timeout=%d nready=%d\n", timeout, nready);
 
     for(int i = 0; i < nready; i++)
     {
@@ -131,7 +130,7 @@ void epoller::dispatch(reactor* base, int timeout)
 void epoller::wakeup()
 {
     //printf("epoller::wakeup() begin _wakeup=%s\n", expr2boolstr(_wakeup));
-    if(_ctrl_event == nullptr || !_wakeup) return;
+    if(_ctrl_event == nullptr || _wakeup) return;
     _wakeup = false;
     this->add_event(_ctrl_event, EVENT_WAKEUP);
     write(_ctrl_event->_control_pipe[1], "\0", 1);

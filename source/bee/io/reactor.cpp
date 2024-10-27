@@ -150,7 +150,7 @@ int reactor::add_event_inner(event* ev)
             ERRORLOG("add_io_event error, ret=%d.", ret);
             return ret;
         }
-        TRACELOG("add_io_event handle=%d events=%d.", ev->get_handle(), events);
+        //TRACELOG("add_io_event handle=%d events=%d.", ev->get_handle(), events);
     }
     else if(events & EVENT_TIMER)
     {
@@ -159,12 +159,12 @@ int reactor::add_event_inner(event* ev)
         TIMETYPE expiretime = tm->_delay ? (nowtime + tm->_timeout) : nowtime;
         tm->_delay = true;
         _timer_events.insert(std::make_pair(expiretime, ev));
-        TRACELOG("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.", nowtime, tm->_delay, tm->_timeout, expiretime);
+        //TRACELOG("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.", nowtime, tm->_delay, tm->_timeout, expiretime);
     }
     else if(events & EVENT_SIGNAL)
     {
         _signal_events.emplace(ev->get_handle(), ev);
-        TRACELOG("add_signal_event signum=%d.", ev->get_handle());
+        //TRACELOG("add_signal_event signum=%d.", ev->get_handle());
     }
     else
     {

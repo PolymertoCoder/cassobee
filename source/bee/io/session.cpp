@@ -14,6 +14,8 @@ session::session(session_manager* manager)
 
     _readbuf.reserve(_manager->_read_buffer_size);
     _writebuf.reserve(_manager->_write_buffer_size);
+    _reados.reserve(_manager->_read_buffer_size);
+    _writeos.reserve(_manager->_write_buffer_size);
 }
 
 session::~session()
@@ -76,7 +78,11 @@ void session::on_recv(size_t len)
     printf("session::on_recv len=%zu.\n", len);
     TRACELOG("session::on_recv len=%zu.", len);
     set_state(SESSION_STATE_RECVING);
-    _reados << _readbuf;
+
+    size_t append_length = std::min(_readbuf.size(), _reados.data().free_space());
+    _reados.data().append(_readbuf, append_length);
+    _readbuf.erase(0, append_length);
+    TRACELOG("on_recv append size:%zu", append_length);
 
     while(protocol* prot = protocol::decode(_reados, this))
     {

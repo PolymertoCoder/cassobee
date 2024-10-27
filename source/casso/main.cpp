@@ -86,14 +86,19 @@ int main(int argc, char* argv[])
     add_timer(1500, [](){ WARNLOG("WARN=%d", 10);   return true; });
     add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
     add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
-    // while(true)
-    // {
-    //     threadpool::get_instance()->add_task(rand(0, 3), [](){ DEBUGLOG("DEBUG=%s", "多线程测试"); });
-    //     threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
-    //     threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
-    //     threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
-    //     usleep(1000);
-    // }
+
+    std::thread testlog_thread([]()
+    {
+        while(true)
+        {
+            threadpool::get_instance()->add_task(rand(0, 3), [](){ DEBUGLOG("DEBUG=%s", "多线程测试"); });
+            threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+            threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+            threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+            usleep(1000);
+        }
+    });
+    testlog_thread.detach();
 
     // std::vector<int> vec;
     // std::set<int> set;

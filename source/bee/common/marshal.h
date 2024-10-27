@@ -67,7 +67,7 @@ public:
     // 标准布局类型 push & pop
     template<typename T> requires std::is_trivial_v<T> octetsstream& push(const T& val)
     {
-        T temp = bytes_order(val);
+        T temp = hostToNetwork(val);
         _data.append((char*)&temp, sizeof(T));
         return *this;
     }
@@ -80,7 +80,7 @@ public:
             throw exception("no enough data!!!");
         }
         memcpy(&val, _data.begin() + _pos, len);
-        val = bytes_order(val);
+        val = networkToHost(val);
         _pos += len;
         return *this;
     }
@@ -150,6 +150,7 @@ public:
         size_t size = 0;
         pop(size);
         val.append(_data.begin() + _pos, size);
+        _pos += size;
         return *this;
     }
 

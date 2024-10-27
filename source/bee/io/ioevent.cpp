@@ -242,18 +242,21 @@ int streamio_event::handle_recv()
 
 #else //LT
     octets& rbuffer = _ses->rbuffer();
-    int len = recv(_fd, rbuffer.end(), rbuffer.free_space(), 0);
+    size_t free_space = rbuffer.free_space();
+    if(free_space == 0) return 0;
+
+    int len = recv(_fd, rbuffer.end(), free_space, 0);
     if(len > 0)
     {
         rbuffer.fast_resize(len);
         // 处理业务
-        printf("recv data:%s\n", std::string(rbuffer.end()-len, len).data());
+        TRACELOG("recv data:%s", std::string(rbuffer.end()-len, len).data());
         _ses->on_recv(len);
     }
     else if(len == 0)
     {
         TRACELOG("sockfd %d disconnected", _fd);
-        close(_fd);
+        //close(_fd);
     }
     else
     {
