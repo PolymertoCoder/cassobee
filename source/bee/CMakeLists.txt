@@ -35,7 +35,11 @@ target_include_directories(security
                            ${SOURCE_PATH}/protocol
                            ${SOURCE_PATH}/protocol/include
 )
-find_library(LIBCRYTOPP_PATH cryptopp ${THIRDPARTY_PATH}/cryptopp)
+find_library(LIBCRYTOPP_PATH
+             NAMES cryptopp
+             PATHS ${THIRDPARTY_PATH}/cryptopp
+             NO_DEFAULT_PATH
+)
 target_link_libraries(security ${LIBCRYTOPP_PATH})
 add_common_flags(security)
 
@@ -57,5 +61,5 @@ target_include_directories(bee
 
 set(LIBBEE_DEPEND_LIB log security)
 add_dependencies(bee ${LIBBEE_DEPEND_LIB})
-target_link_libraries(bee ${LIBBEE_DEPEND_LIB})
+target_link_libraries(bee ${LIBBEE_DEPEND_LIB} ${LIBREADLINE_PATH})
 add_common_flags(bee)

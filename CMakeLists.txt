@@ -29,6 +29,7 @@ set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_C_COMPILER "/usr/local/bin/clang")
 #set(CMAKE_CXX_COMPILER "/usr/local/bin/clang++")
 
+# enable include-what-you-use
 if(${CASSOBEE_IWYU_ENABLE})
     find_program(IWYU_BIN_PATH "include-what-you-use")
     if(IWYU_BIN_PATH)
@@ -40,6 +41,7 @@ endif()
 
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++23 -Wall -Wno-deprecated -Wno-unused-function -Wno-interference-size -D_REENTRANT")
 
+# debug or release
 if(${CMAKE_BUILD_TYPE} EQUAL Debug)
    add_compile_options(-O0 -ggdb -g)
 elif(${CMAKE_BUILD_TYPE} EQUAL Release)
@@ -48,6 +50,7 @@ endif()
 
 add_compile_options(-DCMAKE_CROSSCOMPILING=true)
 
+# enable ccache
 if(${CASSOBEE_CCACHE_ENABLE})
     find_program(CCACHE_PROGRAM ccache)
     if(CCACHE_PROGRAM)
@@ -57,6 +60,7 @@ if(${CASSOBEE_CCACHE_ENABLE})
     endif()
 endif()
 
+# generate protocol
 add_custom_target(
     generate_protocol ALL
     COMMAND pg
@@ -66,6 +70,19 @@ add_custom_target(
 
 add_subdirectory(source)
 
+# libtinyxml
 set(tinyxml2_BUILD_TESTING OFF)
 set(tinyxml2_SHARED_LIBS ${LIBRARY_OUTPUT_PATH})
 add_subdirectory(${THIRDPARTY_PATH}/tinyxml2)
+
+# libreadline
+find_library(LIBREADLINE_PATH
+             NAMES readline
+             PATHS ${THIRDPARTY_PATH}/readline/lib
+             NO_DEFAULT_PATH
+)
+if(LIBREADLINE_PATH)
+    message(STATUS "Found readline library: ${LIBREADLINE_PATH}")
+else()
+    message(FATAL_ERROR "Could not find the readline library")
+endif()

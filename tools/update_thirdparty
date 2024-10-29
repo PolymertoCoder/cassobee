@@ -11,4 +11,4 @@ git clone https://github.com/weidai11/cryptopp.git
 git clone https://github.com/leethomason/tinyxml2.git
 git clone https://github.com/mysql/mysql-connector-cpp.git
 git clone https://github.com/brendangregg/FlameGraph.git
-
+git clone https://github.com/gnu-mirror-unofficial/readline.git
