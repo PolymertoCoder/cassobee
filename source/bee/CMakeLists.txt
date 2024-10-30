@@ -18,8 +18,7 @@ target_include_directories(log
 add_common_flags(log)
 
 # libsecurity
-aux_source_directory(./security LIBSECURITY_SRC)
-file(GLOB LIBSECURITY_SRC ./security/*.cpp)
+file(GLOB LIBSECURITY_SRC ${SOURCE_PATH}/bee/security/*.cpp)
 message("libsecurity source: " ${LIBSECURITY_SRC})
 add_library(security SHARED ${LIBSECURITY_SRC})
 target_include_directories(security
@@ -43,6 +42,26 @@ find_library(LIBCRYTOPP_PATH
 target_link_libraries(security ${LIBCRYTOPP_PATH})
 add_common_flags(security)
 
+# libcli
+file(GLOB LIBCLI_SRC ${SOURCE_PATH}/bee/cli/*.cpp)
+message("libcli source: " ${LIBCLI_SRC})
+add_library(cli SHARED ${LIBCLI_SRC})
+target_include_directories(cli
+                           PUBLIC
+                           ${THIRDPARTY_PATH}/readline
+                           PRIVATE
+                           ${SOURCE_PATH}/bee/common
+                           ${SOURCE_PATH}/bee/io
+                           ${SOURCE_PATH}/bee/log
+                           ${SOURCE_PATH}/bee/traits
+                           ${SOURCE_PATH}/bee/utility
+                           ${SOURCE_PATH}/bee/thread
+                           ${SOURCE_PATH}/bee/cli
+                           ${SOURCE_PATH}/protocol
+                           ${SOURCE_PATH}/protocol/include
+)
+target_link_libraries(cli ${LIBREADLINE_PATH} ncurses)
+
 # libbee
 file(GLOB_RECURSE LIBBEE_SRC ${SOURCE_PATH}/bee/*.cpp)
 message("libbee source: " ${LIBBEE_SRC})
@@ -55,11 +74,12 @@ target_include_directories(bee
                            ${SOURCE_PATH}/bee/traits
                            ${SOURCE_PATH}/bee/utility
                            ${SOURCE_PATH}/bee/thread
+                           ${SOURCE_PATH}/bee/cli
                            ${SOURCE_PATH}/protocol
                            ${SOURCE_PATH}/protocol/include
 )
 
-set(LIBBEE_DEPEND_LIB log security)
+set(LIBBEE_DEPEND_LIB log security cli)
 add_dependencies(bee ${LIBBEE_DEPEND_LIB})
-target_link_libraries(bee ${LIBBEE_DEPEND_LIB} ${LIBREADLINE_PATH})
+target_link_libraries(bee ${LIBBEE_DEPEND_LIB})
 add_common_flags(bee)
