@@ -5,14 +5,14 @@
 #include "common.h"
 #include "readline.h"
 #include "history.h"
-#include "log.h"
 
 namespace cli
 {
 
 command_line::command_line()
 {
-
+    rl_attempted_completion_function = command_line::do_command_completion;
+    rl_attempted_completion_over = 1;
 }
 
 command_line::~command_line()
@@ -25,7 +25,7 @@ void command_line::run()
     int retcode = RETCODE::OK;
     while(retcode != RETCODE::QUIT)
     {
-        retcode = this->read_line();
+        retcode = this->readline();
         if(retcode == RETCODE::OK)
         {
             _greeting = "<";
@@ -43,9 +43,9 @@ void command_line::run()
     exit(0);
 }
 
-int command_line::read_line()
+int command_line::readline()
 {
-    char* buffer = readline(_greeting.data());
+    char* buffer = ::readline(_greeting.data());
     if(!buffer)
     {
         printf("\n");
@@ -93,6 +93,7 @@ int command_line::execute_file(const std::string& filename)
         if(result != RETCODE::OK) return result;
         printf("[%d]\n", counter++);
     }
+    return RETCODE::OK;
 }
 
 auto command_line::get_command(const std::string& command_name) -> cli::command*
@@ -101,7 +102,7 @@ auto command_line::get_command(const std::string& command_name) -> cli::command*
     return iter != _commands.end() ? iter->second : nullptr;
 }
 
-void command_line::register_command(const std::string& command_name, cli::command* command)
+void command_line::add_command(const std::string& command_name, cli::command* command)
 {
     remove_command(command_name);
     _commands.emplace(command_name, command);
@@ -119,6 +120,37 @@ void command_line::remove_command(const std::string& command_name)
 void command_line::process_errcode(int errcode)
 {
 
+}
+
+char* command_line::command_generator(const char* text, int state)
+{
+    thread_local std::vector<std::string> matches;
+    thread_local size_t match_index;
+
+    if(state == 0)
+    {
+        matches.clear();
+        std::string text_str(text);
+        for(const auto& [command_name, command] : get_instance()->_commands)
+        {
+            if(command_name.find(text_str) == 0)
+            {
+                matches.push_back(command_name);
+            }
+        }
+        match_index = 0;
+    }
+
+    if(match_index < matches.size())
+    {
+        return strdup(matches[match_index++].data());
+    }
+    return nullptr;
+}
+
+char** command_line::do_command_completion(const char* text, int start, int end)
+{
+    return rl_completion_matches(text, command_line::command_generator);
 }
 
 } // namespace cli

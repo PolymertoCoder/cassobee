@@ -20,7 +20,7 @@ public:
     command_line();
     ~command_line();
     void run();
-    int  read_line();
+    int  readline();
 
     // execute
     int execute_command(const std::string& cmd);
@@ -28,19 +28,22 @@ public:
 
     // mod command
     auto get_command(const std::string& command_name) -> cli::command*;
-    void register_command(const std::string& command_name, cli::command* command);
+    void add_command(const std::string& command_name, cli::command* command);
     void remove_command(const std::string& command_name);
 
     // completions
-    auto get_command_completions(const std::string& input) -> std::vector<std::string>;
-    auto get_param_completions(const std::string& command_name, const std::string& param) -> std::vector<std::string>;
+    auto get_command_completions(const std::string& input, std::vector<std::string>& completions);
+    auto get_param_completions(const std::string& command_name, const std::string& param, std::vector<std::string>& completions);
 
 private:
-    void process_errcode(int errcode);
+    static void process_errcode(int errcode);
+    static auto command_generator(const char* text, int state) -> char*;
+    static auto do_command_completion(const char* text, int start, int end) -> char**;
+    static auto do_param_completion();
 
 private:
     std::string _greeting;
-    std::map<std::string, cli::command*> _commands;
+    std::unordered_map<std::string, cli::command*> _commands;
 };
 
 #define REGISTER_CLI_COMMAND(command_name, command) \
