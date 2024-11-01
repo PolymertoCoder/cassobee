@@ -6,10 +6,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "ExampleProtocol.h"
+#include "app_commands.h"
+#include "command_line.h"
 #include "session_manager.h"
 
 int main()
 {
+#if 0
     int sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(sockfd < 0)
     {
@@ -55,6 +58,12 @@ int main()
     }
 
     close(sockfd);
+#elif 1
+
+    auto cmd = cli::command_line::get_instance();
+    //cmd->add_command("help", new cli::help_command);
+
+#endif
 
     return 0;
 }

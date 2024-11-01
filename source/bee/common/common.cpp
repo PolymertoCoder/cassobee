@@ -78,6 +78,24 @@ std::string format_string(const char* fmt, ...)
     return buf;
 }
 
+std::string ltrim(const std::string& str, const char c)
+{
+    std::string result = str;
+    result.erase(result.begin(), std::find_if(result.begin(), result.end(), [c](unsigned char ch) {
+        return ch != c;
+    }));
+    return result;
+}
+
+std::string rtrim(const std::string& str, const char c)
+{
+    std::string result = str;
+    result.erase(std::find_if(result.rbegin(), result.rend(), [c](unsigned char ch) {
+        return ch != c;
+    }).base(), result.end());
+    return result;
+}
+
 std::string trim(const std::string_view& str, const char c)
 {
     size_t begin = str.find_first_not_of(c);
@@ -101,4 +119,21 @@ std::vector<std::string> split(const std::string_view& str, const char* delim)
         token = strtok(NULL, delim);
     }
     return result;
+}
+
+bool startswith(const std::string& str, const std::string& prefix)
+{
+    if (prefix.size() > str.size()) {
+        return false;
+    }
+    return str.compare(0, prefix.size(), prefix) == 0;
+}
+
+// 判断字符串 str 是否以 suffix 结尾
+bool endswith(const std::string& str, const std::string& suffix)
+{
+    if (suffix.size() > str.size()) {
+        return false;
+    }
+    return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
