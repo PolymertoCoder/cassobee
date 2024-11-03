@@ -1,4 +1,5 @@
 #include "command.h"
+#include "app_commands.h"
 #include "command_line.h"
 #include "common.h"
 #include <strstream>
@@ -6,15 +7,27 @@
 namespace cli
 {
 
-command::command(const std::string& name, const std::string& description)
+command::command(const std::string& name, const std::string& description, bool init)
     : _name(name), _description(description)
 {
-
+    if(init)
+    {
+        init_default();
+    }
 }
 
 command::~command()
 {
+    for(auto& [_, subcommand] : _subcommands)
+    {
+        delete subcommand;
+    }
+    delete _parent;
+}
 
+void command::init_default()
+{
+    add_option("-h", "--help", new help_command("help", "Print usage information and exit."));
 }
 
 int command::execute(std::vector<std::string>& params)
@@ -97,7 +110,10 @@ int command::remove_option(const std::string& option_name)
     {
         delete iter->second;
         _options.erase(iter);
+        return OK;
     }
+    printf("Command %s remove option failed, option %s not found.\n", _name.data(), option_name.data());
+    return ERROR;
 }
 
 auto command::get_subcommand(const std::string& subcommand_name) -> cli::command*

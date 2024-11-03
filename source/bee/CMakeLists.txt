@@ -43,27 +43,13 @@ target_link_libraries(security ${LIBCRYTOPP_PATH})
 add_common_flags(security)
 
 # libcli
-file(GLOB LIBCLI_SRC ${SOURCE_PATH}/bee/cli/*.cpp)
-message("libcli source: " ${LIBCLI_SRC})
-add_library(cli SHARED ${LIBCLI_SRC})
-target_include_directories(cli
-                           PUBLIC
-                           ${THIRDPARTY_PATH}/readline
-                           PRIVATE
-                           ${SOURCE_PATH}/bee/common
-                           ${SOURCE_PATH}/bee/io
-                           ${SOURCE_PATH}/bee/log
-                           ${SOURCE_PATH}/bee/traits
-                           ${SOURCE_PATH}/bee/utility
-                           ${SOURCE_PATH}/bee/thread
-                           ${SOURCE_PATH}/bee/cli
-                           ${SOURCE_PATH}/protocol
-                           ${SOURCE_PATH}/protocol/include
-)
-target_link_libraries(cli ${LIBREADLINE_PATH} ncurses)
+add_subdirectory(cli)
 
 # libbee
 file(GLOB_RECURSE LIBBEE_SRC ${SOURCE_PATH}/bee/*.cpp)
+# 排除指定目录下的源文件
+file(GLOB_RECURSE LIBBEE_EXCLUSIVE_SRC ${SOURCE_PATH}/bee/cli/*.cpp)
+list(REMOVE_ITEM LIBBEE_SRC ${LIBBEE_EXCLUSIVE_SRC})
 message("libbee source: " ${LIBBEE_SRC})
 add_library(bee SHARED ${LIBBEE_SRC})
 target_include_directories(bee
@@ -74,12 +60,11 @@ target_include_directories(bee
                            ${SOURCE_PATH}/bee/traits
                            ${SOURCE_PATH}/bee/utility
                            ${SOURCE_PATH}/bee/thread
-                           ${SOURCE_PATH}/bee/cli
                            ${SOURCE_PATH}/protocol
                            ${SOURCE_PATH}/protocol/include
 )
 
-set(LIBBEE_DEPEND_LIB log security cli)
+set(LIBBEE_DEPEND_LIB log security)
 add_dependencies(bee ${LIBBEE_DEPEND_LIB})
 target_link_libraries(bee ${LIBBEE_DEPEND_LIB})
 add_common_flags(bee)

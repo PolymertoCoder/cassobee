@@ -61,7 +61,7 @@ int main()
 #elif 1
 
     auto cmd = cli::command_line::get_instance();
-    //cmd->add_command("help", new cli::help_command);
+    cmd->run();
 
 #endif
 

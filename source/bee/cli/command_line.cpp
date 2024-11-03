@@ -1,7 +1,9 @@
 #include <fstream>
 #include <readline/readline.h>
 #include <string>
+#include <unordered_map>
 #include "command_line.h"
+#include "app_commands.h"
 #include "errcode.h"
 #include "common.h"
 #include "readline.h"
@@ -14,11 +16,18 @@ command_line::command_line()
 {
     rl_attempted_completion_function = command_line::do_command_completion;
     rl_attempted_completion_over = 1;
+
+    add_command("quit", new exit_command("exit", "Enter \"q\" or \"quit\" for exit."), {"q", "Q", "quit", "QUIT"});
 }
 
 command_line::~command_line()
 {
-    
+    for(auto& [_, command] : _commands)
+    {
+        delete command;
+    }
+    _commands.clear();
+    _alias.clear();
 }
 
 void command_line::run()
@@ -29,11 +38,11 @@ void command_line::run()
         retcode = this->readline();
         if(retcode == OK)
         {
-            _greeting = "<";
+            _greeting = "< ";
         }
         else if(retcode == ERROR)
         {
-            _greeting = "!<";
+            _greeting = "!< ";
         }
         else
         {
@@ -103,7 +112,7 @@ auto command_line::get_command(const std::string& command_name) -> cli::command*
     return iter != _commands.end() ? iter->second : nullptr;
 }
 
-void command_line::add_command(const std::string& command_name, cli::command* command, const std::vector<std::string>& alias)
+int command_line::add_command(const std::string& command_name, cli::command* command, const std::vector<std::string>& alias)
 {
     auto [iter, inserted] = _commands.emplace(command_name, command);
     if(inserted)
@@ -117,16 +126,19 @@ void command_line::add_command(const std::string& command_name, cli::command* co
             else
             {
                 printf("Command %s alias %s is repeated.\n", command_name.data(), a.data());
+                return ERROR;
             }
         }
     }
     else
     {
         printf("Command %s already be registed.\n", command_name.data());
+        return ERROR;
     }
+    return OK;
 }
 
-void command_line::remove_command(const std::string& command_name)
+int command_line::remove_command(const std::string& command_name)
 {
     if(auto iter = _commands.find(command_name); iter != _commands.end())
     {
@@ -140,7 +152,9 @@ void command_line::remove_command(const std::string& command_name)
     else
     {
         printf("No need to remove command %s, command not found.\n", command_name.data());
+        return ERROR;
     }
+    return OK;
 }
 
 int command_line::add_alias(const std::string& command_name, const std::string& alias)
@@ -175,9 +189,43 @@ int command_line::remove_alias(const std::string& command_name, const std::strin
     return OK;
 }
 
-void command_line::get_command_completions(const std::string& input, std::vector<std::string>& completions)
+auto command_line::parse_command(const std::vector<std::string>& tokens, std::vector<std::string>& params, std::unordered_map<std::string, std::string>& options) -> const cli::command*
 {
-
+    const command* command  = nullptr;
+    const auto*    commands = &_commands;
+    for(size_t i = 0; i < tokens.size(); ++i)
+    {
+        const auto& token = tokens[i];
+        if(token[0] == '-')
+        {
+            if(i + 1 < token.size() && tokens[i + 1][0] != '-')
+            {
+                options[token] = token[++i];
+            }
+            else
+            {
+                options[token] = "";
+            }
+        }
+        else
+        {
+            auto name = token;
+            if(auto aiter = _alias.find(token); aiter != _alias.end())
+            {
+                name = aiter->second;
+            }
+            if(auto iter = commands->find(name); iter != commands->end())
+            {
+                command  = iter->second;
+                commands = &(command->_subcommands);
+            }
+            else
+            {
+                params.push_back(token);
+            }
+        }
+    }
+    return command;
 }
 
 void command_line::get_param_completions(const std::string& command_name, const std::string& param, std::vector<std::string>& completions)
@@ -200,7 +248,59 @@ char* command_line::command_generator(const char* text, int state)
     {
         matches.clear();
         std::string text_str(text);
-        for(const auto& [command_name, command] : get_instance()->_commands)
+
+        command_line* cmd = get_instance();
+        std::vector<std::string> tokens = split(rl_line_buffer);
+        std::vector<std::string> params;
+        std::unordered_map<std::string, std::string> options;
+        const auto* command = cmd->parse_command(tokens, params, options);
+
+        if(command)
+        {
+            if(params.empty())
+            {
+                // Command name completion
+                for(const auto& [subcommand_name, _] : command->_subcommands)
+                {
+                    if(startswith(subcommand_name, text_str))
+                    {
+                        matches.push_back(subcommand_name);
+                    }
+                }
+            }
+            else
+            {
+                // Command argument completion
+                for (const auto& [subcommand_name, _] : command->_subcommands)
+                {
+                    if(startswith(subcommand_name, params.back()))
+                    {
+                        matches.push_back(subcommand_name);
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Top-level command completion
+            for(const auto& [command_name, _] : cmd->_commands)
+            {
+                if(startswith(command_name, text_str))
+                {
+                    matches.push_back(command_name);
+                }
+            }
+             // Alias completion
+             for(const auto& [alias, _] : cmd->_alias)
+             {
+                if(startswith(alias, text_str))
+                {
+                    matches.push_back(alias);
+                }
+             }
+        }
+
+        for(const auto& [command_name, command] : cmd->_commands)
         {
             if(command_name.find(text_str) == 0)
             {

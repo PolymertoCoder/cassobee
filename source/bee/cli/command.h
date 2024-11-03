@@ -9,13 +9,15 @@
 
 namespace cli
 {
+class subcommand;
 
 class command
 {
 public:
-    command(const std::string& name, const std::string& description);
+    command(const std::string& name, const std::string& description, bool init = true);
     virtual ~command();
-    int  execute(std::vector<std::string>& params);
+    void init_default();
+    int execute(std::vector<std::string>& params);
 
     // option
     auto get_option(const std::string& option_name) -> command*;

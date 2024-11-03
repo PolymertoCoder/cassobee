@@ -72,7 +72,7 @@ std::string rtrim(const std::string& str, const char c);
 // 去掉字符串首尾的字符
 std::string trim(const std::string_view& str, const char c = ' ');
 // 按delim分割字符串
-std::vector<std::string> split(const std::string_view& str, const char* delim);
+std::vector<std::string> split(const std::string_view& str, const char* delim = " ");
 // 字符串是否以prefix开头
 bool startswith(const std::string& str, const std::string& prefix);
 // 字符串是否以suffix结尾

@@ -1,6 +1,7 @@
 #pragma once
 #include "command.h"
 #include "common.h"
+#include "types.h"
 #include <vector>
 #include <unordered_map>
 
@@ -21,17 +22,18 @@ public:
     int execute_command(const std::string& cmd);
     int execute_file(const std::string& filename);
 
-    // mod command
+    // command
+    auto get_commands() { return _commands; }
     auto get_command(const std::string& command_name) -> command*;
-    void add_command(const std::string& command_name, command* command, const std::vector<std::string>& alias = {});
-    void remove_command(const std::string& command_name);
+    int  add_command(const std::string& command_name, command* command, const std::vector<std::string>& alias = {});
+    int  remove_command(const std::string& command_name);
 
     // alias
-    int add_alias(const std::string& command_name, const std::string& alias);
-    int remove_alias(const std::string& command_name, const std::string& alias);
+    int  add_alias(const std::string& command_name, const std::string& alias);
+    int  remove_alias(const std::string& command_name, const std::string& alias);
 
     // completions
-    void get_command_completions(const std::string& input, std::vector<std::string>& completions);
+    auto parse_command(const std::vector<std::string>& tokens, std::vector<std::string>& params, std::unordered_map<std::string, std::string>& options) -> const cli::command*;
     void get_param_completions(const std::string& command_name, const std::string& param, std::vector<std::string>& completions);
 
 private:
