@@ -1,9 +1,27 @@
 #pragma once
 #include <functional>
+#include <sstream>
 #include "command.h"
 
 namespace cli
 {
+
+class global_help_command : public command
+{
+public:
+    global_help_command(const std::string& name, const std::string& description) : command(name, description, false) {}
+    virtual int do_execute(const std::vector<std::string>& params) override
+    {
+        std::ostringstream os;
+        os << "Usage:" << "\n";
+        for(const auto& [command_name, command] : command_line::get_instance()->get_commands())
+        {
+            os << "  " << command_name << " = " << command->get_description() << "\n";
+        }
+        printf("%s", os.str().data());
+        return OK;
+    }
+};
 
 class help_command : public command
 {

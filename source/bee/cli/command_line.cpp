@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <fstream>
 #include <readline/readline.h>
 #include <string>
@@ -14,10 +15,13 @@ namespace cli
 
 command_line::command_line()
 {
+    _greeting = "$ ";
+
     rl_attempted_completion_function = command_line::do_command_completion;
     rl_attempted_completion_over = 1;
 
-    add_command("quit", new exit_command("exit", "Enter \"q\" or \"quit\" for exit."), {"q", "Q", "quit", "QUIT"});
+    add_command("help", new global_help_command("help", "Enter \"help\" or \"h\" to print usage."), {"h"});
+    add_command("quit", new exit_command("exit", "Enter \"q\" or \"quit\" for exit."), {"q", "quit"});
 }
 
 command_line::~command_line()
@@ -38,19 +42,18 @@ void command_line::run()
         retcode = this->readline();
         if(retcode == OK)
         {
-            _greeting = "< ";
+            _greeting = "$ ";
         }
         else if(retcode == ERROR)
         {
-            _greeting = "!< ";
+            _greeting = "!$ ";
         }
         else
         {
+            _greeting = "!$ ";
             process_errcode(retcode);
         }
     }
-
-    exit(0);
 }
 
 int command_line::readline()
@@ -108,8 +111,19 @@ int command_line::execute_file(const std::string& filename)
 
 auto command_line::get_command(const std::string& command_name) -> cli::command*
 {
-    auto iter = _commands.find(command_name);
-    return iter != _commands.end() ? iter->second : nullptr;
+    auto name = command_name;
+    if(auto aiter = _alias.find(name); aiter != _alias.end())
+    {
+        name = aiter->second;
+    }
+    if(auto iter = _commands.find(name); iter != _commands.end())
+    {
+        return iter->second;
+    }
+    else
+    {
+        return nullptr;
+    }
 }
 
 int command_line::add_command(const std::string& command_name, cli::command* command, const std::vector<std::string>& alias)
@@ -140,7 +154,12 @@ int command_line::add_command(const std::string& command_name, cli::command* com
 
 int command_line::remove_command(const std::string& command_name)
 {
-    if(auto iter = _commands.find(command_name); iter != _commands.end())
+    auto name = command_name;
+    if(auto aiter = _alias.find(name); aiter != _alias.end())
+    {
+        name = aiter->second;
+    }
+    if(auto iter = _commands.find(name); iter != _commands.end())
     {
         for(const auto& alias : iter->second->_alias)
         {
@@ -148,27 +167,40 @@ int command_line::remove_command(const std::string& command_name)
         }
         delete iter->second;
         _commands.erase(iter);
+        return OK;
     }
     else
     {
         printf("No need to remove command %s, command not found.\n", command_name.data());
         return ERROR;
     }
-    return OK;
 }
 
 int command_line::add_alias(const std::string& command_name, const std::string& alias)
 {
-    if(auto iter = _commands.find(command_name); iter == _commands.end())
+    auto name = command_name;
+    if(auto aiter = _alias.find(name); aiter != _alias.end())
+    {
+        name = aiter->second;
+    }
+    if(auto iter = _commands.find(name); iter != _commands.end())
+    {
+        if(_alias.emplace(alias, command_name).second)
+        {
+            iter->second->add_alias(alias);
+            return OK;
+        }
+        else
+        {
+            printf("Add command alias failed, alias %s is registed.\n", alias.data());
+            return ERROR;
+        }
+    }
+    else
     {
         printf("Add command alias %s failed, command %s not found.\n", alias.data(), command_name.data());
         return ERROR;
     }
-    else if(_alias.emplace(alias, command_name).second)
-    {
-        iter->second->add_alias(alias);
-    }
-    return OK;
 }
 
 int command_line::remove_alias(const std::string& command_name, const std::string& alias)
@@ -198,7 +230,7 @@ auto command_line::parse_command(const std::vector<std::string>& tokens, std::ve
         const auto& token = tokens[i];
         if(token[0] == '-')
         {
-            if(i + 1 < token.size() && tokens[i + 1][0] != '-')
+            if(i + 1 < tokens.size() && tokens[i + 1][0] != '-')
             {
                 options[token] = token[++i];
             }
@@ -249,41 +281,81 @@ char* command_line::command_generator(const char* text, int state)
         matches.clear();
         std::string text_str(text);
 
-        command_line* cmd = get_instance();
-        std::vector<std::string> tokens = split(rl_line_buffer);
+        // Get the current input line and cursor position
+        std::string line(rl_line_buffer);
+        const size_t cursor_pos = rl_point;
+
+        command_line* cli = get_instance();
+        std::vector<std::string> tokens = split(line);
         std::vector<std::string> params;
         std::unordered_map<std::string, std::string> options;
-        const auto* command = cmd->parse_command(tokens, params, options);
+        const auto* command = cli->parse_command(tokens, params, options);
 
         if(command)
         {
-            if(params.empty())
+            size_t token_start = 0;
+            for(size_t i = 0; i < tokens.size(); ++i)
             {
-                // Command name completion
-                for(const auto& [subcommand_name, _] : command->_subcommands)
+                if(token_start + tokens[i].size() >= cursor_pos)
                 {
-                    if(startswith(subcommand_name, text_str))
+                    // We are in the middle of this token
+                    if(tokens[i][0] == '-')
                     {
-                        matches.push_back(subcommand_name);
+                        // Option completion
+                        for(const auto& [option_name, _] : command->_options)
+                        {
+                            if(startswith(option_name, text_str))
+                            {
+                                matches.push_back(option_name);
+                            }
+                        }
                     }
+                    else
+                    {
+                        // Argument or subcommand completion
+                        for(const auto& [subcommand_name, _]: command->_subcommands)
+                        {
+                            if(startswith(subcommand_name, text_str))
+                            {
+                                matches.push_back(subcommand_name);
+                            }
+                        }
+                    }
+                    break;
                 }
+                token_start += tokens[i].size() + 1; // +1 for the space
             }
-            else
+            if(matches.empty())
             {
-                // Command argument completion
-                for (const auto& [subcommand_name, _] : command->_subcommands)
-                {
-                    if(startswith(subcommand_name, params.back()))
-                    {
-                        matches.push_back(subcommand_name);
-                    }
-                }
+
             }
+            // if(params.empty())
+            // {
+            //     // Command name completion
+            //     for(const auto& [subcommand_name, _] : command->_subcommands)
+            //     {
+            //         if(startswith(subcommand_name, text_str))
+            //         {
+            //             matches.push_back(subcommand_name);
+            //         }
+            //     }
+            // }
+            // else
+            // {
+            //     // Command argument completion
+            //     for (const auto& [subcommand_name, _] : command->_subcommands)
+            //     {
+            //         if(startswith(subcommand_name, params.back()))
+            //         {
+            //             matches.push_back(subcommand_name);
+            //         }
+            //     }
+            // }
         }
         else
         {
             // Top-level command completion
-            for(const auto& [command_name, _] : cmd->_commands)
+            for(const auto& [command_name, _] : cli->_commands)
             {
                 if(startswith(command_name, text_str))
                 {
@@ -291,7 +363,7 @@ char* command_line::command_generator(const char* text, int state)
                 }
             }
              // Alias completion
-             for(const auto& [alias, _] : cmd->_alias)
+             for(const auto& [alias, _] : cli->_alias)
              {
                 if(startswith(alias, text_str))
                 {
@@ -300,13 +372,6 @@ char* command_line::command_generator(const char* text, int state)
              }
         }
 
-        for(const auto& [command_name, command] : cmd->_commands)
-        {
-            if(command_name.find(text_str) == 0)
-            {
-                matches.push_back(command_name);
-            }
-        }
         match_index = 0;
     }
 

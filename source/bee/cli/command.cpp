@@ -18,11 +18,9 @@ command::command(const std::string& name, const std::string& description, bool i
 
 command::~command()
 {
-    for(auto& [_, subcommand] : _subcommands)
-    {
-        delete subcommand;
-    }
     delete _parent;
+    _subcommands.clear();
+    _options.clear();
 }
 
 void command::init_default()
@@ -76,11 +74,12 @@ int command::execute(std::vector<std::string>& params)
 auto command::get_option(const std::string& option_name) -> cli::command*
 {
     auto iter = _options.find(option_name);
-    return iter != _options.end() ? iter->second : nullptr;
+    return iter != _options.end() ? iter->second.get() : nullptr;
 }
 
 int command::add_option(const std::string& short_name, const std::string& long_name, cli::command* option)
 {
+    std::shared_ptr<cli::command> opt(option);
     if(short_name.size() && !startswith(short_name, "-"))
     {
         printf("Command %s short name option %s failed, must starts with \'-\'.\n", _name.data(), short_name.data());
@@ -91,12 +90,12 @@ int command::add_option(const std::string& short_name, const std::string& long_n
         printf("Command %s long name option %s failed, must starts with \'--\'.\n", _name.data(), long_name.data());
         return ERROR;
     }
-    if(short_name.size() && !_options.emplace(short_name, option).second)
+    if(short_name.size() && !_options.emplace(short_name, opt).second)
     {
         printf("Command %s add short name option failed, option %s repeated.\n", _name.data(), short_name.data());
         return ERROR;
     }
-    if(long_name.size() && !_options.emplace(long_name, option).second)
+    if(long_name.size() && !_options.emplace(long_name, opt).second)
     {
         printf("Command %s add long name option failed, option %s repeated.\n", _name.data(), long_name.data());
         return ERROR;
@@ -108,7 +107,6 @@ int command::remove_option(const std::string& option_name)
 {
     if(auto iter = _options.find(option_name); iter != _options.end())
     {
-        delete iter->second;
         _options.erase(iter);
         return OK;
     }
@@ -139,7 +137,7 @@ void command::remove_subcommand(const std::string& subcommand_name)
 
 void command::print_help()
 {
-    std::ostrstream os;
+    std::ostringstream os;
     os << "Usage: " << _name << " [option][subcommand]\n";
     os << _description << "\n";
     if(_options.size())
@@ -166,6 +164,7 @@ void command::print_help()
             os << "  " << alias << "\n";
         }
     }
+    printf("%s", os.str().data());
 }
 
 void command::get_param_completions(const std::string& param, std::vector<std::string>& completions)

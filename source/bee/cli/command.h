@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <unordered_map>
+#include <memory>
 #include <vector>
 #include <set>
 #include "command_line.h"
@@ -49,7 +50,7 @@ protected:
     cli::command* _parent = nullptr;
     std::set<std::string> _alias;
     std::unordered_map<std::string, cli::command*> _subcommands;
-    std::unordered_map<std::string, cli::command*> _options;
+    std::unordered_map<std::string, std::shared_ptr<cli::command>> _options;
 };
 
 }; // namespace cli
