@@ -1,6 +1,6 @@
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
-#include <readline/readline.h>
 #include <string>
 #include <unordered_map>
 #include "command_line.h"
@@ -9,6 +9,7 @@
 #include "common.h"
 #include "readline.h"
 #include "history.h"
+#include "config.h"
 
 namespace cli
 {
@@ -22,6 +23,18 @@ command_line::command_line()
 
     add_command("help", new global_help_command("help", "Enter \"help\" or \"h\" to print usage."), {"h"});
     add_command("quit", new exit_command("exit", "Enter \"q\" or \"quit\" for exit."), {"q", "quit"});
+
+    auto current_path = std::filesystem::current_path();
+    for(const auto& entry : std::filesystem::recursive_directory_iterator(current_path))
+    {
+        if(entry.is_regular_file() && entry.path().filename() == ".cliinit")
+        {
+            printf("Found %s\n", entry.path().c_str());
+            execute_file(entry.path());
+        }
+    }
+
+    //auto cfg = config::get_instance();
 }
 
 command_line::~command_line()
@@ -150,6 +163,12 @@ int command_line::add_command(const std::string& command_name, cli::command* com
         return ERROR;
     }
     return OK;
+}
+
+template<typename... Args>
+int command_line::add_command(const std::string& command_name, std::function<int(Args...)> func, const std::string& name, const std::string& description, const std::vector<std::string>& alias)
+{
+    return add_command(command_name, new function_command<Args...>(func, name, description), alias);
 }
 
 int command_line::remove_command(const std::string& command_name)

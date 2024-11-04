@@ -2,6 +2,7 @@
 #include "app_commands.h"
 #include "command_line.h"
 #include "common.h"
+#include <memory>
 #include <strstream>
 
 namespace cli
@@ -32,27 +33,27 @@ int command::execute(std::vector<std::string>& params)
 {
     if(params.size())
     {
-        if(startswith(params[0], "-")) // short name option
+        if(startswith(params[0], "--")) // long name option
         {
-            if(auto* option = get_option(params[0].substr(1)))
+            if(auto* option = get_option(params[0]))
             {
                 return params.erase(params.begin()), option->execute(params);
             }
             else
             {
-                printf("Unknown options -%s.\n", params[0].data());
+                printf("Unknown options %s.\n", params[0].data());
                 return ERROR;
             }
         }
-        else if(startswith(params[0], "--")) // long name option
+        else if(startswith(params[0], "-")) // short name option
         {
-            if(auto* option = get_option(params[0].substr(2)))
+            if(auto* option = get_option(params[0]))
             {
                 return params.erase(params.begin()), option->execute(params);
             }
             else
             {
-                printf("Unknown options --%s.\n", params[0].data());
+                printf("Unknown options %s.\n", params[0].data());
                 return ERROR;
             }
         }
@@ -100,6 +101,7 @@ int command::add_option(const std::string& short_name, const std::string& long_n
         printf("Command %s add long name option failed, option %s repeated.\n", _name.data(), long_name.data());
         return ERROR;
     }
+    opt->_parent = this;
     return OK;
 }
 
@@ -107,6 +109,7 @@ int command::remove_option(const std::string& option_name)
 {
     if(auto iter = _options.find(option_name); iter != _options.end())
     {
+        iter->second->_parent = nullptr;
         _options.erase(iter);
         return OK;
     }
@@ -124,12 +127,14 @@ void command::add_subcommand(const std::string& subcommand_name, cli::command* s
 {
     remove_subcommand(subcommand_name);
     _subcommands.emplace(subcommand_name, subcommand);
+    subcommand->_parent = this;
 }
 
 void command::remove_subcommand(const std::string& subcommand_name)
 {
     if(auto iter = _subcommands.find(subcommand_name); iter != _subcommands.end())
     {
+        iter->second->_parent = nullptr;
         delete iter->second;
         _subcommands.erase(iter);
     }
@@ -145,7 +150,7 @@ void command::print_help()
         os << "Options:" << "\n";
         for(const auto& [option_name, option] : _options)
         {
-            os << "  " << option_name << "\t" << option->get_description() << "\n";
+            os << format_string("  %-8s = %s\n", option_name.data(), option->get_description().data());
         }
     }
     if(_subcommands.size())
@@ -153,7 +158,7 @@ void command::print_help()
         os << "Subcommand:" << "\n";
         for(const auto& [subcommand_name, subcommand] : _subcommands)
         {
-            os << "  " << subcommand_name << "\t" << subcommand->get_description() << "\n";
+            os << format_string("  %-8s = %s\n", subcommand_name.data(), subcommand->get_description().data());
         }
     }
     if(_alias.size())

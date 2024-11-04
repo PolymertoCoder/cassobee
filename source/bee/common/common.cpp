@@ -108,8 +108,9 @@ std::string trim(const std::string_view& str, const char c)
 
 std::vector<std::string> split(const std::string_view& str, const char* delim)
 {
-    thread_local char data[1024];
+    thread_local char data[1024*4];
     str.copy(data, sizeof(data));
+    data[str.size()] = '\0';
     std::vector<std::string> result;
 
     char* token = strtok(data, delim);
@@ -121,7 +122,7 @@ std::vector<std::string> split(const std::string_view& str, const char* delim)
     return result;
 }
 
-bool startswith(const std::string& str, const std::string& prefix)
+bool startswith(const std::string_view& str, const std::string_view& prefix)
 {
     if (prefix.size() > str.size()) {
         return false;
@@ -130,7 +131,7 @@ bool startswith(const std::string& str, const std::string& prefix)
 }
 
 // 判断字符串 str 是否以 suffix 结尾
-bool endswith(const std::string& str, const std::string& suffix)
+bool endswith(const std::string_view& str, const std::string_view& suffix)
 {
     if (suffix.size() > str.size()) {
         return false;

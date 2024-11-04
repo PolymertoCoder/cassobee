@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include "ExampleProtocol.h"
 #include "app_commands.h"
+#include "app_command.h"
 #include "command_line.h"
 #include "session_manager.h"
 
@@ -60,8 +61,10 @@ int main()
     close(sockfd);
 #elif 1
 
-    auto cmd = cli::command_line::get_instance();
-    cmd->run();
+    auto cli = cli::command_line::get_instance();
+    cli->add_command("config", new cli::config_command("config", "Load config"));
+    cli->add_command("connect", new cli::connect_command("connect", "Connect server"));
+    cli->run();
 
 #endif
 

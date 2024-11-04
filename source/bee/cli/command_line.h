@@ -1,7 +1,7 @@
 #pragma once
 #include "command.h"
 #include "common.h"
-#include "types.h"
+#include <functional>
 #include <vector>
 #include <unordered_map>
 
@@ -26,11 +26,13 @@ public:
     auto get_commands() { return _commands; }
     auto get_command(const std::string& command_name) -> command*;
     int  add_command(const std::string& command_name, command* command, const std::vector<std::string>& alias = {});
+    template<typename... Args>
+    int  add_command(const std::string& command_name, std::function<int(Args...)> func, const std::string& name, const std::string& description, const std::vector<std::string>& alias = {});
     int  remove_command(const std::string& command_name);
 
     // alias
-    int  add_alias(const std::string& command_name, const std::string& alias);
-    int  remove_alias(const std::string& command_name, const std::string& alias);
+    int add_alias(const std::string& command_name, const std::string& alias);
+    int remove_alias(const std::string& command_name, const std::string& alias);
 
     // completions
     auto parse_command(const std::vector<std::string>& tokens, std::vector<std::string>& params, std::unordered_map<std::string, std::string>& options) -> const cli::command*;

@@ -1,4 +1,5 @@
 #pragma once
+#include <format>
 #include <functional>
 #include <sstream>
 #include "command.h"
@@ -16,7 +17,7 @@ public:
         os << "Usage:" << "\n";
         for(const auto& [command_name, command] : command_line::get_instance()->get_commands())
         {
-            os << "  " << command_name << " = " << command->get_description() << "\n";
+            os << format_string("  %-8s = %s\n", command_name.data(), command->get_description().data());
         }
         printf("%s", os.str().data());
         return OK;
