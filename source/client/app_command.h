@@ -20,15 +20,17 @@ public:
         {
             if(params.empty())
             {
-                auto current_path = fs::current_path();
-
+                return config::get_instance()->reload() ? OK : ERROR;
             }
             else if(params.size() == 1)
             {
                 config::get_instance()->init(params[0].data());
                 return OK;
             }
-            return ERROR;
+            else
+            {
+                return ERR_TOO_MUCH_PARAMS_COUNT;
+            }
         }
     };
 public:
@@ -40,9 +42,10 @@ public:
     {
         if(params.empty())
         {
-            
-            //printf("Use default config file %s\n", );
-            //config::get_instance()->init();
+            auto root_path   = fs::current_path().parent_path();
+            auto config_file = root_path/"config"/"client.conf";
+            printf("Use default config file \"%s\" because not specify config file.", config_file.c_str());
+            config::get_instance()->init(config_file.c_str());
             return OK;
         }
         else if(params.size() == 1)
@@ -53,9 +56,8 @@ public:
         }
         else
         {
-            return ERROR;
+            return ERR_TOO_MUCH_PARAMS_COUNT;
         }
-        
     }
 };
 
