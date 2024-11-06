@@ -70,7 +70,7 @@ int reactor::run()
         }
         _dispatcher->dispatch(this, timeout);
         handle_timer_event();
-        printf("reactor::run end\n");
+        //local_log("reactor::run end\n");
     }
     return 0;
 }
@@ -147,7 +147,7 @@ int reactor::add_event_inner(event* ev)
         _io_events[ev->get_handle()] = ev;
         if(int ret = _dispatcher->add_event(ev, events))
         {
-            ERRORLOG("add_io_event error, ret=%d.", ret);
+            local_log("add_io_event error, ret=%d.", ret);
             return ret;
         }
         //TRACELOG("add_io_event handle=%d events=%d.", ev->get_handle(), events);
@@ -159,19 +159,19 @@ int reactor::add_event_inner(event* ev)
         TIMETYPE expiretime = tm->_delay ? (nowtime + tm->_timeout) : nowtime;
         tm->_delay = true;
         _timer_events.insert(std::make_pair(expiretime, ev));
-        //TRACELOG("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.", nowtime, tm->_delay, tm->_timeout, expiretime);
+        //local_log("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.", nowtime, tm->_delay, tm->_timeout, expiretime);
     }
     else if(events & EVENT_SIGNAL)
     {
         _signal_events.emplace(ev->get_handle(), ev);
-        //TRACELOG("add_signal_event signum=%d.", ev->get_handle());
+        //local_log("add_signal_event signum=%d.", ev->get_handle());
     }
     else
     {
         CHECK_BUG(false, ERRORLOG("reactor add_event unknown events:%d.", events); return -2);
     }
     ev->_base = this;
-    printf("reactor::add_event fd=%d events=%d\n", ev->get_handle(), events);
+    //local_log("reactor::add_event fd=%d events=%d\n", ev->get_handle(), events);
     return 0;
 }
 
@@ -187,15 +187,15 @@ void reactor::del_event_inner(event* ev)
         delete iter->second;
         _io_events.erase(iter);
     }
-    printf("reactor del_event fd=%d.\n", fd);
+    local_log("reactor del_event fd=%d.\n", fd);
 }
 
 bool reactor::handle_signal_event(int signum)
 {
-    DEBUGLOG("handle_signal_event run.");
+    local_log("handle_signal_event run.");
     if(auto iter = _signal_events.find(signum); iter != _signal_events.end())
     {
-        DEBUGLOG("handle_signal_event run inner.");
+        local_log("handle_signal_event run inner.");
         return iter->second->handle_event(EVENT_SIGNAL);
     }
     return true;

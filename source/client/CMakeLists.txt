@@ -1,6 +1,6 @@
 # client exe
 
-set(CLIENT_DEPEND_LIB bee security prot cli)
+set(CLIENT_DEPEND_LIB bee log security prot cli)
 
 add_executable(client client.cpp)
 add_dependencies(client ${CLIENT_DEPEND_LIB})

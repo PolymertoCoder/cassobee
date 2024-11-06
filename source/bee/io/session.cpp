@@ -75,14 +75,13 @@ void session::close()
 
 void session::on_recv(size_t len)
 {
-    printf("session::on_recv len=%zu.\n", len);
-    TRACELOG("session::on_recv len=%zu.", len);
+    //TRACELOG("session::on_recv len=%zu.", len);
     set_state(SESSION_STATE_RECVING);
 
     size_t append_length = std::min(_readbuf.size(), _reados.data().free_space());
     _reados.data().append(_readbuf, append_length);
     _readbuf.erase(0, append_length);
-    TRACELOG("on_recv append size:%zu", append_length);
+    //TRACELOG("on_recv append size:%zu", append_length);
 
     while(protocol* prot = protocol::decode(_reados, this))
     {
@@ -92,6 +91,7 @@ void session::on_recv(size_t len)
             delete prot;
         });
     }
+    _reados.try_shrink();
 }
 
 void session::on_send(size_t len)

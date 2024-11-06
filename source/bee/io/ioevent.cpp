@@ -162,7 +162,7 @@ bool activeio_event::handle_event(int active_events)
     evt->set_events(EVENT_SEND);
     evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
-    printf("activeio_event handle_event run fd=%d.\n", _fd);
+    //local_log("activeio_event handle_event run fd=%d.", _fd);
     return true;
 }
 
@@ -191,7 +191,7 @@ streamio_event::streamio_event(int fd, session* ses)
         exit(-1);
     }
     ses->open();
-    printf("streamio_event constructor run\n");
+    //local_log("streamio_event constructor run");
 }
 
 bool streamio_event::handle_event(int active_events)
@@ -200,13 +200,13 @@ bool streamio_event::handle_event(int active_events)
     {
         handle_recv();
         _ses->permit_send();
-        printf("streamio_event handle_event EVENT_RECV fd=%d\n", _fd);
+        local_log("streamio_event handle_event EVENT_RECV fd=%d", _fd);
     }
     else if(active_events & EVENT_SEND)
     {
         handle_send();
         _ses->permit_recv();
-        printf("streamio_event handle_event EVENT_SEND fd=%d\n", _fd);
+        local_log("streamio_event handle_event EVENT_SEND fd=%d", _fd);
     }
     return true;
 }
@@ -250,17 +250,17 @@ int streamio_event::handle_recv()
     {
         rbuffer.fast_resize(len);
         // 处理业务
-        TRACELOG("recv data:%s", std::string(rbuffer.end()-len, len).data());
+        //local_log("recv data:%s", std::string(rbuffer.end()-len, len).data());
         _ses->on_recv(len);
     }
     else if(len == 0)
     {
-        TRACELOG("sockfd %d disconnected", _fd);
+        local_log("sockfd %d disconnected", _fd);
         //close(_fd);
     }
     else
     {
-        TRACELOG("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
+        local_log("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
         close(_fd);
     }
     if(rbuffer.free_space() == 0)
@@ -279,7 +279,7 @@ int streamio_event::handle_send()
     int len = send(_fd, wbuffer.begin(), wbuffer.size(), 0);
     if(len > 0)
     {
-        printf("send data:%s\n", std::string(wbuffer.peek(0), len).data());
+        //local_log("send data:%s", std::string(wbuffer.peek(0), len).data());
         wbuffer.erase(0, len);
         _ses->on_send(len);
         _ses->permit_recv();

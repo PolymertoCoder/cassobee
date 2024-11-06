@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
             threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
             threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
             threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
-            usleep(1000);
+            usleep(100 * 1000);
         }
     });
     testlog_thread.detach();

@@ -5,10 +5,11 @@ set(LIBLOG_SRC ${LIBLOG_SRC}
 message("liblog source: " ${LIBLOG_SRC})
 add_library(log SHARED ${LIBLOG_SRC})
 target_include_directories(log
+                           PUBLIC
+                           ${SOURCE_PATH}/bee/log
                            PRIVATE
                            ${SOURCE_PATH}/bee/common
                            ${SOURCE_PATH}/bee/io
-                           ${SOURCE_PATH}/bee/log
                            ${SOURCE_PATH}/bee/traits
                            ${SOURCE_PATH}/bee/utility
                            ${SOURCE_PATH}/bee/thread
@@ -24,6 +25,7 @@ add_library(security SHARED ${LIBSECURITY_SRC})
 target_include_directories(security
                            PUBLIC
                            ${THIRDPARTY_PATH}/cryptopp
+                           ${SOURCE_PATH}/bee/security
                            PRIVATE
                            ${SOURCE_PATH}/bee/common
                            ${SOURCE_PATH}/bee/io

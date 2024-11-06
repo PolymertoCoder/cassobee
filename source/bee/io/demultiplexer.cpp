@@ -50,7 +50,7 @@ int epoller::add_event(event* ev, int events)
         //event.events |= (EPOLLET | EPOLLOUT);
         _ctrl_event = dynamic_cast<control_event*>(ev);
         CHECK_BUG(_ctrl_event, );
-        printf("add wakeup events\n");  
+        //printf("add wakeup events\n");  
     }
 
     int op;
@@ -101,7 +101,7 @@ void epoller::dispatch(reactor* base, int timeout)
     struct epoll_event events[EPOLL_ITEM_MAX];
     int nready = epoll_wait(_epfd, events, EPOLL_ITEM_MAX, timeout);
     _wakeup = true;
-    printf("epoller wakeup... timeout=%d nready=%d\n", timeout, nready);
+    //printf("epoller wakeup... timeout=%d nready=%d\n", timeout, nready);
 
     for(int i = 0; i < nready; i++)
     {

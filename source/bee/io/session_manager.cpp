@@ -105,14 +105,14 @@ void session_manager::add_session_nolock(SID sid, session* ses)
     ASSERT(!_sessions.contains(sid) && ses);
     _sessions.emplace(sid, ses);
     on_add_session(sid);
-    TRACELOG("session_manager add_session %lu.", sid);
+    local_log("session_manager add_session %lu.", sid);
 }
 
 void session_manager::del_session_nolock(SID sid)
 {
     _sessions.erase(sid);
     on_del_session(sid);
-    TRACELOG("session_manager del_session %lu.", sid);
+    local_log("session_manager del_session %lu.", sid);
 }
 
 session* session_manager::find_session_nolock(SID sid)
@@ -133,7 +133,7 @@ void session_manager::send_protocol(SID sid, const protocol& prot)
         octets& wbuffer = ses->wbuffer();
         if(os.size() > wbuffer.free_space())
         {
-            ERRORLOG("session_manager %s, session %lu sid wbuffer is full on sending protocol", identity(), sid);
+            local_log("session_manager %s, session %lu sid wbuffer is full on sending protocol", identity(), sid);
             return;
         }
 
@@ -142,7 +142,7 @@ void session_manager::send_protocol(SID sid, const protocol& prot)
     }
     else
     {
-        ERRORLOG("session_manager %s cant find session %lu on sending protocol", identity(), sid);
+        local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
     }
 }
 
@@ -156,7 +156,7 @@ void session_manager::send_octets(SID sid, const octets& oct)
     }
     else
     {
-        ERRORLOG("session_manager %s cant find session %lu on sending protocol", identity(), sid);
+        local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
     }
 }
 

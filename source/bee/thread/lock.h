@@ -49,6 +49,7 @@ typedef empty_lock mutex;
 typedef empty_lock rwlock;
 #else
 
+// 比较适合高竞争情景。低竞争场景下，可能会有额外的开销（如 pause 和 yield）
 class spinlock : public lock_support<spinlock>
 {
 public:

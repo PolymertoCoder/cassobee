@@ -46,19 +46,20 @@ void protocol::encode(octetsstream& os) const
     }
     catch(...)
     {
-        ERRORLOG("protocol decode failed, id=%d size=%zu.", id, size);
+        local_log("protocol decode failed, id=%d size=%zu.", id, size);
     }
 }
 
 protocol* protocol::decode(octetsstream& os, session* ses)
 {
+    if(!os.data_ready(1)) return nullptr;
     PROTOCOLID id = 0; size_t size = 0;
     try
     {
         os >> octetsstream::BEGIN >> id >> size;
         if(!os.data_ready(size))
         {
-            DEBUGLOG("protocol decode, data not enough, continue wait... id=%d size=%zu actual_size=%zu.", id, size, os.size());
+            local_log("protocol decode, data not enough, continue wait... id=%d size=%zu actual_size=%zu.", id, size, os.size());
             os >> octetsstream::ROLLBACK;
             return nullptr;
         }
@@ -66,25 +67,25 @@ protocol* protocol::decode(octetsstream& os, session* ses)
 
         // if(!check_policy(id, size, ses->get_manager()))
         // {
-        //     ERRORLOG("protocol check_policy failed, id=%d size=%zu.", id, size);
+        //     local_log("protocol check_policy failed, id=%d size=%zu.", id, size);
         //     assert(false);
         // }
 
         if(protocol* temp = get_protocol(id))
         {
             temp->unpack(os);
-            os >> octetsstream::COMMIT;
             return temp;
         }
     }
     catch(octetsstream::exception& e)
     {
         os >> octetsstream::ROLLBACK;
-        ERRORLOG("protocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
+        local_log("protocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
     }
     catch(...)
     {
-        ERRORLOG("protocol decode failed, id=%d size=%zu.", id, size);
+        os >> octetsstream::ROLLBACK;
+        local_log("protocol decode failed, id=%d size=%zu.", id, size);
     }
     return nullptr;
 }

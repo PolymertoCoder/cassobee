@@ -24,6 +24,11 @@ public:
             }
             else if(params.size() == 1)
             {
+                if(!fs::exists(params[0].data()))
+                {
+                    printf("Config file %s not found.\n", params[0].data());
+                    return ERROR;
+                }
                 config::get_instance()->init(params[0].data());
                 return OK;
             }
@@ -44,12 +49,22 @@ public:
         {
             auto root_path   = fs::current_path().parent_path();
             auto config_file = root_path/"config"/"client.conf";
-            printf("Use default config file \"%s\" because not specify config file.", config_file.c_str());
+            if(!fs::exists(config_file))
+            {
+                printf("Config file %s not found.\n", config_file.c_str());
+                return ERROR;
+            }
+            printf("Use default config file \"%s\" because not specify config file.\n", config_file.c_str());
             config::get_instance()->init(config_file.c_str());
             return OK;
         }
         else if(params.size() == 1)
         {
+            if(!fs::exists(params[0].data()))
+            {
+                printf("Config file %s not found.\n", params[0].data());
+                return ERROR;
+            }
             printf("Use config file %s\n", params[0].data());
             config::get_instance()->init(params[0].data());
             return OK;

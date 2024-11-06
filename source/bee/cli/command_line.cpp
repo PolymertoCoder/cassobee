@@ -33,8 +33,6 @@ command_line::command_line()
             execute_file(entry.path());
         }
     }
-
-    //auto cfg = config::get_instance();
 }
 
 command_line::~command_line()
