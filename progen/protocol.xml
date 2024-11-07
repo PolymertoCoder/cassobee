@@ -2,4 +2,9 @@
     <state name="log">
         <protocol name="remotelog"/>
     </state>
+
+    <state name="clientserver">
+        <protocol name="c2s_user_login"/>
+        <protocol name="s2c_user_login_re"/>
+    </state>
 </application>

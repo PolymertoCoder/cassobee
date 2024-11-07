@@ -5,7 +5,7 @@
 #include "lock.h"
 #include "macros.h"
 
-#define USE_ATOMIC_FLAG_LOCK 0
+#define USE_ATOMIC_FLAG_LOCK 1
 
 namespace cassobee
 {
@@ -28,45 +28,36 @@ public:
 
     void read(const read_callback& func)
     {
-        // 尝试设置锁标志
-    #if USE_ATOMIC_FLAG_LOCK
-        while(_locker.test_and_set(std::memory_order_acquire));
-    #else
-        cassobee::spinlock::scoped l(_locker);
-    #endif
-        uint8_t old_writeidx = _writeidx.exchange(1 - _writeidx.load(std::memory_order_acquire), std::memory_order_acq_rel);
+        uint8_t old_writeidx;
+        {
+            lock_guard l(_locker);
+            old_writeidx = _writeidx;
+            _writeidx = 1 - _writeidx;
+            std::atomic_thread_fence(std::memory_order_release);
+        }
+        std::atomic_thread_fence(std::memory_order_acquire);
         auto& read_buf = _buffer[old_writeidx];
         func(read_buf);
-        //printf("cc_changelist read _readidx=%d read size=%zu\n", old_writeidx, read_buf.size());
+        printf("cc_changelist read _readidx=%d read size=%zu\n", old_writeidx, read_buf.size());
         read_buf.clear();
-        // 清除锁标志
-    #if USE_ATOMIC_FLAG_LOCK
-        _locker.clear(std::memory_order_release);
-    #endif
     }
 
     void write(const value_type& value, Operation op)
     {
-    #if USE_ATOMIC_FLAG_LOCK
-        // 尝试设置锁标志
-        while(_locker.test_and_set(std::memory_order_acquire));
-    #else
-        cassobee::spinlock::scoped l(_locker);
-    #endif
-        auto& write_buf = _buffer[_writeidx.load(std::memory_order_acquire)];
+        lock_guard l(_locker);
+        auto& write_buf = _buffer[_writeidx];
         write_buf.insert(std::cend(write_buf), value_node{value, op});
-        //printf("cc_changelist write _writeidx=%d write size=%zu\n", _writeidx.load(std::memory_order_acquire), write_buf.size());
-    #if USE_ATOMIC_FLAG_LOCK
-        // 清除锁标志
-        _locker.clear(std::memory_order_release);
-    #endif
+        std::atomic_thread_fence(std::memory_order_release);
+        printf("cc_changelist write _writeidx=%d write size=%zu\n", _writeidx, write_buf.size());
     }
 
 private:
-    std::atomic<uint8_t> _writeidx = 0;
+    uint8_t _writeidx = 0;
 #if USE_ATOMIC_FLAG_LOCK
-    std::atomic_flag _locker = ATOMIC_FLAG_INIT; // 原子标志用于锁定
+    using lock_guard = cassobee::atomic_spinlock::scoped;
+    cassobee::atomic_spinlock _locker;
 #else
+    using lock_guard = cassobee::spinlock::scoped;
     cassobee::spinlock _locker;
 #endif
     list_type _buffer[2];

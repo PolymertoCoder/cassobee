@@ -85,6 +85,26 @@ private:
     std::atomic_bool _atomic = false;
 };
 
+class atomic_spinlock : public lock_support<atomic_spinlock>
+{
+public:
+    void lock()
+    {
+        while(_flag.test_and_set(std::memory_order_acquire)); 
+    }
+    bool try_lock()
+    {
+        return !_flag.test_and_set(std::memory_order_acquire);
+    }
+    void unlock()
+    {
+         _flag.clear(std::memory_order_release); 
+    }
+
+private:
+    std::atomic_flag _flag = false;
+};
+
 class mutex : public lock_support<mutex>
 {
 public:

@@ -2,6 +2,7 @@
 
 #include "address.h"
 #include "ioevent.h"
+#include "lock.h"
 #include "log.h"
 #include "marshal.h"
 #include "reactor.h"
@@ -130,6 +131,7 @@ void session_manager::send_protocol(SID sid, const protocol& prot)
         os.clear();
         prot.encode(os);
 
+        cassobee::rwlock::wrscoped sesl(ses->_locker);
         octets& wbuffer = ses->wbuffer();
         if(os.size() > wbuffer.free_space())
         {
@@ -151,7 +153,14 @@ void session_manager::send_octets(SID sid, const octets& oct)
     cassobee::rwlock::rdscoped l(_locker);
     if(session* ses = find_session_nolock(sid))
     {
-        ses->wbuffer().append(oct.data(), oct.size());
+        cassobee::rwlock::wrscoped sesl(ses->_locker);
+        octets& wbuffer = ses->wbuffer();
+        if(oct.size() > wbuffer.free_space())
+        {
+            local_log("session_manager %s, session %lu sid wbuffer is full on sending protocol", identity(), sid);
+            return;
+        }
+        wbuffer.append(oct.data(), oct.size());
         ses->permit_send();
     }
     else

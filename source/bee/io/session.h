@@ -55,12 +55,14 @@ public:
     FORCE_INLINE void set_event(event* ev) { _event = ev; }
 
 private:
+    friend session_manager;
     SID _sid = 0;
     int _sockfd = 0;
     uint8_t _state = SESSION_STATE_NONE;
     address* _peer = nullptr;
     session_manager* _manager;
 
+    cassobee::rwlock _locker;
     event* _event = nullptr;
     octets _readbuf;
     octets _writebuf;
