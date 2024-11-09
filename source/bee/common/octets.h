@@ -29,7 +29,8 @@ public:
     }
     octets(const char* data)
     {
-        create(data, sizeof(data), sizeof(data));
+        size_t len = std::strlen(data);
+        create(data, len, len);
     }
     octets(const char* begin, const char* end)
     {
@@ -69,15 +70,18 @@ public:
 
     octets& operator=(const char* rhs)
     {
-        create(rhs, sizeof(rhs), sizeof(rhs));
+        size_t len = std::strlen(rhs);
+        create(rhs, len, len);
         return *this;
     }
     octets& operator=(const std::string& rhs)
     {
+        create(rhs.data(), rhs.size(), rhs.size());
         return *this;
     }
     octets& operator=(const std::string_view& rhs)
     {
+        create(rhs.data(), rhs.size(), rhs.size());
         return *this;
     }
     octets& operator=(const octets& rhs)
@@ -122,9 +126,10 @@ public:
     {
         pos = std::min(_len, pos);
         reserve(_len + len);
-        memmove(_buf + pos + len, _buf + pos, len);
+        memmove(_buf + pos + len, _buf + pos, _len - pos);
         memcpy(_buf + pos, data, len);
         _len += len;
+        printf("insert\n");
     }
     void append(const char* data, size_t len)
     {
@@ -132,27 +137,32 @@ public:
         reserve(_len + len);
         memcpy(_buf + _len, data, len);
         _len += len;
+        printf("append\n");
     }
     void replace(size_t pos, const char* data, size_t len)
     {
         if(len == 0) return;
+        ASSERT(_len - pos >= len);
         len = std::min(_len - pos, len); // 不改变长度
         reserve(pos + len);
         memcpy(_buf + pos, data, len);
         _len = std::max(_len, pos + len);
+        printf("replace\n");
     }
     void erase(size_t pos, size_t len)
     {
         pos = std::min(_len, pos);
         len = std::min(_len - pos, len);
-        memmove(_buf, _buf + len, _len - len);
+        memmove(_buf + pos, _buf + pos + len, _len - pos - len);
         _len -= len;
+        printf("erase\n");
     }
     void reserve(size_t cap)
     {
         //printf("reserve: newcap=%zu oldcap=%zu\n", cap, _cap);
         if(_cap >= cap) return;
         create(_buf, _len, frob_size(cap));
+        printf("reserve\n");
     }
 
     FORCE_INLINE char* begin() const { return _buf; }

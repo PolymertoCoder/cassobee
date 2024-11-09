@@ -75,13 +75,13 @@ void session::close()
 
 void session::on_recv(size_t len)
 {
-    //TRACELOG("session::on_recv len=%zu.", len);
+    local_log("session::on_recv len=%zu, _readbuf size:%zu _reados size:%zu.", len, _readbuf.size(), _reados.size());
     set_state(SESSION_STATE_RECVING);
 
     size_t append_length = std::min(_readbuf.size(), _reados.data().free_space());
     _reados.data().append(_readbuf, append_length);
     _readbuf.erase(0, append_length);
-    //TRACELOG("on_recv append size:%zu", append_length);
+    local_log("on_recv append size:%zu, _readbuf size:%zu _reados size:%zu.", append_length, _readbuf.size(), _reados.size());
 
     while(protocol* prot = protocol::decode(_reados, this))
     {

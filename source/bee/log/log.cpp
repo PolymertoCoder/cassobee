@@ -39,6 +39,7 @@ void logclient::glog(LOG_LEVEL level, const char* filename, int line, int thread
     g_remotelog.logevent.set_fiberid(0);
     g_remotelog.logevent.set_elapse(std::to_string(get_process_elapse()));
     g_remotelog.logevent.set_content(content);
+    printf("code=%d\n", g_logevent.code);
     send(g_remotelog);
 }
 
@@ -58,6 +59,7 @@ void logclient::console_log(LOG_LEVEL level, const char* filename, int line, int
     g_logevent.set_fiberid(0);
     g_logevent.set_elapse(std::to_string(get_process_elapse()));
     g_logevent.set_content(content);
+    printf("code=%d\n", g_logevent.code);
     _console_logger->log(level, g_logevent);
 }
 

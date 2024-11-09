@@ -96,7 +96,12 @@ public:
     {
         size_t size = 0;
         pop(size);
+        if(_pos + size > _data.size())
+        {
+            throw exception("no enougn data!!!");
+        }
         val.append(_data.begin() + _pos, size);
+        _pos += size;
         return *this;
     }
 
@@ -142,6 +147,7 @@ public:
     {
         push(val.size());
         _data.append(val.data(), val.size());
+        printf("push %s size:%zu\n", val.data(), val.size());
         return *this;
     }
 
@@ -149,8 +155,13 @@ public:
     {
         size_t size = 0;
         pop(size);
+        if(_pos + size > _data.size())
+        {
+            throw exception("no enough data!!!");
+        }
         val.append(_data.begin() + _pos, size);
         _pos += size;
+        printf("pop %s size:%zu\n", val.data(), size);
         return *this;
     }
 

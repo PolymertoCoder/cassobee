@@ -41,8 +41,9 @@ void protocol::encode(octetsstream& os) const
         size_t prev_size = os.size();
         pack(os);
         size = hostToNetwork(os.size() - prev_size);
-        //printf("id:%d encode size:%zu\n", id, os.size() - prev_size);
+        local_log("id:%d encode size:%zu", id, os.size() - prev_size);
         os.data().replace(size_begin_pos, (char*)(&size), sizeof(size));
+        //ASSERT((12 + os.size() - prev_size) == (prev_size - ) );
     }
     catch(...)
     {
@@ -63,13 +64,13 @@ protocol* protocol::decode(octetsstream& os, session* ses)
             os >> octetsstream::ROLLBACK;
             return nullptr;
         }
-        //printf("id:%d decode size:%zu\n", id, size);
+        local_log("id:%d decode size:%zu", id, size);
 
-        // if(!check_policy(id, size, ses->get_manager()))
-        // {
-        //     local_log("protocol check_policy failed, id=%d size=%zu.", id, size);
-        //     assert(false);
-        // }
+        if(!check_policy(id, size, ses->get_manager()))
+        {
+            local_log("protocol check_policy failed, id=%d size=%zu.", id, size);
+            ASSERT(false);
+        }
 
         if(protocol* temp = get_protocol(id))
         {
@@ -79,13 +80,12 @@ protocol* protocol::decode(octetsstream& os, session* ses)
     }
     catch(octetsstream::exception& e)
     {
-        os >> octetsstream::ROLLBACK;
         local_log("protocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
     }
     catch(...)
     {
-        os >> octetsstream::ROLLBACK;
         local_log("protocol decode failed, id=%d size=%zu.", id, size);
     }
+    os >> octetsstream::ROLLBACK;
     return nullptr;
 }

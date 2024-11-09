@@ -93,13 +93,15 @@ int main(int argc, char* argv[])
         {
             threadpool::get_instance()->add_task(rand(0, 3), [](){ DEBUGLOG("DEBUG=%s", "多线程测试"); });
             threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
-            threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
-            threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+            threadpool::get_instance()->add_task(rand(0, 3), [](){ WARNLOG("WARN=%s", "多线程测试"); });
+            threadpool::get_instance()->add_task(rand(0, 3), [](){ ERRORLOG("ERROR=%s", "多线程测试"); });
             //printf("testlog_thread \n");
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     });
     testlog_thread.detach();
+
+    // add_timer(1000, [](){ static int i = 0; DEBUGLOG("DEBUG=%d", i++); return true; });
 
     // std::vector<int> vec;
     // std::set<int> set;
@@ -160,13 +162,13 @@ int main(int argc, char* argv[])
     // map.clear();
     // printf("empty:%d\n", map.empty());
 
-    octetsstream os;
-    cassobee::remotelog prot(123, {});
-    prot.logevent.set_all_fields();
-    prot.encode(os);
-    auto temp = protocol::decode(os, nullptr);
-    auto prot2 = dynamic_cast<cassobee::remotelog*>(temp);
-    printf("prot2 loglevel:%d\n", prot2->loglevel),
+    // octetsstream os;
+    // cassobee::remotelog prot(123, {});
+    // prot.logevent.set_all_fields();
+    // prot.encode(os);
+    // auto temp = protocol::decode(os, nullptr);
+    // auto prot2 = dynamic_cast<cassobee::remotelog*>(temp);
+    // printf("prot2 loglevel:%d\n", prot2->loglevel),
 
     looper->run();
     timer_thread.join();
