@@ -37,7 +37,6 @@ thread_group::thread_group(size_t maxsize, size_t threadcnt)
                 try
                 {
                     task();
-                    //printf("thread run task end\n");
                 }
                 catch(...)
                 {
