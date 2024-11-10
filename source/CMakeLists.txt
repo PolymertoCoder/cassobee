@@ -13,6 +13,12 @@ function(add_common_flags target)
     if(${CASSOBEE_SENITIZE_ENABLE})
         add_sanitize_flag(${target})
     endif()
+
+    if(${CASSOBEE_CLANG_TIDY_ENABLE})
+        # Ensure run_clang_tidy and check_clang_tidy are run before building any target
+        add_dependencies(${target} run_clang_tidy)
+        add_clang_tidy_pre_build(${target})
+    endif()
 endfunction()
 
 function(gen_startup_script target)

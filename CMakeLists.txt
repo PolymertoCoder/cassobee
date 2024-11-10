@@ -19,6 +19,7 @@ option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" OFF)
 option(CASSOBEE_IWYU_ENABLE "enable include-what-you-use" OFF)
 option(CASSOBEE_SENITIZE_ENABLE "enable google senitizer" ON)
 option(CASSOBEE_CCACHE_ENABLE "enable ccache" ON)
+option(CASSOBEE_CLANG_TIDY_ENABLE "enable clang-tidy" OFF)
 
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
@@ -28,16 +29,6 @@ set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_CXX_COMPILER "/usr/local/bin/g++")
 #set(CMAKE_C_COMPILER "/usr/local/bin/clang")
 #set(CMAKE_CXX_COMPILER "/usr/local/bin/clang++")
-
-# enable include-what-you-use
-if(${CASSOBEE_IWYU_ENABLE})
-    find_program(IWYU_BIN_PATH "include-what-you-use")
-    if(IWYU_BIN_PATH)
-        set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE '${IWYU_BIN_PATH};-Xiwyu;--transitive_includes_only;')
-    else()
-        message(FATAL_ERROR "Cound not found include-what-you-use.")
-    endif()
-endif()
 
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++23 -Wall -Wno-deprecated -Wno-unused-function -Wno-interference-size -D_REENTRANT")
 
@@ -50,6 +41,16 @@ endif()
 
 add_compile_options(-DCMAKE_CROSSCOMPILING=true)
 
+# enable include-what-you-use
+if(${CASSOBEE_IWYU_ENABLE})
+    find_program(IWYU_BIN_PATH "include-what-you-use")
+    if(IWYU_BIN_PATH)
+        set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE '${IWYU_BIN_PATH};-Xiwyu;--transitive_includes_only;')
+    else()
+        message(FATAL_ERROR "Cound not found include-what-you-use.")
+    endif()
+endif()
+
 # enable ccache
 if(${CASSOBEE_CCACHE_ENABLE})
     find_program(CCACHE_PROGRAM ccache)
@@ -57,6 +58,41 @@ if(${CASSOBEE_CCACHE_ENABLE})
         message("Find ccache path: ${CCACHE_PROGRAM}")
         set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
         set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    endif()
+endif()
+
+# enable clang-tidy
+# Clang-tidy custom targets for running and checking results
+add_custom_target(run_clang_tidy
+    COMMAND clang-tidy -p ${CMAKE_BINARY_DIR} --warnings-as-errors=* ${ALL_CPP_FILES} || ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/clang_tidy_failed
+    COMMENT "Running clang-tidy"
+    VERBATIM
+)
+
+add_custom_target(check_clang_tidy
+    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/clang_tidy_failed
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target run_clang_tidy
+    COMMENT "Checking clang-tidy results"
+    VERBATIM
+)
+
+# Function to add Clang-Tidy pre-build check
+function(add_clang_tidy_pre_build target)
+    add_custom_command(TARGET ${target} PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "Running Clang-Tidy pre-build check for ${target}"
+        COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/clang_tidy_failed
+        COMMAND /bin/bash -c "if [ -f ${CMAKE_BINARY_DIR}/clang_tidy_failed ]; then echo 'Stopping build due to Clang-tidy errors.'; exit 1; else echo 'No Clang-tidy issues found. Continuing build.'; fi"
+        COMMENT "Checking for Clang-tidy issues before building ${target}"
+        VERBATIM
+    )
+endfunction()
+
+if(${CASSOBEE_CLANG_TIDY_ENABLE})
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+    if(CLANG_TIDY_EXE)
+        message("Find clang-tidy exe: ${CLANG_TIDY_EXE}")
+    else()
+        message(FATAL_ERROR "Could not find the clang-tidy exe")
     endif()
 endif()
 
