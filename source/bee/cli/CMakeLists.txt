@@ -5,6 +5,7 @@ add_library(cli SHARED ${LIBCLI_SRC})
 target_include_directories(cli
                            PUBLIC
                            ${THIRDPARTY_PATH}/readline
+                           ${THIRDLIB_OUTPUT_PATH}/readline/include
                            ${SOURCE_PATH}/bee/cli
                            PRIVATE
                            ${SOURCE_PATH}/bee/common

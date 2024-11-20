@@ -36,7 +36,7 @@ target_include_directories(security
                            ${SOURCE_PATH}/protocol
                            ${SOURCE_PATH}/protocol/include
 )
-find_library(LIBCRYTOPP_PATH
+find_library(LIBCRYPTOPP_PATH
              NAMES cryptopp
              PATHS ${THIRDPARTY_PATH}/cryptopp
              NO_DEFAULT_PATH

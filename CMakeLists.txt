@@ -9,6 +9,7 @@ set(SOURCE_PATH             ${CASSOBEE_ROOT_PATH}/source)
 set(THIRDPARTY_PATH         ${CASSOBEE_ROOT_PATH}/thirdparty)
 set(EXECUTABLE_OUTPUT_PATH  ${CASSOBEE_ROOT_PATH}/debug)
 set(DEBUG_PATH              ${CASSOBEE_ROOT_PATH}/debug)
+set(THIRDLIB_OUTPUT_PATH    ${CASSOBEE_ROOT_PATH}/debug)
 set(LIBRARY_OUTPUT_PATH     ${CASSOBEE_ROOT_PATH}/debug/libs)
 set(BINARY_PATH             ${CASSOBEE_ROOT_PATH}/bin)
 set(TOOLS_PATH              ${CASSOBEE_ROOT_PATH}/tools)
@@ -114,7 +115,7 @@ add_subdirectory(${THIRDPARTY_PATH}/tinyxml2)
 # libreadline
 find_library(LIBREADLINE_PATH
              NAMES readline
-             PATHS ${THIRDPARTY_PATH}/readline/lib
+             PATHS ${THIRDLIB_OUTPUT_PATH}/readline/lib
              NO_DEFAULT_PATH
 )
 if(LIBREADLINE_PATH)
