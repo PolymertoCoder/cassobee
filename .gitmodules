@@ -1,0 +1,31 @@
+[submodule "thirdparty/benchmark"]
+	path = thirdparty/benchmark
+	url = https://github.com/google/benchmark.git
+
+[submodule "thirdparty/include-what-you-use"]
+	path = thirdparty/include-what-you-use
+	url = https://github.com/include-what-you-use/include-what-you-use.git
+
+[submodule "thirdparty/cryptopp"]
+	path = thirdparty/cryptopp
+	url = https://github.com/weidai11/cryptopp.git
+
+[submodule "thirdparty/tinyxml2"]
+    path = thirdparty/tinyxml2
+    url = https://github.com/leethomason/tinyxml2.git
+
+[submodule "thirdparty/mysql-connector-cpp"]
+    path = thirdparty/mysql-connector-cpp
+    url = https://github.com/mysql/mysql-connector-cpp.git
+
+[submodule "thirdparty/mysql-connector-cpp"]
+    path = thirdparty/mysql-connector-cpp
+    url = https://github.com/mysql/mysql-connector-cpp.git
+
+[submodule "thirdparty/FlameGraph"]
+	path = thirdparty/FlameGraph
+	url = https://github.com/brendangregg/FlameGraph.git
+
+[submodule "thirdparty/readline"]
+	path = thirdparty/readline
+	url = https://github.com/gnu-mirror-unofficial/readline.git
