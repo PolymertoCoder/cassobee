@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+  echo "错误：当前目录不是一个 Git 仓库。"
+  exit 1
+fi
+
+# echo "未提交的更改："
+# git diff --cached
+# echo
+
+# echo "未暂存的更改："
+# git diff
+# echo
+
+# echo "未跟踪的文件："
+# git ls-files --others --exclude-standard
+# echo
+
+echo "当前仓库状态："
+git status

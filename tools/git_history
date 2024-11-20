@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# 检查是否在 Git 仓库中
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+  echo "错误：当前目录不是一个 Git 仓库。"
+  exit 1
+fi
+
+# 显示提交记录
+# echo "Git 提交记录："
+# git log --pretty=format:"%h - %an, %ar : %s"
+
+# 详细显示每个提交的修改
+echo
+echo "详细的修改记录："
+git log --stat

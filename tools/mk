@@ -5,6 +5,8 @@ rootpath=$(cd $(dirname $0) && cd ..; pwd)
 outputfile=$rootpath/debug/cassobee.log
 configpath=$rootpath/config
 
+mkdir $rootpath/build
+
 cd $rootpath/build && cmake .. && make -j8
 
 echo use $outputfile as output file.
