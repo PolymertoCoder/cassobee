@@ -15,7 +15,7 @@ cd build || { echo "Failed to cd to build directory"; exit 1; }
 mkdir -p ${debugpath}/readline
 
 # 配置 readline 库
-../configure --prefix=${debugpath}/readline --enable-static --disable-shared || { echo "Configure failed"; exit 1; }
+../configure --prefix=${debugpath}/readline --enable-static --disable-shared CFLAGS="-fPIC" || { echo "Configure failed"; exit 1; }
 
 # 清理之前的构建文件
 make clean
@@ -30,4 +30,6 @@ echo "Readline library has been successfully built and installed to ${debugpath}
 
 cd ${debugpath}/libs
 
-ln -s ${debugpath}/readline/*.a
+for static_lib in ${debugpath}/readline/lib/*.a; do
+    ln -sf ${static_lib}
+done

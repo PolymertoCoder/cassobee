@@ -1,7 +1,10 @@
 # liblog
 file(GLOB LIBLOG_SRC ${SOURCE_PATH}/bee/log/*.cpp)
 set(LIBLOG_SRC ${LIBLOG_SRC}
-               ${PROTOCOL_PATH}/state/state_log.cpp)
+               ${PROTOCOL_PATH}/state/state_log.cpp
+               ${PROTOCOL_PATH}/source/log_event.cpp
+               ${PROTOCOL_PATH}/source/remotelog.cpp
+)
 message("liblog source: " ${LIBLOG_SRC})
 add_library(log SHARED ${LIBLOG_SRC})
 target_include_directories(log
@@ -36,12 +39,7 @@ target_include_directories(security
                            ${SOURCE_PATH}/protocol
                            ${SOURCE_PATH}/protocol/include
 )
-find_library(LIBCRYPTOPP_PATH
-             NAMES cryptopp
-             PATHS ${THIRDPARTY_PATH}/cryptopp
-             NO_DEFAULT_PATH
-)
-target_link_libraries(security ${LIBCRYTOPP_PATH})
+target_link_libraries(security ${LIBCRYPTOPP_PATH})
 add_common_flags(security)
 
 # libcli
@@ -50,8 +48,9 @@ add_subdirectory(cli)
 # libbee
 file(GLOB_RECURSE LIBBEE_SRC ${SOURCE_PATH}/bee/*.cpp)
 # 排除指定目录下的源文件
-file(GLOB_RECURSE LIBBEE_EXCLUSIVE_SRC ${SOURCE_PATH}/bee/cli/*.cpp)
-list(REMOVE_ITEM LIBBEE_SRC ${LIBBEE_EXCLUSIVE_SRC})
+list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/log/.*")
+list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/security/.*")
+list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/cli/.*")
 message("libbee source: " ${LIBBEE_SRC})
 add_library(bee SHARED ${LIBBEE_SRC})
 target_include_directories(bee

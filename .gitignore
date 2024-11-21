@@ -1,5 +1,6 @@
 /build/
 /bin/
 /debug/
+/thirdparty/
 /.cache/*
 /source/protocol/

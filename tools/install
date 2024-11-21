@@ -4,7 +4,10 @@ rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
 echo ${rootpath}
 
+mkdir ${rootpath}/bin
+
 echo export PATH=$PATH:${rootpath}/tools          > ~/.cassobee_config
+echo export PATH=$PATH:${rootpath}/build_tool	  > ~/.cassobee_config
 echo ''                                          >> ~/.cassobee_config
 echo alias ca=\"cd ${rootpath}\"                 >> ~/.cassobee_config
 echo alias tt=\"cd ${rootpath}/tools\"           >> ~/.cassobee_config
@@ -16,7 +19,7 @@ echo alias pp=\"cd ${rootpath}/progen\"          >> ~/.cassobee_config
 echo alias trace=\"cd ${rootpath}/debug/logdir\" >> ~/.cassobee_config
 echo alias third=\"cd ${rootpath}/thirdparty\"   >> ~/.cassobee_config
 
-setup_pretty_printer
+sh ./build_tool/setup_pretty_printer.sh
 
 if ! grep -Fxq "source ~/.cassobee_config" ~/.bash_profile; then
     echo 'source ~/.cassobee_config' >> ~/.bash_profile

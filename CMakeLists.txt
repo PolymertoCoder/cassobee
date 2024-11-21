@@ -16,7 +16,7 @@ set(TOOLS_PATH              ${CASSOBEE_ROOT_PATH}/tools)
 set(PROTOCOL_PATH           ${CASSOBEE_ROOT_PATH}/source/protocol)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" OFF)
+option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" ON)
 option(CASSOBEE_IWYU_ENABLE "enable include-what-you-use" OFF)
 option(CASSOBEE_SENITIZE_ENABLE "enable google senitizer" ON)
 option(CASSOBEE_CCACHE_ENABLE "enable ccache" ON)
@@ -115,11 +115,23 @@ add_subdirectory(${THIRDPARTY_PATH}/tinyxml2)
 # libreadline
 find_library(LIBREADLINE_PATH
              NAMES readline
-             PATHS ${THIRDLIB_OUTPUT_PATH}/readline/lib
+             PATHS ${LIBRARY_OUTPUT_PATH}
              NO_DEFAULT_PATH
 )
 if(LIBREADLINE_PATH)
     message(STATUS "Found readline library: ${LIBREADLINE_PATH}")
 else()
     message(FATAL_ERROR "Could not find the readline library")
+endif()
+
+# libcryptopp
+find_library(LIBCRYPTOPP_PATH
+             NAMES cryptopp
+             PATHS ${LIBRARY_OUTPUT_PATH}
+             NO_DEFAULT_PATH
+)
+if(LIBCRYPTOPP_PATH)
+    message(STATUS "Found cryptopp library: ${LIBCRYPTOPP_PATH}")
+else()
+    message(FATAL_ERROR "Could not find the cryptopp library")
 endif()

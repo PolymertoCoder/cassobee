@@ -40,5 +40,7 @@ if __name__ == "__main__":
         output_filename = f"{target}.log"
         options += (f"> {os.path.join(output_path, output_filename)} 2>&1 & ")
     
+    if not os.path.exists(script_path):
+        os.makedirs(script_path)
     generate_run_script(executable_path, script_path, target, options)
     generate_gdb_run_script(executable_path, script_path, target, gdbrun_options)
