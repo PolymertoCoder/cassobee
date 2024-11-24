@@ -13,21 +13,30 @@
 
 // TODO 线程本地任务
 
+using TASK_QUEUE = std::deque<std::function<void()>>;
+
+inline thread_local TASK_QUEUE _essential_task_queue;
+
+class threadpool;
+
 class thread_group
 {
 public:
-    using TASK_QUEUE = std::deque<std::function<void()>>;
-    thread_group(size_t maxsize, size_t threadcnt);
+    
+    thread_group(size_t idx, size_t maxsize, size_t threadcnt);
     ~thread_group();
     void add_task(const std::function<void()>& task);
+    bool has_task() const { return !_essential_task_queue.empty() || !_task_queue.empty(); }
+    void steal_task(int beginidx, std::function<void()>& task);
     bool wait_for_all_done(TIMETYPE millsecond);
 
 private:
+    const size_t _idx       = 0;
     const size_t _maxsize   = 0;
     const size_t _threadcnt = 0;
 
-    std::atomic_bool _stop;
-    std::atomic_int _busy;
+    std::atomic_bool _stop = true;
+    std::atomic_int _busy = 0;
     std::mutex _queue_lock;
     std::condition_variable _cond;
     std::vector<std::thread*> _threads;
@@ -42,13 +51,12 @@ public:
     void stop();
 
     void add_task(int groupidx, const std::function<void()>& task);
-
-private:
-    threadpool(const threadpool&) = delete;
-    threadpool(threadpool&&) = delete;
-    threadpool& operator=(const threadpool&) = delete;
-    threadpool& operator=(const threadpool&&) = delete;
+    void add_essential_task(const std::function<void()>& task);
+    bool is_steal() { return _is_steal; }
     
 private:
+    friend thread_group;
+    std::atomic_bool _stop = true;
+    std::atomic_bool _is_steal = false;
     std::vector<thread_group*> _groups;
 };

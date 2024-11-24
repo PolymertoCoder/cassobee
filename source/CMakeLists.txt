@@ -46,6 +46,7 @@ file(GLOB LIBPROT_SRC ${SOURCE_PATH}/protocol/source/*.cpp)
 add_library(prot SHARED ${LIBPROT_SRC})
 set(LIBPROT_DEPEND_LIB bee)
 add_dependencies(prot ${LIBPROT_DEPEND_LIB})
+add_dependencies(prot generate_protocol)
 target_link_libraries(prot ${LIBPROT_DEPEND_LIB})
 target_include_directories(prot PUBLIC ./protocol/include)
 

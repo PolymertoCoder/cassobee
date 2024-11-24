@@ -31,7 +31,9 @@ protected:
     singleton_support() = default;
     ~singleton_support() = default;
     singleton_support(const singleton_support&) = delete;
+    singleton_support(const singleton_support&&) = delete;
     singleton_support& operator=(const singleton_support&) = delete;
+    singleton_support& operator=(const singleton_support&&) = delete;
 };
 
 template<typename lock_type>

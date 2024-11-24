@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <atomic>
 #include <bits/chrono.h>
 #include <stdexcept>
 #include <string>
@@ -8,8 +9,8 @@
 #include "config.h"
 #include "log.h"
 
-thread_group::thread_group(size_t maxsize, size_t threadcnt)
-    : _maxsize(maxsize), _threadcnt(threadcnt)
+thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
+    : _idx(idx), _maxsize(maxsize), _threadcnt(threadcnt)
 {
     _threads.resize(threadcnt);
     _stop = false;
@@ -20,17 +21,38 @@ thread_group::thread_group(size_t maxsize, size_t threadcnt)
             while(true)
             {
                 std::function<void()> task;
+                std::unique_lock<std::mutex> l(_queue_lock);
+                while(!has_task()) // 循环判断条件是否满足，避免cond的假唤醒，增加程序的健壮性
                 {
-                    std::unique_lock<std::mutex> l(_queue_lock);
-                    while(this->_task_queue.empty()) // 循环判断条件是否满足，避免cond的假唤醒，增加程序的健壮性
+                    if(this->_stop.load(std::memory_order_acquire)) return;
+
+                    if(threadpool::get_instance()->is_steal())
                     {
-                        if(this->_stop) return;
-                        this->_cond.wait(l, [this]{ return this->_stop || !this->_task_queue.empty(); });
+                        l.unlock();
+                        steal_task((int)_idx, task);
+                        if(task) break;
+                        l.lock();
                     }
 
-                    // 从任务队列里取任务
-                    task.swap(this->_task_queue.front());
-                    this->_task_queue.pop_front();
+                    this->_cond.wait(l, [this]
+                    {
+                        return this->_stop.load(std::memory_order_acquire) || has_task();
+                    });
+                }
+
+                // 从任务队列里取任务
+                if(!task)
+                {
+                    if(!_essential_task_queue.empty())
+                    {
+                        task.swap(_essential_task_queue.front());
+                        _essential_task_queue.pop_front();
+                    }
+                    else if(!this->_task_queue.empty())
+                    {
+                        task.swap(this->_task_queue.front());
+                        this->_task_queue.pop_front();
+                    }
                 }
 
                 ++_busy;
@@ -40,14 +62,13 @@ thread_group::thread_group(size_t maxsize, size_t threadcnt)
                 }
                 catch(...)
                 {
-                    --_busy;
                     local_log("thread_task run throw exception!!!");
                 }
                 --_busy;
 
                 {
                     std::lock_guard<std::mutex> l(this->_queue_lock);
-                    if(_busy == 0 && _task_queue.empty())
+                    if(_busy == 0 && !has_task())
                     {
                         this->_cond.notify_all(); // 这里只是为了去通知wait_for_all_done
                     }
@@ -61,7 +82,7 @@ thread_group::~thread_group()
 {
     {
         std::lock_guard<std::mutex> lock(_queue_lock);
-        _stop = true;
+        _stop.store(true, std::memory_order_release);
     }
     _cond.notify_all();
     for(size_t i = 0 ; i < _threadcnt; ++i)
@@ -81,30 +102,52 @@ void thread_group::add_task(const std::function<void()>& task)
     {
         throw std::runtime_error("task_queue is full!!!");
     }
-    if(_stop){ throw std::runtime_error("add task to a stopped thread group."); }
+    if(_stop.load(std::memory_order_acquire))
+    {
+        throw std::runtime_error("add task to a stopped thread group.");
+    }
    _task_queue.push_back(task);
    _cond.notify_one();
+}
+
+void thread_group::steal_task(int beginidx, std::function<void()>& task)
+{
+    const auto& groups = threadpool::get_instance()->_groups;
+    for(auto i = beginidx; i < groups.size(); ++i)
+    {
+        if(groups[i] != this)
+        {
+            std::unique_lock<std::mutex> l(groups[i]->_queue_lock, std::try_to_lock);
+            if(l.owns_lock() && !groups[i]->_task_queue.empty())
+            {
+                task = groups[i]->_task_queue.back();
+                groups[i]->_task_queue.pop_back();
+                local_log("thread group %d steal group %d task success.", (int)_idx, (int)groups[i]->_idx);
+                return;
+            }
+        }
+    }
 }
 
 bool thread_group::wait_for_all_done(TIMETYPE millsecond)
 {
     std::unique_lock<std::mutex> l(this->_queue_lock);
-
-    if(_task_queue.empty()){ return true; }
+    if(!has_task()){ return true; }
     if(millsecond <= 0)
     {
-        _cond.wait(l, [this](){ return this->_task_queue.empty(); });
+        _cond.wait(l, [this](){ return !has_task(); });
         return true;
     }
     else
     {
-        return this->_cond.wait_for(l, std::chrono::milliseconds(millsecond), [this]{ return this->_task_queue.empty(); });
+        return this->_cond.wait_for(l, std::chrono::milliseconds(millsecond), [this]{ return !has_task(); });
     }
 }
 
 void threadpool::start()
 {
-    std::string str = config::get_instance()->get("threadpool", "groups");
+    auto cfg = config::get_instance();
+    std::string str = cfg->get("threadpool", "groups");
     std::vector<std::pair<int, int>> groups;
 
     std::vector<std::string> result = split(str, "(,) ");
@@ -120,7 +163,7 @@ void threadpool::start()
         const auto& [maxsize, threadcnt] = groups[i];
         if(_groups[i] == nullptr)
         {
-            _groups[i] = new thread_group(maxsize, threadcnt);
+            _groups[i] = new thread_group(i, threadcnt, maxsize);
             local_log("thread group %d run %d threads, task queue maxsize:%d.", (int)i, threadcnt, maxsize);
         }
         else
@@ -128,10 +171,13 @@ void threadpool::start()
             local_log("thread group %d already start.", (int)i);
         }
     }
+    _is_steal = cfg->get("threadpool", "steal", false);
+    _stop.store(false, std::memory_order_release);
 }
 
 void threadpool::stop()
 {
+    _stop.store(true, std::memory_order_release);
     for(auto group : _groups)
     {
         if(group && group->wait_for_all_done(0))
@@ -145,6 +191,21 @@ void threadpool::stop()
 
 void threadpool::add_task(int groupidx, const std::function<void()>& task)
 {
-    assert(groupidx >= 0 && groupidx < (int)_groups.size());
+    if(_stop.load(std::memory_order_acquire))
+    {
+        local_log("threadpool is stopped, add_task failed.");
+        return;
+    }
+    ASSERT(groupidx >= 0 && groupidx < static_cast<int>(_groups.size()));
     _groups[groupidx]->add_task(task);
+}
+
+void threadpool::add_essential_task(const std::function<void()>& task)
+{
+    if(_stop.load(std::memory_order_acquire))
+    {
+        local_log("threadpool is stopped, add_essential_task failed.");
+        return;
+    }
+    _essential_task_queue.push_back(task);
 }

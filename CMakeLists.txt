@@ -59,6 +59,8 @@ if(${CASSOBEE_CCACHE_ENABLE})
         message("Find ccache path: ${CCACHE_PROGRAM}")
         set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
         set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    else()
+    message(FATAL_ERROR "Cound not found ccache.")
     endif()
 endif()
 
