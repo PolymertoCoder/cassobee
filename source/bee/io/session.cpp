@@ -115,6 +115,7 @@ void session::permit_recv()
     if(_event->is_close() || (_event->get_events() & EVENT_RECV)) return;
     _event->_events |= EVENT_RECV;
     reactor::get_instance()->add_event(_event);
+    local_log("session %s permit_recv.", _peer->to_string().data());
 }
 
 void session::permit_send()
@@ -122,18 +123,21 @@ void session::permit_send()
     if(_event->is_close() || (_event->get_events() & EVENT_SEND)) return;
     _event->_events |= EVENT_SEND;
     reactor::get_instance()->add_event(_event);
+    local_log("session %s permit_send.", _peer->to_string().data());
 }
 
 void session::forbid_recv()
 {
     if(_event->is_close() || !(_event->get_events() & EVENT_RECV)) return;
-    _event->_events &= ~EVENT_RECV;
+    _event->_events &= (~EVENT_RECV);
     reactor::get_instance()->add_event(_event);
+    local_log("session %s forbid_recv.", _peer->to_string().data());
 }
 
 void session::forbid_send()
 {
     if(_event->is_close() || !(_event->get_events() & EVENT_SEND)) return;
-    _event->_events &= ~EVENT_SEND;
+    _event->_events &= (~EVENT_SEND);
     reactor::get_instance()->add_event(_event);
+    local_log("session %s forbid_send.", _peer->to_string().data());
 }

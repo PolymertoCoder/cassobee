@@ -57,7 +57,6 @@ passiveio_event::passiveio_event(session_manager* manager)
         set_nonblocking(listenfd);
 
         struct sockaddr* addr = manager->get_addr()->addr();
-        TRACELOG("addr:%s.", manager->get_addr()->to_string().data());
         if(bind(listenfd, addr, sizeof(*addr)) < 0)
         {
             perror("bind");
@@ -71,6 +70,7 @@ passiveio_event::passiveio_event(session_manager* manager)
             return;
         }
         _fd = listenfd;
+        TRACELOG("fd %d listen addr:%s.", listenfd, manager->get_addr()->to_string().data());
     }
     else if(socktype == SOCK_DGRAM)
     {
@@ -102,7 +102,7 @@ bool passiveio_event::handle_event(int active_events)
     }
 
     auto evt = new streamio_event(clientfd, _ses->dup());
-    evt->set_events(EVENT_RECV);
+    evt->set_events(EVENT_RECV | EVENT_SEND);
     _base->add_event(evt);
     TRACELOG("accept clientid=%d.", clientfd);
     return 0;
@@ -154,7 +154,7 @@ bool activeio_event::handle_event(int active_events)
 
     //_base->del_event(this);
     auto evt = new streamio_event(_fd, _ses->dup());
-    evt->set_events(EVENT_SEND);
+    evt->set_events(EVENT_RECV | EVENT_SEND);
     evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
     //local_log("activeio_event handle_event run fd=%d.", _fd);

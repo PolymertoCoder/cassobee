@@ -23,37 +23,39 @@ thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
             while(true)
             {
                 std::function<void()> task;
-                std::unique_lock<std::mutex> l(_queue_lock);
-                while(!has_task()) // 循环判断条件是否满足，避免cond的假唤醒，增加程序的健壮性
                 {
-                    if(this->_stop.load(std::memory_order_acquire)) return;
-
-                    if(pool->is_steal())
+                    std::unique_lock<std::mutex> l(_queue_lock);
+                    while(!has_task()) // 循环判断条件是否满足，避免cond的假唤醒，增加程序的健壮性
                     {
-                        l.unlock();
-                        pool->try_steal_one((int)_idx, task);
-                        if(task) break;
-                        l.lock();
+                        if(this->_stop.load(std::memory_order_acquire)) return;
+
+                        if(pool->is_steal())
+                        {
+                            l.unlock();
+                            pool->try_steal_one((int)_idx, task);
+                            if(task) break;
+                            l.lock();
+                        }
+
+                        this->_cond.wait(l, [this]
+                        {
+                            return this->_stop.load(std::memory_order_acquire) || has_task();
+                        });
                     }
 
-                    this->_cond.wait(l, [this]
+                    // 从任务队列里取任务
+                    if(!task)
                     {
-                        return this->_stop.load(std::memory_order_acquire) || has_task();
-                    });
-                }
-
-                // 从任务队列里取任务
-                if(!task)
-                {
-                    if(!_essential_task_queue.empty())
-                    {
-                        task.swap(_essential_task_queue.front());
-                        _essential_task_queue.pop_front();
-                    }
-                    else if(!this->_task_queue.empty())
-                    {
-                        task.swap(this->_task_queue.front());
-                        this->_task_queue.pop_front();
+                        if(!_essential_task_queue.empty())
+                        {
+                            task.swap(_essential_task_queue.front());
+                            _essential_task_queue.pop_front();
+                        }
+                        else if(!this->_task_queue.empty())
+                        {
+                            task.swap(this->_task_queue.front());
+                            this->_task_queue.pop_front();
+                        }
                     }
                 }
 
@@ -99,7 +101,7 @@ thread_group::~thread_group()
 
 void thread_group::add_task(const std::function<void()>& task)
 {
-    std::lock_guard<std::mutex> l(this->_queue_lock);
+    std::lock_guard<std::mutex> l(_queue_lock);
     if(_task_queue.size() >= _maxsize)
     {
         throw std::runtime_error("task_queue is full!!!");
@@ -119,7 +121,7 @@ void thread_group::notify_one()
 
 bool thread_group::wait_for_all_done(TIMETYPE millsecond)
 {
-    std::unique_lock<std::mutex> l(this->_queue_lock);
+    std::unique_lock<std::mutex> l(_queue_lock);
     if(!has_task()){ return true; }
     if(millsecond <= 0)
     {
@@ -160,6 +162,10 @@ void threadpool::start()
         }
     }
     _is_steal = cfg->get("threadpool", "steal", false);
+    if(_is_steal)
+    {
+        local_log("threadpool enable steal task.");
+    }
     _stop.store(false, std::memory_order_release);
 }
 

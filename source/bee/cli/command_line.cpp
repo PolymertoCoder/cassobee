@@ -65,6 +65,8 @@ void command_line::run()
             process_errcode(retcode);
         }
     }
+    printf("bye!\n");
+    exit(0);
 }
 
 int command_line::readline()
