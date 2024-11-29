@@ -7,6 +7,7 @@
 
 #include "threadpool.h"
 #include "config.h"
+#include "common.h"
 #include "log.h"
 
 thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
@@ -18,6 +19,7 @@ thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
     {
         _threads[i] = (new std::thread([this]
         {
+            auto pool = threadpool::get_instance();
             while(true)
             {
                 std::function<void()> task;
@@ -26,10 +28,10 @@ thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
                 {
                     if(this->_stop.load(std::memory_order_acquire)) return;
 
-                    if(threadpool::get_instance()->is_steal())
+                    if(pool->is_steal())
                     {
                         l.unlock();
-                        steal_task((int)_idx, task);
+                        pool->try_steal_one((int)_idx, task);
                         if(task) break;
                         l.lock();
                     }
@@ -110,23 +112,9 @@ void thread_group::add_task(const std::function<void()>& task)
    _cond.notify_one();
 }
 
-void thread_group::steal_task(int beginidx, std::function<void()>& task)
+void thread_group::notify_one()
 {
-    const auto& groups = threadpool::get_instance()->_groups;
-    for(auto i = beginidx; i < groups.size(); ++i)
-    {
-        if(groups[i] != this)
-        {
-            std::unique_lock<std::mutex> l(groups[i]->_queue_lock, std::try_to_lock);
-            if(l.owns_lock() && !groups[i]->_task_queue.empty())
-            {
-                task = groups[i]->_task_queue.back();
-                groups[i]->_task_queue.pop_back();
-                local_log("thread group %d steal group %d task success.", (int)_idx, (int)groups[i]->_idx);
-                return;
-            }
-        }
-    }
+    _cond.notify_one();
 }
 
 bool thread_group::wait_for_all_done(TIMETYPE millsecond)
@@ -163,7 +151,7 @@ void threadpool::start()
         const auto& [maxsize, threadcnt] = groups[i];
         if(_groups[i] == nullptr)
         {
-            _groups[i] = new thread_group(i, threadcnt, maxsize);
+            _groups[i] = new thread_group(i, maxsize, threadcnt);
             local_log("thread group %d run %d threads, task queue maxsize:%d.", (int)i, threadcnt, maxsize);
         }
         else
@@ -208,4 +196,28 @@ void threadpool::add_essential_task(const std::function<void()>& task)
         return;
     }
     _essential_task_queue.push_back(task);
+}
+
+void threadpool::try_steal_one(int current_idx, std::function<void()>& task)
+{
+    int group_size = _groups.size();
+    int offset = rand(0, group_size - 1);
+    for(auto i = 0; i < group_size; ++i)
+    {
+        size_t idx = (offset + i) % group_size;
+        if(idx == current_idx) continue;
+
+        std::unique_lock<std::mutex> l(_groups[idx]->_queue_lock, std::try_to_lock);
+        if(l.owns_lock() && _groups[idx]->has_task())
+        {
+            task.swap(_groups[idx]->_task_queue.front());
+            _groups[idx]->_task_queue.pop_front();
+            if(_groups[idx]->has_task())
+            {
+                _groups[idx]->notify_one(); // 继续唤醒等待中的线程来窃取任务
+            }
+            local_log("thread group %d steal group %d task success.", current_idx, (int)_groups[idx]->_idx);
+            return;
+        }
+    }
 }

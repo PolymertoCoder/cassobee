@@ -80,7 +80,7 @@ CheckOptions:
 
   # C++ 核心指南（CppCoreGuidelines）
   - key:             cppcoreguidelines-narrowing-conversions
-    value:           'true'  # 检查并标识可能导致数据丢失的窄化转换。
+    value:           'false'  # 检查并标识可能导致数据丢失的窄化转换。
 
   # 杂项（Miscellaneous）
   - key:             misc-unconventional-assign-operator

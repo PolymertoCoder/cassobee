@@ -16,7 +16,7 @@ set(TOOLS_PATH              ${CASSOBEE_ROOT_PATH}/tools)
 set(PROTOCOL_PATH           ${CASSOBEE_ROOT_PATH}/source/protocol)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" ON)
+option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" OFF)
 option(CASSOBEE_IWYU_ENABLE "enable include-what-you-use" OFF)
 option(CASSOBEE_SENITIZE_ENABLE "enable google senitizer" ON)
 option(CASSOBEE_CCACHE_ENABLE "enable ccache" ON)
