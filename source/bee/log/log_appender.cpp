@@ -49,7 +49,7 @@ bool time_rotater::update(TIMETYPE curtime)
                           static_cast<uint64_t>(tm_val.tm_mday) * 100 +
                           static_cast<uint64_t>(tm_val.tm_hour);
         _suffix = std::to_string(suffix);
-        _next_rotate_time = systemtime::get_nextday_start(curtime);
+        _next_rotate_time = systemtime::get_nexthour_start(curtime);
         return true;
     }
     else if(_rotate_type == ROTATE_TYPE_DAY)
@@ -59,7 +59,7 @@ bool time_rotater::update(TIMETYPE curtime)
                           static_cast<uint64_t>(tm_val.tm_mon + 1) * 100 +
                           static_cast<uint64_t>(tm_val.tm_mday);
         _suffix = std::to_string(suffix);
-        _next_rotate_time = systemtime::get_nexthour_start(curtime);
+        _next_rotate_time = systemtime::get_nextday_start(curtime);
         return true;
     }
     CHECK_BUG(false, printf("unknown rotate_type:%d\n", _rotate_type););

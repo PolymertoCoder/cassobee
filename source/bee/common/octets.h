@@ -1,13 +1,17 @@
 #pragma once
 #include <cstddef>
 #include <cstring>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include "types.h"
 
 inline constexpr size_t frob_size(size_t n)
 {
-    //printf("frob_size before n=%zu.\n", n);
+    if(n > (size_t(1) << 63))
+    {
+        throw std::overflow_error("frob_size: input too large");
+    }
     if(n == 0) return 1;
     --n;
     n |= n >> 1;
@@ -17,7 +21,6 @@ inline constexpr size_t frob_size(size_t n)
     n |= n >> 16;
     n |= n >> 32;
     ++n;
-    //printf("frob_size after n=%zu.\n", n);
     return n < 16 ? 16 : n;
 }
 
@@ -61,7 +64,7 @@ public:
     }
     octets(octets&& oct)
     {
-        create(oct.buf(), oct.size(), oct.capacity());
+        this->swap(oct);
     }
     ~octets()
     {
@@ -86,12 +89,18 @@ public:
     }
     octets& operator=(const octets& rhs)
     {
-        create(rhs.buf(), rhs.size(), rhs.capacity());
+        if(&rhs != this)
+        {
+            create(rhs.buf(), rhs.size(), rhs.capacity());
+        }
         return *this;
     }
     octets& operator=(octets&& rhs)
     {
-        create(rhs.buf(), rhs.size(), rhs.capacity());
+        if(&rhs != this)
+        {
+            this->swap(rhs);
+        }
         return *this;
     }
     operator char*() const
@@ -110,10 +119,13 @@ public:
     {
         return std::string_view(_buf, _len);
     }
-    char* operator[](size_t pos) const
+    char& operator[](size_t pos) const
     {
-        if(pos >= _len) return nullptr;
-        return _buf + pos;
+        if(pos >= _len)
+        {
+            throw std::out_of_range("octets::operator[]: index out of range");
+        }
+        return _buf[pos];
     }
 
     void swap(octets& rhs)
@@ -129,7 +141,7 @@ public:
         memmove(_buf + pos + len, _buf + pos, _len - pos);
         memcpy(_buf + pos, data, len);
         _len += len;
-        printf("insert\n");
+        //printf("insert\n");
     }
     void append(const char* data, size_t len)
     {
@@ -137,7 +149,7 @@ public:
         reserve(_len + len);
         memcpy(_buf + _len, data, len);
         _len += len;
-        printf("append\n");
+        //printf("append\n");
     }
     void replace(size_t pos, const char* data, size_t len)
     {
@@ -147,7 +159,7 @@ public:
         reserve(pos + len);
         memcpy(_buf + pos, data, len);
         _len = std::max(_len, pos + len);
-        printf("replace\n");
+        //printf("replace\n");
     }
     void erase(size_t pos, size_t len)
     {
@@ -155,14 +167,13 @@ public:
         len = std::min(_len - pos, len);
         memmove(_buf + pos, _buf + pos + len, _len - pos - len);
         _len -= len;
-        printf("erase\n");
+        //printf("erase\n");
     }
     void reserve(size_t cap)
     {
-        //printf("reserve: newcap=%zu oldcap=%zu\n", cap, _cap);
         if(_cap >= cap) return;
         create(_buf, _len, frob_size(cap));
-        printf("reserve\n");
+        //printf("reserve\n");
     }
 
     FORCE_INLINE char* begin() const { return _buf; }

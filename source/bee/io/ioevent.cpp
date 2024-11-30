@@ -1,4 +1,3 @@
-#include <asm-generic/socket.h>
 #include <cerrno>
 #include <unistd.h>
 #include <errno.h>
@@ -31,9 +30,9 @@ void netio_event::close_socket()
 {
     if(_fd >= 0)
     {
-        _ses->close();
-        close(_fd);
+        ::close(_fd);
         _fd = -1;
+        _ses->close();
     }
 }
 
@@ -238,26 +237,41 @@ int streamio_event::handle_recv()
 #else //LT
     octets& rbuffer = _ses->rbuffer();
     size_t free_space = rbuffer.free_space();
-    if(free_space == 0) return 0;
+    if(free_space == 0)
+    {
+        local_log("recv[fd=%d]: buffer is full, no space to receive data", _fd);
+        return 0;
+    }
 
-    int len = recv(_fd, rbuffer.end(), free_space, 0);
+    char* recv_ptr = rbuffer.end();
+    int len = recv(_fd, recv_ptr, free_space, 0);
     if(len > 0)
     {
         rbuffer.fast_resize(len);
-        //local_log("recv data:%s", std::string(rbuffer.end()-len, len).data());
+        local_log("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
+              _fd, len, rbuffer.size(), rbuffer.free_space());
         _ses->on_recv(len);
     }
     else if(len == 0)
     {
         close_socket();
-        local_log("sockfd %d disconnected", _fd);
+        local_log("recv[fd=%d]: connection closed by peer, buffer size=%zu",
+              _fd, rbuffer.size());
     }
-    else
+    else // len < 0
     {
-        if(errno != EAGAIN && errno != EINTR)
+        if(errno == EAGAIN || errno == EINTR)
+        {
+            // 非阻塞模式下的正常情况，不需要额外处理
+            local_log("recv[fd=%d]: temporary error (errno=%d: %s), buffer size=%zu, free space=%zu",
+                  _fd, errno, strerror(errno), rbuffer.size(), rbuffer.free_space());
+        }
+        else
         {
             perror("recv");
             close_socket();
+            local_log("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
+                  _fd, errno, strerror(errno), rbuffer.size());
         }
         local_log("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
     }

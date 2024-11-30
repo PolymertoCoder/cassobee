@@ -25,10 +25,10 @@ public:
         exception(const char* msg) : _msg(msg) {}
         FORCE_INLINE virtual const char* what() const noexcept override
         {
-            return _msg;
+            return _msg.data();
         }
     private:
-        const char* _msg; 
+        std::string _msg; 
     };
 
     enum Transaction
@@ -52,12 +52,19 @@ public:
         std::swap(_pos, rhs._pos);
         std::swap(_transpos, rhs._transpos);
     }
+    FORCE_INLINE void try_shrink()
+    {
+        if(_pos > 0x100000)
+        {
+            _data.erase(0, _pos);
+            _pos = 0;
+            _transpos = 0;
+        }
+    }
     FORCE_INLINE void reserve(size_t cap) { _data.reserve(cap); }
     FORCE_INLINE octets& data() { return _data; }
     FORCE_INLINE void reset_pos() { _pos = 0; }
-    FORCE_INLINE void try_shrink() { if(_pos > 0x100000) { _data.erase(0, _pos); } }
     FORCE_INLINE void clear() { _data.clear(); _pos = 0; _transpos = 0; }
-
     FORCE_INLINE bool data_ready(size_t len) const { return (_data.size() - _pos) >= len; }
     FORCE_INLINE size_t get_pos() const { return _pos; }
     FORCE_INLINE size_t size() const { return _data.size(); }
@@ -80,7 +87,10 @@ public:
             throw exception("no enough data!!!");
         }
         memcpy(&val, _data.begin() + _pos, len);
-        val = networkToHost(val);
+        if constexpr(sizeof(T) > 1)
+        {
+            val = networkToHost(val);
+        }
         _pos += len;
         return *this;
     }
@@ -111,10 +121,17 @@ public:
     {
         switch(val)
         {
-            case BEGIN:    { _transpos = _pos; } break;
-            case ROLLBACK: { _pos = _transpos; } break;
-            case COMMIT:   { try_shrink();     } break;
-            default:{ break; } 
+            case BEGIN: { _transpos = _pos; } break;
+            case ROLLBACK:
+            {
+                if(_transpos > _data.size())
+                {
+                    throw exception("invalid transaction rollback position");
+                }
+                _pos = _transpos;
+            } break;
+            case COMMIT: { try_shrink(); } break;
+            default: { throw exception("Invalid transaction operation"); } 
         }
         return *this;
     }
