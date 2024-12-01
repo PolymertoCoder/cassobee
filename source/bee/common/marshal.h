@@ -164,7 +164,7 @@ public:
     {
         push(val.size());
         _data.append(val.data(), val.size());
-        printf("push %s size:%zu\n", val.data(), val.size());
+        //printf("push %s size:%zu\n", val.data(), val.size());
         return *this;
     }
 
@@ -178,7 +178,7 @@ public:
         }
         val.append(_data.begin() + _pos, size);
         _pos += size;
-        printf("pop %s size:%zu\n", val.data(), size);
+        //printf("pop %s size:%zu\n", val.data(), size);
         return *this;
     }
 

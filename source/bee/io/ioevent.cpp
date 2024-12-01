@@ -193,6 +193,7 @@ bool streamio_event::handle_event(int active_events)
     if(active_events & EVENT_RECV)
     {
         handle_recv();
+        _ses->permit_recv();
         _ses->permit_send();
         local_log("streamio_event handle_event EVENT_RECV fd=%d", _fd);
     }
@@ -200,6 +201,7 @@ bool streamio_event::handle_event(int active_events)
     {
         handle_send();
         _ses->permit_recv();
+        _ses->permit_send();
         local_log("streamio_event handle_event EVENT_SEND fd=%d", _fd);
     }
     return true;
@@ -209,32 +211,7 @@ int streamio_event::handle_recv()
 {
     if(_base == nullptr) return -1;
 
-#if 0 //ET
-    int idx = 0, len = 0;
-    while(idx < READ_BUFFER_SIZE)
-    {
-        len = recv(_fd, _ses->_readbuf.data() + idx, READ_BUFFER_SIZE-idx, 0);
-        if(len > 0) {
-            idx += len;
-            local_log("recv[%d]:%s", len, _ses->_readbuf.data());
-        }
-        else if(len == 0) {
-            close(_fd);
-        }
-        else {
-            close(_fd);
-        }
-    }
-
-    if(idx == READ_BUFFER_SIZE && len != -1) {
-        _base->add_event(this, EVENT_RECV); 
-    } else if(len == 0) {
-        //base->add_event(this, EVENT_RECV); 
-    } else {
-        _base->add_event(this, EVENT_SEND);
-    }
-
-#else //LT
+    cassobee::rwlock::wrscoped sesl(_ses->_locker);
     octets& rbuffer = _ses->rbuffer();
     size_t free_space = rbuffer.free_space();
     if(free_space == 0)
@@ -279,7 +256,6 @@ int streamio_event::handle_recv()
     {
         _ses->forbid_recv();
     }
-#endif
     return len;
 }
 
@@ -287,6 +263,7 @@ int streamio_event::handle_send()
 {
     if(_base == nullptr) return -1;
 
+    cassobee::rwlock::wrscoped sesl(_ses->_locker);
     octets& wbuffer = _ses->wbuffer();
     int len = send(_fd, wbuffer.begin(), wbuffer.size(), 0);
     if(len > 0)

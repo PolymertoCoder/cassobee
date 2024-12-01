@@ -55,7 +55,8 @@ public:
     FORCE_INLINE void set_event(event* ev) { _event = ev; }
 
 private:
-    friend session_manager;
+    friend class session_manager;
+    friend class streamio_event;
     SID _sid = 0;
     int _sockfd = 0;
     uint8_t _state = SESSION_STATE_NONE;
