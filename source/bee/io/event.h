@@ -50,6 +50,7 @@ struct event
 struct control_event : event
 {
     control_event();
+    ~control_event();
     virtual int get_handle() const override { return _control_pipe[0]; }
     virtual bool handle_event(int active_events) override;
     int _control_pipe[2];

@@ -41,9 +41,8 @@ void protocol::encode(octetsstream& os) const
         size_t prev_size = os.size();
         pack(os);
         size = hostToNetwork(os.size() - prev_size);
-        local_log("id:%d encode size:%zu", id, os.size() - prev_size);
+        //local_log("id:%d encode size:%zu", id, os.size() - prev_size);
         os.data().replace(size_begin_pos, (char*)(&size), sizeof(size));
-        //ASSERT((12 + os.size() - prev_size) == (prev_size - ) );
     }
     catch(...)
     {
@@ -64,7 +63,7 @@ protocol* protocol::decode(octetsstream& os, session* ses)
             os >> octetsstream::ROLLBACK;
             return nullptr;
         }
-        local_log("id:%d decode size:%zu", id, size);
+        //local_log("id:%d decode size:%zu", id, size);
 
         if(!check_policy(id, size, ses->get_manager()))
         {

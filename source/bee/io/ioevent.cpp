@@ -153,7 +153,7 @@ bool activeio_event::handle_event(int active_events)
 
     //_base->del_event(this);
     auto evt = new streamio_event(_fd, _ses->dup());
-    evt->set_events(EVENT_RECV | EVENT_SEND);
+    evt->set_events(EVENT_RECV | EVENT_SEND | EVENT_HUP);
     evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
     //local_log("activeio_event handle_event run fd=%d.", _fd);
@@ -193,15 +193,15 @@ bool streamio_event::handle_event(int active_events)
     if(active_events & EVENT_RECV)
     {
         handle_recv();
-        _ses->permit_recv();
-        _ses->permit_send();
+        // _ses->permit_recv();
+        // _ses->permit_send();
         local_log("streamio_event handle_event EVENT_RECV fd=%d", _fd);
     }
     else if(active_events & EVENT_SEND)
     {
         handle_send();
-        _ses->permit_recv();
-        _ses->permit_send();
+        // _ses->permit_recv();
+        // _ses->permit_send();
         local_log("streamio_event handle_event EVENT_SEND fd=%d", _fd);
     }
     return true;

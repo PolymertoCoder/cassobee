@@ -63,6 +63,7 @@ thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
                 try
                 {
                     task();
+                    //local_log("thread_task run success");
                 }
                 catch(...)
                 {

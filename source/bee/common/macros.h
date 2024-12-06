@@ -6,9 +6,10 @@
 #define ONEDAY  86400  // 3600*24
 #define ONEWEEK 604800 // 3600*24*7
 
-enum Operation
+enum OPERATION
 {
     NONE,
     ADD,
+    MOD,
     DEL,
 };

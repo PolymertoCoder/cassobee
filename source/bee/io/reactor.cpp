@@ -46,7 +46,7 @@ void reactor::init()
     _use_timer_thread = cfg->get<bool>("reactor", "use_timer_thread");
     if(!_use_timer_thread)
     {
-        _timeout = cfg->get<bool>("reactor", "timeout");
+        _timeout = cfg->get<int>("reactor", "timeout");
     }
 
     add_event(new sigio_event());
@@ -88,14 +88,14 @@ void reactor::wakeup()
 
 void reactor::add_event(event* ev)
 {
-    _changelist.write(ev, Operation::ADD);
+    _changelist.write(ev);
     wakeup();
 }
 
 void reactor::del_event(event* ev)
 {
     ev->set_status(EVENT_STATUS_DEL);
-    _changelist.write(ev, Operation::DEL);
+    _changelist.write(ev);
     wakeup();
 }
 
@@ -123,13 +123,13 @@ void reactor::load_event()
     using changelist_type = decltype(_changelist)::list_type;
     _changelist.read([this](changelist_type& list)
     {
-        for(const auto& [evt, op] : list)
+        for(const auto& evt : list)
         {
-            if(op == Operation::ADD)
+            if(evt->get_status() != EVENT_STATUS_DEL)
             {
                 add_event_inner(evt);
             }
-            else if(op == Operation::DEL)
+            else
             {
                 del_event_inner(evt);
             }

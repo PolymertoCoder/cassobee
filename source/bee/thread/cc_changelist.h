@@ -16,14 +16,7 @@ template<typename value_type, template<typename, typename...> class container_ty
 class ALIGN_CACHELINE_SIZE cc_changelist
 {
 public:
-    struct value_node
-    {
-        value_type value;
-        Operation  op;
-        bool operator<(const value_node& rhs) const { return value < rhs.value; }
-    };
-
-    using list_type = container_type<value_node>;
+    using list_type = container_type<value_type>;
     using read_callback = std::function<void(list_type&)>;
 
     void read(const read_callback& func)
@@ -42,11 +35,11 @@ public:
         read_buf.clear();
     }
 
-    void write(const value_type& value, Operation op)
+    void write(const value_type& value)
     {
         lock_guard l(_locker);
         auto& write_buf = _buffer[_writeidx];
-        write_buf.insert(std::cend(write_buf), value_node{value, op});
+        write_buf.insert(std::cend(write_buf), value);
         std::atomic_thread_fence(std::memory_order_release);
         printf("cc_changelist write _writeidx=%d write size=%zu\n", _writeidx, write_buf.size());
     }

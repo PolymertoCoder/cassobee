@@ -26,7 +26,7 @@ protected:
 class epoller : public demultiplexer
 {
 public:
-    virtual ~epoller() override {}
+    virtual ~epoller() override;
     virtual bool init() override;
     virtual int  add_event(event* ev, int events) override;
     virtual void del_event(event* ev) override;
@@ -34,7 +34,7 @@ public:
     virtual void wakeup() override;
 
 private:
-    int _epfd;
+    int _epfd = -1;
     std::set<int> _listenfds;
 };
 

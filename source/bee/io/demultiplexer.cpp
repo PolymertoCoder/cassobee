@@ -7,6 +7,14 @@
 #include "reactor.h"
 #include "types.h"
 
+epoller::~epoller()
+{
+    if(_epfd >= 0)
+    {
+        close(_epfd);
+    }
+}
+
 bool epoller::init()
 {
     _epfd = epoll_create(1);
@@ -46,8 +54,8 @@ int epoller::add_event(event* ev, int events)
     }
     if(events & EVENT_WAKEUP)
     {
-        event.events |= EPOLLIN;
-        //event.events |= (EPOLLET | EPOLLOUT);
+        //event.events |= EPOLLIN;
+        event.events |= (EPOLLET | EPOLLOUT);
     }
 
     int op;
@@ -57,9 +65,9 @@ int epoller::add_event(event* ev, int events)
         ev->set_status(EVENT_STATUS_ADD);
         if(events & EVENT_WAKEUP)
         {
-            _ctrl_event = dynamic_cast<control_event*>(ev);
+            //_ctrl_event = dynamic_cast<control_event*>(ev);
             //CHECK_BUG(_ctrl_event, );
-            printf("add wakeup events\n");  
+            local_log("add wakeup events");  
         }
     }
     else if(ev->get_status() == EVENT_STATUS_ADD) // 已经加入过epoll
@@ -103,8 +111,14 @@ void epoller::dispatch(reactor* base, int timeout)
     _wakeup = false;
     struct epoll_event events[EPOLL_ITEM_MAX];
     int nready = epoll_wait(_epfd, events, EPOLL_ITEM_MAX, timeout);
+    if(nready < 0)
+    {
+        if(errno == EINTR) return; // 信号中断，忽略
+        perror("epoll_wait");
+        return;
+    }
     _wakeup = true;
-    //printf("epoller wakeup... timeout=%d nready=%d\n", timeout, nready);
+    local_log("epoller wakeup... timeout=%d nready=%d", timeout, nready);
 
     for(int i = 0; i < nready; i++)
     {
@@ -135,7 +149,11 @@ void epoller::wakeup()
     //printf("epoller::wakeup() begin _wakeup=%s\n", expr2boolstr(_wakeup));
     if(_ctrl_event == nullptr || _wakeup) return;
     _wakeup = false;
-    //this->add_event(_ctrl_event, EVENT_WAKEUP);
-    write(_ctrl_event->_control_pipe[1], "\0", 1);
-    //printf("epoller::wakeup() run success\n");
+    this->add_event(_ctrl_event, EVENT_WAKEUP);
+    //char dummy = 0;
+    //if(write(_ctrl_event->_control_pipe[1], &dummy, sizeof(dummy)) < 0)
+    // {
+    //      perror("wakeup write failed");
+    // }
+    local_log("epoller::wakeup() run success");
 }
