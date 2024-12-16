@@ -208,7 +208,7 @@ void reactor::handle_timer_event()
     while(_timer_events.size())
     {
         //local_log("handle_timer_event expiretime=%ld nowtime=%ld end", iter->first, nowtime);
-        auto& [expiretime, ev] = *(_timer_events.begin());
+        auto [expiretime, ev] = *(_timer_events.begin());
         _timer_events.erase(_timer_events.begin());
         timer_event* tm = dynamic_cast<timer_event*>(ev);
         if(expiretime <= nowtime) break;
