@@ -67,15 +67,9 @@ int rand(int min, int max);
 void set_process_affinity(int num);
 std::string format_string(const char* fmt, ...) FORMAT_PRINT_CHECK(1, 2);
 
-// 去除字符串左侧的空白字符
-std::string ltrim(const std::string& str, const char c);
-// 去除字符串右侧的空白字符
-std::string rtrim(const std::string& str, const char c);
-// 去掉字符串首尾的字符
+std::string ltrim(const std::string& str, const char c = ' ');
+std::string rtrim(const std::string& str, const char c = ' ');
 std::string trim(const std::string_view& str, const char c = ' ');
-// 按delim分割字符串
 std::vector<std::string> split(const std::string_view& str, const char* delim = " ");
-// 字符串是否以prefix开头
 bool startswith(const std::string_view& str, const std::string_view& prefix);
-// 字符串是否以suffix结尾
 bool endswith(const std::string_view& str, const std::string_view& suffix);

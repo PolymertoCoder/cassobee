@@ -20,8 +20,7 @@ Checks: '-*,
         bugprone-forward-declaration-namespace,
         bugprone-bool-pointer-implicit-conversion,
         bugprone-misplaced-widening-cast,
-        misc-unconventional-assign-operator,
-        misc-unused-parameters'
+        misc-unconventional-assign-operator'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 CheckOptions:

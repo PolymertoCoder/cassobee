@@ -57,7 +57,7 @@ protected:
         }
         else
         {
-            ERRORLOG("factory %s cannot find product %s constructor, params=%s.", std::string(factory_name).data(), std::string(product_wrapper<I>::value).data(), cassobee::to_string(std::tie(std::forward<create_params>(params)...)).data());
+            ERRORLOG("factory %s cannot find product %s constructor, params=%s.", std::string(factory_name).data(), std::string(product_wrapper<I>::value).data(), cassobee::to_string(std::make_tuple(std::forward<create_params>(params)...)).data());
         }
         return nullptr;
     }

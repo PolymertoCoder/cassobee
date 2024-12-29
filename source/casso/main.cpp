@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
             threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
             threadpool::get_instance()->add_task(rand(0, 3), [](){ WARNLOG("WARN=%s", "多线程测试"); });
             threadpool::get_instance()->add_task(rand(0, 3), [](){ ERRORLOG("ERROR=%s", "多线程测试"); });
-            local_log("testlog_thread");
+            // local_log("testlog_thread");
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     });

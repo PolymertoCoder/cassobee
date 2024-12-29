@@ -141,7 +141,6 @@ public:
         memmove(_buf + pos + len, _buf + pos, _len - pos);
         memcpy(_buf + pos, data, len);
         _len += len;
-        //printf("insert\n");
     }
     void append(const char* data, size_t len)
     {
@@ -149,7 +148,6 @@ public:
         reserve(_len + len);
         memcpy(_buf + _len, data, len);
         _len += len;
-        //printf("append\n");
     }
     void replace(size_t pos, const char* data, size_t len)
     {
@@ -159,7 +157,6 @@ public:
         reserve(pos + len);
         memcpy(_buf + pos, data, len);
         _len = std::max(_len, pos + len);
-        //printf("replace\n");
     }
     void erase(size_t pos, size_t len)
     {
@@ -167,13 +164,11 @@ public:
         len = std::min(_len - pos, len);
         memmove(_buf + pos, _buf + pos + len, _len - pos - len);
         _len -= len;
-        //printf("erase\n");
     }
     void reserve(size_t cap)
     {
         if(_cap >= cap) return;
         create(_buf, _len, frob_size(cap));
-        //printf("reserve\n");
     }
 
     FORCE_INLINE char* begin() const { return _buf; }
@@ -183,6 +178,7 @@ public:
     FORCE_INLINE char* peek(size_t pos) const { return _buf + pos; }
     FORCE_INLINE size_t size() const { return _len; }
     FORCE_INLINE size_t capacity() const { return _cap; }
+    FORCE_INLINE bool empty() const { return _len == 0; }
     FORCE_INLINE size_t free_space() const { return _cap - _len; }
     FORCE_INLINE octets dup() const { return octets(*this); }
     FORCE_INLINE void fast_resize(size_t len) { _len += len; }
@@ -192,7 +188,6 @@ private:
     void create(const char* data, size_t len, size_t cap)
     {
         cap = std::max(len, cap);
-        //printf("create: newcap=%zu oldcap=%zu\n", cap, _cap);
         char* tmp = new char[cap];
         memcpy(tmp, data, len);
         _len = len;

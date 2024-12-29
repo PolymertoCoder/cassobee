@@ -69,7 +69,7 @@ passiveio_event::passiveio_event(session_manager* manager)
             return;
         }
         _fd = listenfd;
-        TRACELOG("fd %d listen addr:%s.", listenfd, manager->get_addr()->to_string().data());
+        local_log("fd %d listen addr:%s.", listenfd, manager->get_addr()->to_string().data());
     }
     else if(socktype == SOCK_DGRAM)
     {
@@ -89,7 +89,7 @@ bool passiveio_event::handle_event(int active_events)
     {
         if (errno != EAGAIN && errno != EINTR)
         {
-            TRACELOG("accept: %s\n", strerror(errno));
+            local_log("accept: %s", strerror(errno));
             return false;
         }
         return true;
@@ -103,7 +103,7 @@ bool passiveio_event::handle_event(int active_events)
     auto evt = new streamio_event(clientfd, _ses->dup());
     evt->set_events(EVENT_RECV | EVENT_SEND);
     _base->add_event(evt);
-    TRACELOG("accept clientid=%d.", clientfd);
+    local_log("accept clientid=%d.", clientfd);
     return 0;
 }
 
@@ -156,7 +156,7 @@ bool activeio_event::handle_event(int active_events)
     evt->set_events(EVENT_RECV | EVENT_SEND | EVENT_HUP);
     evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
-    //local_log("activeio_event handle_event run fd=%d.", _fd);
+    local_log("activeio_event handle_event run fd=%d.", _fd);
     return true;
 }
 
@@ -231,9 +231,9 @@ int streamio_event::handle_recv()
     }
     else if(len == 0)
     {
-        close_socket();
         local_log("recv[fd=%d]: connection closed by peer, buffer size=%zu",
               _fd, rbuffer.size());
+        // close_socket();
     }
     else // len < 0
     {
@@ -246,9 +246,9 @@ int streamio_event::handle_recv()
         else
         {
             perror("recv");
-            close_socket();
             local_log("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
                   _fd, errno, strerror(errno), rbuffer.size());
+            close_socket();
         }
         local_log("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
     }
@@ -263,31 +263,57 @@ int streamio_event::handle_send()
 {
     if(_base == nullptr) return -1;
 
-    cassobee::rwlock::wrscoped sesl(_ses->_locker);
-    octets& wbuffer = _ses->wbuffer();
-    int len = send(_fd, wbuffer.begin(), wbuffer.size(), 0);
-    if(len > 0)
+    int total_send = 0;
+    octets* wbuffer = nullptr;
     {
-        //local_log("send data:%s", std::string(wbuffer.peek(0), len).data());
-        wbuffer.erase(0, len);
-        _ses->on_send(len);
-        _ses->permit_recv();
-    }
-    else if(len == 0)
-    {
-        _ses->permit_send();
-    }
-    else
-    {
-        if(errno != EAGAIN && errno != EINTR)
+        cassobee::rwlock::wrscoped sesl(_ses->_locker);
+        wbuffer = &_ses->wbuffer();
+        if(wbuffer->size() == _ses->_write_offset)
         {
-            perror("send");
-            close_socket();
+            _ses->forbid_send();
+            return 0;
         }
     }
-    if(wbuffer.size() == 0)
+    while(true)
     {
-        _ses->forbid_send();
+        int len = send(_fd, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset, 0);
+        if(len > 0)
+        {
+            //local_log("send data:%s", std::string(wbuffer.peek(0), len).data());
+            total_send += len;
+            _ses->_write_offset += len;
+        }
+        else if(len == 0)
+        {
+            if(_ses->_write_offset < wbuffer->size())
+            {
+                local_log("Send returned 0: Connection might be closed by the peer.\n");
+                cassobee::rwlock::wrscoped sesl(_ses->_locker);
+                _ses->permit_send(); // 写缓冲区的数据还有剩余，下次唤醒时再尝试
+            }
+            break;
+        }
+        else // len < 0
+        {
+            if(errno != EAGAIN && errno != EINTR)
+            {
+                perror("send");
+                // close_socket();
+                break;
+            }
+        }
+        if(_ses->_write_offset == wbuffer->size())
+        {
+            _ses->clear_wbuffer();
+            cassobee::rwlock::wrscoped sesl(_ses->_locker);
+            wbuffer = &_ses->wbuffer();
+            if(wbuffer->size() == 0)
+            {
+                _ses->forbid_send();
+                break;
+            }
+        }
     }
-    return len;
+    _ses->on_send(total_send);
+    return total_send;
 }

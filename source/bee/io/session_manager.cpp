@@ -37,7 +37,7 @@ void session_manager::reconnect()
     add_timer(2000, [this]()
     {
         client(this);
-        printf("session_manager::reconnect run\n");
+        local_log("session_manager::reconnect run");
         return false;
     });
 }
@@ -55,17 +55,18 @@ void session_manager::init()
     {
         _socktype = SOCK_STREAM;
         int version = cfg->get<int>(identity(), "version");
+        auto address = cfg->get(identity(), "address");
         int port = cfg->get<int>(identity(), "port");
-        TRACELOG("version:%d port:%d.", version, port);
+        TRACELOG("version:%d address:%s port:%d.", version, address.data(), port);
         if(version == 4)
         {
             _family = AF_INET;
-            _addr = address_factory::create2<"ipv4_address">("0.0.0.0", port);
+            _addr = address_factory::create2<"ipv4_address">(address.data(), port);
         }
         else if(version == 6)
         {
             _family = AF_INET6;
-            _addr = address_factory::create2<"ipv6_address">("0.0.0.0", port);
+            _addr = address_factory::create2<"ipv6_address">(address.data(), port);
         }
         else
         {
@@ -132,14 +133,7 @@ void session_manager::send_protocol(SID sid, const protocol& prot)
         prot.encode(os);
 
         cassobee::rwlock::wrscoped sesl(ses->_locker);
-        octets& wbuffer = ses->wbuffer();
-        if(os.size() > wbuffer.free_space())
-        {
-            local_log("session_manager %s, session %lu sid wbuffer is full on sending protocol", identity(), sid);
-            return;
-        }
-
-        wbuffer.append(os.data(), os.size());
+        ses->_writeos.data().append(os.data(), os.size());
         ses->permit_send();
     }
     else
@@ -154,13 +148,7 @@ void session_manager::send_octets(SID sid, const octets& oct)
     if(session* ses = find_session_nolock(sid))
     {
         cassobee::rwlock::wrscoped sesl(ses->_locker);
-        octets& wbuffer = ses->wbuffer();
-        if(oct.size() > wbuffer.free_space())
-        {
-            local_log("session_manager %s, session %lu sid wbuffer is full on sending protocol", identity(), sid);
-            return;
-        }
-        wbuffer.append(oct.data(), oct.size());
+        ses->_writeos.data().append(oct.data(), oct.size());
         ses->permit_send();
     }
     else

@@ -12,10 +12,12 @@ session::session(session_manager* manager)
 {
     _peer = _manager->get_addr()->dup();
 
-    _readbuf.reserve(_manager->_read_buffer_size);
-    _writebuf.reserve(_manager->_write_buffer_size);
     _reados.reserve(_manager->_read_buffer_size);
+    _readbuf.reserve(_manager->_read_buffer_size);
+
+    _write_offset = 0;
     _writeos.reserve(_manager->_write_buffer_size);
+    _writebuf.reserve(_manager->_write_buffer_size);
 }
 
 session::~session()
@@ -31,10 +33,13 @@ void session::clear()
     _state = SESSION_STATE_NONE;
 
     _event = nullptr;
+
     _readbuf.clear();
-    _writebuf.clear();
     _reados.clear();
+
+    _write_offset = 0;
     _writeos.clear();
+    _writebuf.clear();
 }
 
 session* session::dup()
@@ -96,18 +101,8 @@ void session::on_recv(size_t len)
 
 void session::on_send(size_t len)
 {
-    printf("session::on_send len=%zu.\n", len);
+    local_log("session::on_send len=%zu.", len);
     set_state(SESSION_STATE_SENDING);
-    if(len == _writebuf.size())
-    {
-        // 写缓冲区的数据全部发送完毕了
-        permit_recv();
-    }
-    else
-    {
-        // 写缓冲区的数据还有剩余，需要继续等待写事件触发
-        permit_send();
-    }
 }
 
 void session::permit_recv()
@@ -140,4 +135,25 @@ void session::forbid_send()
     _event->_events &= (~EVENT_SEND);
     reactor::get_instance()->add_event(_event);
     local_log("session %s forbid_send.", _peer->to_string().data());
+}
+
+octets& session::rbuffer()
+{
+    return _readbuf;
+}
+
+octets& session::wbuffer()
+{
+    if(_writebuf.empty())
+    {
+        _writebuf.swap(_writeos.data());
+        _writeos.clear();
+    }
+    return _writebuf;
+}
+
+void session::clear_wbuffer()
+{
+    _writebuf.clear();
+    _write_offset = 0;
 }

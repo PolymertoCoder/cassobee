@@ -112,7 +112,7 @@ event* reactor::get_event(int fd)
     return itr != _io_events.end() ? itr->second : nullptr;
 }
 
-bool& reactor::get_wakeup()
+auto& reactor::get_wakeup()
 {
     return _dispatcher->get_wakeup();
 }

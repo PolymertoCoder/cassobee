@@ -54,8 +54,8 @@ int epoller::add_event(event* ev, int events)
     }
     if(events & EVENT_WAKEUP)
     {
-        //event.events |= EPOLLIN;
-        event.events |= (EPOLLET | EPOLLOUT);
+        event.events |= EPOLLIN;
+        // event.events |= (EPOLLET | EPOLLOUT);
     }
 
     int op;
@@ -65,8 +65,8 @@ int epoller::add_event(event* ev, int events)
         ev->set_status(EVENT_STATUS_ADD);
         if(events & EVENT_WAKEUP)
         {
-            //_ctrl_event = dynamic_cast<control_event*>(ev);
-            //CHECK_BUG(_ctrl_event, );
+            _ctrl_event = dynamic_cast<control_event*>(ev);
+            CHECK_BUG(_ctrl_event, );
             local_log("add wakeup events");  
         }
     }
@@ -108,7 +108,11 @@ void epoller::del_event(event* ev)
 
 void epoller::dispatch(reactor* base, int timeout)
 {
+#ifdef _REENTRANT
+    _wakeup.store(false);
+#else
     _wakeup = false;
+#endif
     struct epoll_event events[EPOLL_ITEM_MAX];
     int nready = epoll_wait(_epfd, events, EPOLL_ITEM_MAX, timeout);
     if(nready < 0)
@@ -117,7 +121,11 @@ void epoller::dispatch(reactor* base, int timeout)
         perror("epoll_wait");
         return;
     }
+#ifdef _REENTRANT
+    _wakeup.store(true);
+#else
     _wakeup = true;
+#endif
     local_log("epoller wakeup... timeout=%d nready=%d", timeout, nready);
 
     for(int i = 0; i < nready; i++)
@@ -146,14 +154,17 @@ void epoller::dispatch(reactor* base, int timeout)
 
 void epoller::wakeup()
 {
-    //printf("epoller::wakeup() begin _wakeup=%s\n", expr2boolstr(_wakeup));
-    if(_ctrl_event == nullptr || _wakeup) return;
-    _wakeup = false;
-    this->add_event(_ctrl_event, EVENT_WAKEUP);
-    //char dummy = 0;
-    //if(write(_ctrl_event->_control_pipe[1], &dummy, sizeof(dummy)) < 0)
-    // {
-    //      perror("wakeup write failed");
-    // }
+    local_log("epoller::wakeup() begin _wakeup=%s", expr2boolstr(_wakeup));
+#ifdef _REENTRANT
+    if(_ctrl_event == nullptr || _wakeup.exchange(true)) return;
+#else
+    if(_ctrl_event == nullptr || !_wakeup) return;
+#endif
+    // this->add_event(_ctrl_event, EVENT_WAKEUP);
+    char dummy = 0;
+    if(write(_ctrl_event->_control_pipe[1], &dummy, sizeof(dummy)) < 0)
+    {
+         perror("wakeup write failed");
+    }
     local_log("epoller::wakeup() run success");
 }

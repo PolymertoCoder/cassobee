@@ -45,8 +45,9 @@ public:
 
     FORCE_INLINE size_t max_rbuf_size() const { return _manager->_read_buffer_size;  }
     FORCE_INLINE size_t max_wbuf_size() const { return _manager->_write_buffer_size; }
-    FORCE_INLINE octets& rbuffer() { return _readbuf;  }
-    FORCE_INLINE octets& wbuffer() { return _writebuf; }
+    octets& rbuffer();
+    octets& wbuffer();
+    void clear_wbuffer();
 
     FORCE_INLINE address* get_peer() { return _peer; }
     FORCE_INLINE session_manager* get_manager() const { return _manager; }
@@ -65,9 +66,11 @@ private:
 
     cassobee::rwlock _locker;
     event* _event = nullptr;
-    octets _readbuf;
-    octets _writebuf;
 
     octetsstream _reados;
+    octets _readbuf;
+
+    size_t _write_offset = 0;
     octetsstream _writeos;
+    octets _writebuf;
 };

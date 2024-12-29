@@ -4,13 +4,13 @@
 void logserver_manager::on_add_session(SID sid)
 {
     _localsid = sid;
-    printf("logserver_manager on_add_session %lu %s.\n", sid, get_addr()->to_string().data());
+    local_log("logserver_manager on_add_session %lu %s.", sid, get_addr()->to_string().data());
 }
 
 void logserver_manager::on_del_session(SID sid)
 {
     _localsid = 0;
-    printf("logserver_manager on_del_session %lu.\n", sid);
+    local_log("logserver_manager on_del_session %lu.", sid);
     reconnect();
 }
 

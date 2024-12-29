@@ -28,7 +28,7 @@ public:
     void add_signal(int signum, bool(*callback)(int));
 
     event* get_event(int fd);
-    bool& get_wakeup();
+    auto& get_wakeup();
     FORCE_INLINE demultiplexer* get_dispatcher() const { return _dispatcher; }
     FORCE_INLINE bool use_timer_thread() { return _use_timer_thread; }
 
