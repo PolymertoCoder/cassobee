@@ -32,9 +32,9 @@ CheckOptions:
   - key:             modernize-use-equals-default
     value:           'true'  # 建议在默认构造函数、复制构造函数和赋值运算符中使用 = default，以简化代码。
   - key:             modernize-use-nullptr
-    value:           'true'  # 建议使用 nullptr 代替 NULL 或 0 来表示空指针。
+    value:           'false'  # 建议使用 nullptr 代替 NULL 或 0 来表示空指针。
   - key:             modernize-use-override
-    value:           'true'  # 建议在覆盖基类虚函数时使用 override 关键字，以增加代码的清晰性和安全性。
+    value:           'false'  # 建议在覆盖基类虚函数时使用 override 关键字，以增加代码的清晰性和安全性。
 
   # Google 代码风格（Google）
   - key:             google-explicit-constructor

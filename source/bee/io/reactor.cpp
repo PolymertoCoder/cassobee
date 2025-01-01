@@ -187,7 +187,7 @@ void reactor::del_event_inner(event* ev)
         delete iter->second;
         _io_events.erase(iter);
     }
-    local_log("reactor del_event fd=%d.\n", fd);
+    local_log("reactor del_event fd=%d.", fd);
 }
 
 bool reactor::handle_signal_event(int signum)
@@ -226,7 +226,7 @@ std::thread start_threadpool_and_timer()
     {
         return std::thread([]()
         {
-            printf("timer thread tid:%d.\n", gettid());
+            local_log("timer thread tid:%d.", gettid());
             timewheel::get_instance()->init();
             timewheel::get_instance()->run();
         });
