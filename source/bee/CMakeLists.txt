@@ -45,12 +45,16 @@ add_common_flags(security)
 # libcli
 add_subdirectory(cli)
 
+# libdatabase
+add_subdirectory(database)
+
 # libbee
 file(GLOB_RECURSE LIBBEE_SRC ${SOURCE_PATH}/bee/*.cpp)
 # 排除指定目录下的源文件
 list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/log/.*")
 list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/security/.*")
 list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/cli/.*")
+list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/database/.*")
 message("libbee source: " ${LIBBEE_SRC})
 add_library(bee SHARED ${LIBBEE_SRC})
 target_include_directories(bee
@@ -65,7 +69,7 @@ target_include_directories(bee
                            ${SOURCE_PATH}/protocol/include
 )
 
-set(LIBBEE_DEPEND_LIB log security)
+set(LIBBEE_DEPEND_LIB log security database)
 add_dependencies(bee ${LIBBEE_DEPEND_LIB})
 target_link_libraries(bee ${LIBBEE_DEPEND_LIB})
 add_common_flags(bee)
