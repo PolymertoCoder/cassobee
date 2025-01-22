@@ -1,7 +1,9 @@
 #pragma once
+#include "common.h"
 #include "connection.h"
 #include "octets.h"
 #include <stdexcept>
+#include <unordered_map>
 
 namespace db
 {
@@ -27,6 +29,16 @@ public:
 private:
     std::string _name;
     connection* _conn = nullptr;
+};
+
+class table_manager : public singleton_support<table_manager>
+{
+public:
+    bool add_table(const std::string& table_name, table* table);
+    bool del_table(const std::string& table_name);
+
+private:
+    std::unordered_map<std::string, table*> _tables;
 };
 
 } // namespace db

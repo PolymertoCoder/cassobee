@@ -6,12 +6,15 @@ namespace db
 
 bool table::find(const octets& key, octets& value)
 {
-    if(!_conn) return false;
+    if(!_conn)
+    {
+        throw dbexeception("table::find, connection is null");
+    }
     std::string sql = format_string("SELECT value FROM %s WHERE key = ?", _name.data());
     auto stmt = _conn->prepare_statement(sql);
     if(!stmt)
     {
-        throw dbexeception("table::find, failed to prepare statement.");
+        throw dbexeception("table::find, failed to prepare statement");
     }
 
     _conn->execute_query("");
@@ -20,9 +23,23 @@ bool table::find(const octets& key, octets& value)
 
 bool table::insert(const octets& key, octets& value)
 {
-    if(!_conn) return false;
+    if(!_conn)
+    {
+        throw dbexeception("table::insert, connection is null");
+    }
 
+    
+}
 
+bool table_manager::add_table(const std::string& table_name, table* table)
+{
+    if(!table) return false;
+    return _tables.emplace(table_name, table).second;
+}
+
+bool table_manager::del_table(const std::string& table_name)
+{
+    return _tables.erase(table_name);
 }
 
 } // namespace db

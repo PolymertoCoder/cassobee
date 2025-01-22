@@ -18,10 +18,6 @@
     path = thirdparty/mysql-connector-cpp
     url = https://github.com/mysql/mysql-connector-cpp.git
 
-[submodule "thirdparty/mysql-connector-cpp"]
-    path = thirdparty/mysql-connector-cpp
-    url = https://github.com/mysql/mysql-connector-cpp.git
-
 [submodule "thirdparty/FlameGraph"]
 	path = thirdparty/FlameGraph
 	url = https://github.com/brendangregg/FlameGraph.git
