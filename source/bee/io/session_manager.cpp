@@ -26,10 +26,12 @@ session_manager::~session_manager()
 
 void session_manager::on_add_session(SID sid)
 {
+    local_log("session_manager %s, on_add_session %lu. ", identity(), sid);
 }
 
 void session_manager::on_del_session(SID sid)
 {
+    local_log("session_manager %s, on_del_session %lu. ", identity(), sid);
 }
 
 void session_manager::reconnect()

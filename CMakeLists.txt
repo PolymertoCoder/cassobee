@@ -21,6 +21,7 @@ option(CASSOBEE_IWYU_ENABLE "enable include-what-you-use" OFF)
 option(CASSOBEE_SENITIZE_ENABLE "enable google senitizer" ON)
 option(CASSOBEE_CCACHE_ENABLE "enable ccache" ON)
 option(CASSOBEE_CLANG_TIDY_ENABLE "enable clang-tidy" OFF)
+option(CASSOBEE_BUILD_MYSQL_CONNECTOR_CPP_ENABLE "enable mysql-connector-cpp" OFF)
 
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
@@ -136,4 +137,9 @@ if(LIBCRYPTOPP_PATH)
     message(STATUS "Found cryptopp library: ${LIBCRYPTOPP_PATH}")
 else()
     message(FATAL_ERROR "Could not find the cryptopp library")
+endif()
+
+# mysql-connector-cpp
+if(${CASSOBEE_BUILD_MYSQL_CONNECTOR_CPP_ENABLE})
+    add_subdirectory(${THIRDPARTY_PATH}/mysql-connector-cpp)
 endif()

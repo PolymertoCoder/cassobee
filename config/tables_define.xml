@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database>
+    <table name="users">
+        <column name="id" type="INT" primary_key="true" auto_increment="true"/>
+        <column name="username" type="VARCHAR(50)" not_null="true"/>
+        <column name="password" type="VARCHAR(255)" not_null="true"/>
+        <column name="email" type="VARCHAR(100)"/>
+    </table>
+
+    <table name="orders">
+        <column name="order_id" type="INT" primary_key="true" auto_increment="true"/>
+        <column name="user_id" type="INT" not_null="true"/>
+        <column name="amount" type="DECIMAL(10,2)" not_null="true"/>
+        <column name="order_date" type="DATETIME" not_null="true"/>
+    </table>
+</database>
