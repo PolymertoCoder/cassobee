@@ -2,11 +2,10 @@
 #include "connection.h"
 #include "objectpool.h"
 
-namespace db
+namespace cassobee::db
 {
 
-template<typename connection_type>
-class connection_pool : public objectpool<connection_type>
+class connection_pool : public objectpool<mysql_connection>
 {
 public:
     void init();
@@ -24,4 +23,4 @@ private:
     TIMETYPE _max_idle_time = 0;
 };
     
-}; // namespace db
+}; // namespace cassobee::db

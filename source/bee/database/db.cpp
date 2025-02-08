@@ -1,7 +1,7 @@
 #include "db.h"
 #include "common.h"
 
-namespace db
+namespace cassobee::db
 {
 
 bool table::find(const octets& key, octets& value)
@@ -11,13 +11,13 @@ bool table::find(const octets& key, octets& value)
         throw dbexeception("table::find, connection is null");
     }
     std::string sql = format_string("SELECT value FROM %s WHERE key = ?", _name.data());
-    auto stmt = _conn->prepare_statement(sql);
-    if(!stmt)
-    {
-        throw dbexeception("table::find, failed to prepare statement");
-    }
+    // auto stmt = _conn->prepare_statement(sql);
+    // if(!stmt)
+    // {
+    //     throw dbexeception("table::find, failed to prepare statement");
+    // }
 
-    _conn->execute_query("");
+    // _conn->execute_query("");
     return true;
 }
 
@@ -42,4 +42,4 @@ bool table_manager::del_table(const std::string& table_name)
     return _tables.erase(table_name);
 }
 
-} // namespace db
+} // namespace cassobee::db

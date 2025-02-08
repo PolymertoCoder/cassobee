@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <unordered_map>
 
-namespace db
+namespace cassobee::db
 {
 
 class dbexeception : public std::runtime_error
@@ -17,6 +17,22 @@ private:
     std::string _msg;
 };
 
+class transaction
+{
+public:
+    explicit transaction(mysql_connection* conn)
+        : _conn(conn), _committed(false) {}
+
+    void commit()
+    {
+        //if(mysql_autocommit())
+    }
+
+private:
+    mysql_connection* _conn = nullptr;
+    bool _committed = false;
+};
+
 class table
 {
 public:
@@ -24,11 +40,11 @@ public:
     virtual bool find(const octets& key, octets& value);
     virtual bool insert(const octets& key, octets& value);
 
-    void set_connection(connection* conn) { _conn = conn; }
+    void set_connection(mysql_connection* conn) { _conn = conn; }
 
 private:
     std::string _name;
-    connection* _conn = nullptr;
+    mysql_connection* _conn = nullptr;
 };
 
 class table_manager : public singleton_support<table_manager>
@@ -41,4 +57,4 @@ private:
     std::unordered_map<std::string, table*> _tables;
 };
 
-} // namespace db
+} // namespace cassobee::db
