@@ -18,10 +18,9 @@ set(PROTOCOL_PATH           ${CASSOBEE_ROOT_PATH}/source/protocol)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" OFF)
 option(CASSOBEE_IWYU_ENABLE "enable include-what-you-use" OFF)
-option(CASSOBEE_SENITIZE_ENABLE "enable google senitizer" ON)
+option(CASSOBEE_SENITIZE_ENABLE "enable google sanitizer" ON)
 option(CASSOBEE_CCACHE_ENABLE "enable ccache" ON)
 option(CASSOBEE_CLANG_TIDY_ENABLE "enable clang-tidy" OFF)
-option(CASSOBEE_BUILD_MYSQL_CONNECTOR_CPP_ENABLE "enable mysql-connector-cpp" OFF)
 
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
@@ -35,9 +34,9 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++23 -Wall -Wno-deprecated -Wno-unused-function -Wno-interference-size -D_REENTRANT")
 
 # debug or release
-if(${CMAKE_BUILD_TYPE} EQUAL Debug)
+if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
    add_compile_options(-O0 -ggdb -g)
-elif(${CMAKE_BUILD_TYPE} EQUAL Release)
+elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
    add_compile_options(-O3)
 endif()
 
@@ -61,7 +60,7 @@ if(${CASSOBEE_CCACHE_ENABLE})
         set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
         set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
     else()
-    message(FATAL_ERROR "Cound not found ccache.")
+        message(FATAL_ERROR "Could not find ccache.")
     endif()
 endif()
 
@@ -95,6 +94,7 @@ if(${CASSOBEE_CLANG_TIDY_ENABLE})
     find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
     if(CLANG_TIDY_EXE)
         message("Find clang-tidy exe: ${CLANG_TIDY_EXE}")
+        set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXE})
     else()
         message(FATAL_ERROR "Could not find the clang-tidy exe")
     endif()
@@ -108,14 +108,29 @@ add_custom_target(
     COMMENT "Generating protocol..."
 )
 
-add_subdirectory(source)
+# # build thirdparty libraries
+# set(THIRDPARTY_LIB_PATHS 
+#     ${THIRDLIB_OUTPUT_PATH}/libs/libcryptopp.a
+#     ${THIRDLIB_OUTPUT_PATH}/libs/libreadline.a
+#     ${THIRDLIB_OUTPUT_PATH}/libs/libhistory.a
+#     ${THIRDLIB_OUTPUT_PATH}/libs/libtinyxml2.so
+#     ${THIRDLIB_OUTPUT_PATH}/mysql-connector-cpp/libconnector.so
+# )
+
+# add_custom_command(
+#     OUTPUT ${THIRDPARTY_LIB_PATHS}
+#     COMMAND build_thirdparty
+#     COMMENT "Building thirdparty libraries..."
+# )
+
+# add_custom_target(build_thirdparty_libraries ALL DEPENDS ${THIRDPARTY_LIB_PATHS})
 
 # libtinyxml
 set(tinyxml2_BUILD_TESTING OFF)
 set(tinyxml2_SHARED_LIBS ${LIBRARY_OUTPUT_PATH})
 add_subdirectory(${THIRDPARTY_PATH}/tinyxml2)
 
-# libreadline
+# readline
 find_library(LIBREADLINE_PATH
              NAMES readline
              PATHS ${LIBRARY_OUTPUT_PATH}
@@ -127,7 +142,7 @@ else()
     message(FATAL_ERROR "Could not find the readline library")
 endif()
 
-# libcryptopp
+# crypto++
 find_library(LIBCRYPTOPP_PATH
              NAMES cryptopp
              PATHS ${LIBRARY_OUTPUT_PATH}
@@ -139,7 +154,16 @@ else()
     message(FATAL_ERROR "Could not find the cryptopp library")
 endif()
 
-# mysql-connector-cpp
-if(${CASSOBEE_BUILD_MYSQL_CONNECTOR_CPP_ENABLE})
-    add_subdirectory(${THIRDPARTY_PATH}/mysql-connector-cpp)
+# mysqlcppconn
+find_library(LIBMYSQLCPPCONN_PATH
+             NAMES mysqlcppconn
+             PATHS ${LIBRARY_OUTPUT_PATH}
+             NO_DEFAULT_PATH
+)
+if(LIBMYSQLCPPCONN_PATH)
+    message(STATUS "Found mysqlcppconn library: ${LIBMYSQLCPPCONN_PATH}")
+else()
+    message(FATAL_ERROR "Could not find the mysqlcppconn library")
 endif()
+
+add_subdirectory(source)

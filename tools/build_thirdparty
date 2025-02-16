@@ -1,0 +1,9 @@
+#!/bin/bash
+
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
+
+cd $rootpath/tools/build_tool
+
+sh build_readline.sh
+
+sh build_cryptopp.sh
