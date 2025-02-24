@@ -72,14 +72,14 @@ public:
 
 public:
     // 标准布局类型 push & pop
-    template<typename T> requires std::is_trivial_v<T> octetsstream& push(const T& val)
+    template<typename T> requires std::is_trivially_copyable_v<T> octetsstream& push(const T& val)
     {
         T temp = hostToNetwork(val);
         _data.append((char*)&temp, sizeof(T));
         return *this;
     }
 
-    template<typename T> requires std::is_trivial_v<T> octetsstream& pop(T& val)
+    template<typename T> requires std::is_trivially_copyable_v<T> octetsstream& pop(T& val)
     {
         size_t len = sizeof(val);
         if(_pos + len > _data.size())
