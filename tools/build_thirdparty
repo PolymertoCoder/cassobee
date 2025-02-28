@@ -7,3 +7,5 @@ cd $rootpath/tools/build_tool
 sh build_readline.sh
 
 sh build_cryptopp.sh
+
+sh build_mysql-connector-cpp.sh

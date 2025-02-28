@@ -35,6 +35,10 @@ struct is_stl_container<std::unordered_map<T, U>> : std::true_type {};
 template<typename container_type>
 constexpr bool is_stl_container_v = is_stl_container<container_type>::value;
 
+
+template<typename... T>
+struct typelist {};
+
 template<typename T>
 consteval auto type_name_array() -> std::string_view
 {

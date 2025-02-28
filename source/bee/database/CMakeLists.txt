@@ -15,4 +15,5 @@ target_include_directories(database
                            ${SOURCE_PATH}/protocol
                            ${SOURCE_PATH}/protocol/include
 )
-#target_link_libraries(database ${LIBREADLINE_PATH})
+#target_link_libraries(database ${LIBMYSQLCPPCONN_PATH})
+target_link_libraries(database mysqlcppconn)

@@ -12,7 +12,7 @@ echo ''                                          >> ~/.cassobee_config
 echo alias ca=\"cd ${rootpath}\"                 >> ~/.cassobee_config
 echo alias tt=\"cd ${rootpath}/tools\"           >> ~/.cassobee_config
 echo alias ss=\"cd ${rootpath}/source\"          >> ~/.cassobee_config
-echo alias uu=\"cd ${rootpath}/common\"          >> ~/.cassobee_config
+echo alias uu=\"cd ${rootpath}/source/bee/\"	 >> ~/.cassobee_config
 echo alias dd=\"cd ${rootpath}/debug\"           >> ~/.cassobee_config
 echo alias bb=\"cd ${rootpath}/build\"           >> ~/.cassobee_config
 echo alias pp=\"cd ${rootpath}/progen\"          >> ~/.cassobee_config

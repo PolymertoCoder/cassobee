@@ -73,3 +73,7 @@ set(LIBBEE_DEPEND_LIB log security database)
 add_dependencies(bee ${LIBBEE_DEPEND_LIB})
 target_link_libraries(bee ${LIBBEE_DEPEND_LIB})
 add_common_flags(bee)
+
+if(${CASSOBEE_BENCHMARK_ENABLE})
+    target_link_libraries(bee benchmark benchmark_main)
+endif()

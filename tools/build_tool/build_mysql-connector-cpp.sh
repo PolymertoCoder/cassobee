@@ -22,7 +22,7 @@ cd build
 cmake .. -DCMAKE_INSTALL_PREFIX=${debugpath}/mysql-connector-cpp \
          -DCMAKE_BUILD_TYPE=Release \
          -DCMAKE_INSTALL_LIBDIR=lib \
-         -DWITH_JDBC=ON=ON || { echo "CMake failed"; exit 1; }
+         -DWITH_JDBC=ON || { echo "CMake failed"; exit 1; }
 
 # 编译并安装
 make -j8 || { echo "Make failed"; exit 1; }

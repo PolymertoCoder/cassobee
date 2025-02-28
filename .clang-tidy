@@ -5,7 +5,6 @@ Checks: '-*,
         modernize-redundant-void-arg,
         modernize-use-bool-literals,
         modernize-use-equals-default,
-        google-explicit-constructor,
         readability-identifier-naming.ClassCase,
         readability-identifier-naming.StructCase,
         readability-identifier-naming.TypedefCase,
@@ -36,7 +35,7 @@ CheckOptions:
 
   # Google 代码风格（Google）
   - key:             google-explicit-constructor
-    value:           'true'  # 检查并建议在单参数构造函数中使用 explicit 关键字，以防止隐式转换。
+    value:           'false'  # 检查并建议在单参数构造函数中使用 explicit 关键字，以防止隐式转换。
   - key:             google-readability-casting
     value:           'false'  # 检查并建议使用 C++ 风格的类型转换（如 static_cast、dynamic_cast、const_cast 和 reinterpret_cast）代替 C 风格的类型转换。
 
