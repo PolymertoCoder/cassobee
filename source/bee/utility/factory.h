@@ -1,7 +1,7 @@
 #pragma once
+#include <print>
 #include <tuple>
 #include <utility>
-#include "log.h"
 #include "stringfy.h"
 #include "traits.h"
 
@@ -14,7 +14,7 @@ public:
     struct product_stub
     {
         using type = product;
-        constexpr static auto value = cassobee::short_type_name<product>();
+        constexpr static auto value = bee::short_type_name<product>();
     };
 
     [[nodiscard]] auto infomation()
@@ -38,7 +38,7 @@ protected:
     template<size_t I>
     using product_wrapper = std::tuple_element_t<I, decltype(_stubs)>;
 
-    template<cassobee::string_literal id, typename... create_params>
+    template<bee::string_literal id, typename... create_params>
     [[nodiscard]] static consteval bool static_check()
     {
         return [&]<size_t... Is>(std::index_sequence<Is...>&&)
@@ -57,13 +57,13 @@ protected:
         }
         else
         {
-            ERRORLOG("factory %s cannot find product %s constructor, params=%s.", std::string(factory_name).data(), std::string(product_wrapper<I>::value).data(), cassobee::to_string(std::make_tuple(std::forward<create_params>(params)...)).data());
+            std::println("factory %s cannot find product %s constructor, params=%s.", std::string(factory_name).data(), std::string(product_wrapper<I>::value).data(), bee::to_string(std::make_tuple(std::forward<create_params>(params)...)).data());
         }
         return nullptr;
     }
 
 public:
-    static constexpr auto factory_name = cassobee::type_name<factory_impl<base_product, products...>>();
+    static constexpr auto factory_name = bee::type_name<factory_impl<base_product, products...>>();
 
     template<typename... create_params>
     [[nodiscard]] static auto* create(const std::string_view& id, create_params&&... params)
@@ -79,7 +79,7 @@ public:
         return product;
     }
 
-    template<cassobee::string_literal id, typename... create_params>
+    template<bee::string_literal id, typename... create_params>
     [[nodiscard]] static auto* create2(create_params&&... params)
     {
         static_assert(static_check<id, create_params...>());

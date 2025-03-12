@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(cassobee)
+project(cassobee LANGUAGES CXX)
 
 message("Use ${CMAKE_CXX_COMPILER_ID} compiler to build this project.")
 

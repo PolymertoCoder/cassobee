@@ -55,7 +55,7 @@ private:
     size_t _read_buffer_size = 0;
     size_t _write_buffer_size = 0;
 
-    cassobee::rwlock _locker;
+    bee::rwlock _locker;
     std::unordered_map<SID, session*> _sessions;
 };
 

@@ -23,7 +23,7 @@ enum TIMER_OBJECT_STATE
     TIMER_STATE_MOD,
 };
 
-struct timer_node : public light_object_base<cassobee::spinlock>
+struct timer_node : public light_object_base<bee::spinlock>
 {
     void assign()
     {
@@ -144,9 +144,9 @@ private:
     uint64_t _tickcount = 0;
     TIMETYPE _ticktime  = 0; // ms
 
-    cassobee::spinlock _changelist_locker;
+    bee::spinlock _changelist_locker;
     bool _frontidx = 0;
     timerlist _changelist[2];
 
-    objectpool<timer_node> _timerpool;
+    lockfree_objectpool<timer_node> _timerpool;
 };

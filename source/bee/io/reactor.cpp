@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <map>
+#include <print>
 #include <utility>
 
 #include "event.h"
@@ -147,7 +148,7 @@ int reactor::add_event_inner(event* ev)
         _io_events[ev->get_handle()] = ev;
         if(int ret = _dispatcher->add_event(ev, events))
         {
-            local_log("add_io_event error, ret=%d.", ret);
+            std::println("add_io_event error, ret=%d.", ret);
             return ret;
         }
         //TRACELOG("add_io_event handle=%d events=%d.", ev->get_handle(), events);
@@ -187,15 +188,15 @@ void reactor::del_event_inner(event* ev)
         delete iter->second;
         _io_events.erase(iter);
     }
-    local_log("reactor del_event fd=%d.", fd);
+    std::println("reactor del_event fd=%d.", fd);
 }
 
 bool reactor::handle_signal_event(int signum)
 {
-    local_log("handle_signal_event run.");
+    std::println("handle_signal_event run.");
     if(auto iter = _signal_events.find(signum); iter != _signal_events.end())
     {
-        local_log("handle_signal_event run inner.");
+        std::println("handle_signal_event run inner.");
         return iter->second->handle_event(EVENT_SIGNAL);
     }
     return true;
@@ -226,7 +227,7 @@ std::thread start_threadpool_and_timer()
     {
         return std::thread([]()
         {
-            local_log("timer thread tid:%d.", gettid());
+            std::println("timer thread tid:%d.", gettid());
             timewheel::get_instance()->init();
             timewheel::get_instance()->run();
         });

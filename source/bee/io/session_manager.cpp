@@ -9,6 +9,7 @@
 #include "config.h"
 #include "protocol.h"
 #include "session.h"
+#include <print>
 
 session_manager::session_manager()
 {
@@ -26,12 +27,12 @@ session_manager::~session_manager()
 
 void session_manager::on_add_session(SID sid)
 {
-    local_log("session_manager %s, on_add_session %lu. ", identity(), sid);
+    std::println("session_manager %s, on_add_session %lu. ", identity(), sid);
 }
 
 void session_manager::on_del_session(SID sid)
 {
-    local_log("session_manager %s, on_del_session %lu. ", identity(), sid);
+    std::println("session_manager %s, on_del_session %lu. ", identity(), sid);
 }
 
 void session_manager::reconnect()
@@ -39,7 +40,7 @@ void session_manager::reconnect()
     add_timer(2000, [this]()
     {
         client(this);
-        local_log("session_manager::reconnect run");
+        std::println("session_manager::reconnect run");
         return false;
     });
 }
@@ -59,7 +60,7 @@ void session_manager::init()
         int version = cfg->get<int>(identity(), "version");
         auto address = cfg->get(identity(), "address");
         int port = cfg->get<int>(identity(), "port");
-        TRACELOG("version:%d address:%s port:%d.", version, address.data(), port);
+        std::println("version:%d address:%s port:%d.", version, address.data(), port);
         if(version == 4)
         {
             _family = AF_INET;
@@ -88,19 +89,19 @@ void session_manager::init()
 
 void session_manager::add_session(SID sid, session* ses)
 {
-    cassobee::rwlock::wrscoped l(_locker);
+    bee::rwlock::wrscoped l(_locker);
     add_session_nolock(sid, ses);
 }
 
 void session_manager::del_session(SID sid)
 {
-    cassobee::rwlock::wrscoped l(_locker);
+    bee::rwlock::wrscoped l(_locker);
     del_session_nolock(sid);
 }
 
 session* session_manager::find_session(SID sid)
 {
-    cassobee::rwlock::rdscoped l(_locker);
+    bee::rwlock::rdscoped l(_locker);
     return find_session_nolock(sid);
 }
 
@@ -109,14 +110,14 @@ void session_manager::add_session_nolock(SID sid, session* ses)
     ASSERT(!_sessions.contains(sid) && ses);
     _sessions.emplace(sid, ses);
     on_add_session(sid);
-    local_log("session_manager add_session %lu.", sid);
+    std::println("session_manager add_session %lu.", sid);
 }
 
 void session_manager::del_session_nolock(SID sid)
 {
     _sessions.erase(sid);
     on_del_session(sid);
-    local_log("session_manager del_session %lu.", sid);
+    std::println("session_manager del_session %lu.", sid);
 }
 
 session* session_manager::find_session_nolock(SID sid)
@@ -127,35 +128,35 @@ session* session_manager::find_session_nolock(SID sid)
 
 void session_manager::send_protocol(SID sid, const protocol& prot)
 {
-    cassobee::rwlock::rdscoped l(_locker);
+    bee::rwlock::rdscoped l(_locker);
     if(session* ses = find_session_nolock(sid))
     {
         thread_local octetsstream os;
         os.clear();
         prot.encode(os);
 
-        cassobee::rwlock::wrscoped sesl(ses->_locker);
+        bee::rwlock::wrscoped sesl(ses->_locker);
         ses->_writeos.data().append(os.data(), os.size());
         ses->permit_send();
     }
     else
     {
-        local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
+        std::println("session_manager %s cant find session %lu on sending protocol", identity(), sid);
     }
 }
 
 void session_manager::send_octets(SID sid, const octets& oct)
 {
-    cassobee::rwlock::rdscoped l(_locker);
+    bee::rwlock::rdscoped l(_locker);
     if(session* ses = find_session_nolock(sid))
     {
-        cassobee::rwlock::wrscoped sesl(ses->_locker);
+        bee::rwlock::wrscoped sesl(ses->_locker);
         ses->_writeos.data().append(oct.data(), oct.size());
         ses->permit_send();
     }
     else
     {
-        local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
+        std::println("session_manager %s cant find session %lu on sending protocol", identity(), sid);
     }
 }
 

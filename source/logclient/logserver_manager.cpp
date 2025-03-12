@@ -1,5 +1,6 @@
 #include "logserver_manager.h"
 #include "address.h"
+#include "log.h"
 
 void logserver_manager::on_add_session(SID sid)
 {

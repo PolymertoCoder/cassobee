@@ -7,7 +7,7 @@
 
 #define USE_ATOMIC_FLAG_LOCK 1
 
-namespace cassobee
+namespace bee
 {
 
 // concurrent changelist: 基于双缓冲的并发changelist实现
@@ -47,13 +47,13 @@ public:
 private:
     uint8_t _writeidx = 0;
 #if USE_ATOMIC_FLAG_LOCK
-    using lock_guard = cassobee::atomic_spinlock::scoped;
-    cassobee::atomic_spinlock _locker;
+    using lock_guard = bee::atomic_spinlock::scoped;
+    bee::atomic_spinlock _locker;
 #else
-    using lock_guard = cassobee::spinlock::scoped;
-    cassobee::spinlock _locker;
+    using lock_guard = bee::spinlock::scoped;
+    bee::spinlock _locker;
 #endif
     list_type _buffer[2];
 };
 
-} // namespace cassobee;
+} // namespace bee;

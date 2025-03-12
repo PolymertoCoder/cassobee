@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <immintrin.h>
 
-namespace cassobee
+namespace bee
 {
 
 template<typename lock_type>
@@ -45,6 +45,7 @@ public:
 
 #ifndef _REENTRANT
 typedef empty_lock spinlock;
+typedef empty_lock atomic_spinlock;
 typedef empty_lock mutex;
 typedef empty_lock rwlock;
 #else
@@ -190,4 +191,4 @@ private:
 };
 
 #endif // #ifndef _REENTRANT
-} // namespace cassobee
+} // namespace bee

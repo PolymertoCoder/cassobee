@@ -14,7 +14,7 @@
 #include "systemtime.h"
 #include "common.h"
 
-namespace cassobee
+namespace bee
 {
 
 log_appender::log_appender()

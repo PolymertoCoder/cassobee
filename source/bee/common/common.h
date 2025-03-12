@@ -46,7 +46,7 @@ struct light_object_base
 };
 
 template<typename id_type, typename lock_type>
-requires std::is_base_of_v<cassobee::lock_support<lock_type>, lock_type>
+requires std::is_base_of_v<bee::lock_support<lock_type>, lock_type>
 struct sequential_id_generator
 {
     static constexpr id_type INVALID_ID = id_type(); // 默认值作为无效值使用

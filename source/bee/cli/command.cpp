@@ -3,7 +3,7 @@
 #include "command_line.h"
 #include "common.h"
 #include <memory>
-#include <strstream>
+#include <sstream>
 
 namespace cli
 {

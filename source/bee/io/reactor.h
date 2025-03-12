@@ -48,7 +48,7 @@ private:
     bool _use_timer_thread = true;
     int  _timeout = -1; // ms
 
-    cassobee::cc_changelist<event*, std::set> _changelist;
+    bee::cc_changelist<event*, std::set> _changelist;
 
     EVENTS_MAP _io_events;
     EVENTS_MAP _signal_events;

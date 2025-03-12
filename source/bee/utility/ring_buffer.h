@@ -3,7 +3,7 @@
 #include <cstring>
 #include <fstream>
 
-namespace cassobee
+namespace bee
 {
 /**
  * @description: 环形缓冲区的实现

@@ -53,4 +53,4 @@ if(!expr) \
 }
 #endif
 
-#define UNUSE(x) ((void)x)
+#define UNUSE(x) ((void)(x))

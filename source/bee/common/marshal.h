@@ -183,18 +183,18 @@ public:
     }
 
     // STL容器 push & pop
-    template<typename T> requires cassobee::stl_container<T> octetsstream& push(const T& val)
+    template<typename T> requires bee::stl_container<T> octetsstream& push(const T& val)
     {
         return push_container(val);
     }
 
-    template<typename T> requires cassobee::stl_container<T> octetsstream& pop(T& val)
+    template<typename T> requires bee::stl_container<T> octetsstream& pop(T& val)
     {
         return pop_container(val);
     }
 
 protected:
-    template<typename container_type> requires cassobee::stl_container<container_type>
+    template<typename container_type> requires bee::stl_container<container_type>
     octetsstream& push_container(const container_type& container)
     {
         push(container.size());
@@ -205,7 +205,7 @@ protected:
         return *this;
     }
 
-    template<typename container_type> requires cassobee::can_reserve_stl_container<container_type>
+    template<typename container_type> requires bee::can_reserve_stl_container<container_type>
     octetsstream& pop_container(container_type& container)
     {
         using size_type  = container_type::size_type;

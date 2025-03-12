@@ -1,11 +1,11 @@
-# libcli
-file(GLOB LIBCLI_SRC ${SOURCE_PATH}/bee/cli/*.cpp)
-message("libcli source: " ${LIBCLI_SRC})
-add_library(cli SHARED ${LIBCLI_SRC})
-target_include_directories(cli
+# libsecurity
+file(GLOB LIBSECURITY_SRC ${SOURCE_PATH}/bee/security/*.cpp)
+message("libsecurity source: " ${LIBSECURITY_SRC})
+add_library(security SHARED ${LIBSECURITY_SRC})
+target_include_directories(security
                            PUBLIC
                            
-                           ${SOURCE_PATH}/bee/cli
+                           ${SOURCE_PATH}/bee/security
                            PRIVATE
                            ${SOURCE_PATH}/bee/common
                            ${SOURCE_PATH}/bee/io
@@ -16,6 +16,6 @@ target_include_directories(cli
                            ${SOURCE_PATH}/protocol
                            ${SOURCE_PATH}/protocol/include
 )
-target_link_libraries(cli ${LIBREADLINE_PATH} ncurses)
+target_link_libraries(security ${LIBCRYPTOPP_PATH})
 
-add_common_flags(cli)
+add_common_flags(security)

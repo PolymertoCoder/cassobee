@@ -5,7 +5,7 @@
 
 #include "log.h"
 
-namespace cassobee
+namespace bee
 {
 class log_event;
 

@@ -1,4 +1,5 @@
 #include <cerrno>
+#include <print>
 #include <unistd.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -69,7 +70,7 @@ passiveio_event::passiveio_event(session_manager* manager)
             return;
         }
         _fd = listenfd;
-        local_log("fd %d listen addr:%s.", listenfd, manager->get_addr()->to_string().data());
+        std::println("fd %d listen addr:%s.", listenfd, manager->get_addr()->to_string().data());
     }
     else if(socktype == SOCK_DGRAM)
     {
@@ -89,7 +90,7 @@ bool passiveio_event::handle_event(int active_events)
     {
         if (errno != EAGAIN && errno != EINTR)
         {
-            local_log("accept: %s", strerror(errno));
+            std::println("accept: %s", strerror(errno));
             return false;
         }
         return true;
@@ -103,7 +104,7 @@ bool passiveio_event::handle_event(int active_events)
     auto evt = new streamio_event(clientfd, _ses->dup());
     evt->set_events(EVENT_RECV | EVENT_SEND);
     _base->add_event(evt);
-    local_log("accept clientid=%d.", clientfd);
+    std::println("accept clientid=%d.", clientfd);
     return 0;
 }
 
@@ -156,7 +157,7 @@ bool activeio_event::handle_event(int active_events)
     evt->set_events(EVENT_RECV | EVENT_SEND | EVENT_HUP);
     evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
-    local_log("activeio_event handle_event run fd=%d.", _fd);
+    std::println("activeio_event handle_event run fd=%d.", _fd);
     return true;
 }
 
@@ -185,7 +186,7 @@ streamio_event::streamio_event(int fd, session* ses)
         exit(-1);
     }
     ses->open();
-    //local_log("streamio_event constructor run");
+    //std::println("streamio_event constructor run");
 }
 
 bool streamio_event::handle_event(int active_events)
@@ -195,14 +196,14 @@ bool streamio_event::handle_event(int active_events)
         handle_recv();
         // _ses->permit_recv();
         // _ses->permit_send();
-        local_log("streamio_event handle_event EVENT_RECV fd=%d", _fd);
+        std::println("streamio_event handle_event EVENT_RECV fd=%d", _fd);
     }
     else if(active_events & EVENT_SEND)
     {
         handle_send();
         // _ses->permit_recv();
         // _ses->permit_send();
-        local_log("streamio_event handle_event EVENT_SEND fd=%d", _fd);
+        std::println("streamio_event handle_event EVENT_SEND fd=%d", _fd);
     }
     return true;
 }
@@ -211,12 +212,12 @@ int streamio_event::handle_recv()
 {
     if(_base == nullptr) return -1;
 
-    cassobee::rwlock::wrscoped sesl(_ses->_locker);
+    bee::rwlock::wrscoped sesl(_ses->_locker);
     octets& rbuffer = _ses->rbuffer();
     size_t free_space = rbuffer.free_space();
     if(free_space == 0)
     {
-        local_log("recv[fd=%d]: buffer is full, no space to receive data", _fd);
+        std::println("recv[fd=%d]: buffer is full, no space to receive data", _fd);
         return 0;
     }
 
@@ -225,13 +226,13 @@ int streamio_event::handle_recv()
     if(len > 0)
     {
         rbuffer.fast_resize(len);
-        local_log("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
+        std::println("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
               _fd, len, rbuffer.size(), rbuffer.free_space());
         _ses->on_recv(len);
     }
     else if(len == 0)
     {
-        local_log("recv[fd=%d]: connection closed by peer, buffer size=%zu",
+        std::println("recv[fd=%d]: connection closed by peer, buffer size=%zu",
               _fd, rbuffer.size());
         close_socket();
     }
@@ -240,17 +241,17 @@ int streamio_event::handle_recv()
         if(errno == EAGAIN || errno == EINTR)
         {
             // 非阻塞模式下的正常情况，不需要额外处理
-            local_log("recv[fd=%d]: temporary error (errno=%d: %s), buffer size=%zu, free space=%zu",
+            std::println("recv[fd=%d]: temporary error (errno=%d: %s), buffer size=%zu, free space=%zu",
                   _fd, errno, strerror(errno), rbuffer.size(), rbuffer.free_space());
         }
         else
         {
             perror("recv");
-            local_log("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
+            std::println("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
                   _fd, errno, strerror(errno), rbuffer.size());
             close_socket();
         }
-        local_log("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
+        std::println("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
     }
     if(rbuffer.free_space() == 0)
     {
@@ -266,7 +267,7 @@ int streamio_event::handle_send()
     int total_send = 0;
     octets* wbuffer = nullptr;
     {
-        cassobee::rwlock::wrscoped sesl(_ses->_locker);
+        bee::rwlock::wrscoped sesl(_ses->_locker);
         wbuffer = &_ses->wbuffer();
         if(wbuffer->size() == _ses->_write_offset)
         {
@@ -279,7 +280,7 @@ int streamio_event::handle_send()
         int len = send(_fd, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset, 0);
         if(len > 0)
         {
-            //local_log("send data:%s", std::string(wbuffer.peek(0), len).data());
+            //std::println("send data:%s", std::string(wbuffer.peek(0), len).data());
             total_send += len;
             _ses->_write_offset += len;
         }
@@ -287,8 +288,8 @@ int streamio_event::handle_send()
         {
             if(_ses->_write_offset < wbuffer->size())
             {
-                local_log("Send returned 0: Connection might be closed by the peer.\n");
-                cassobee::rwlock::wrscoped sesl(_ses->_locker);
+                std::println("Send returned 0: Connection might be closed by the peer.\n");
+                bee::rwlock::wrscoped sesl(_ses->_locker);
                 _ses->permit_send(); // 写缓冲区的数据还有剩余，下次唤醒时再尝试
             }
             break;
@@ -305,7 +306,7 @@ int streamio_event::handle_send()
         if(_ses->_write_offset == wbuffer->size())
         {
             _ses->clear_wbuffer();
-            cassobee::rwlock::wrscoped sesl(_ses->_locker);
+            bee::rwlock::wrscoped sesl(_ses->_locker);
             wbuffer = &_ses->wbuffer();
             if(wbuffer->size() == 0)
             {

@@ -1,14 +1,22 @@
 #include "cmysql.h"
 #include "config.h"
 #include "log.h"
+#include "objectpool.h"
+#include "systemtime.h"
 #include <cppconn/connection.h>
+#include <print>
 
-namespace cassobee::mysql
+namespace bee::mysql
 {
 
 connection* connection::get()
 {
     return connection_pool::get_instance()->get_connection();
+}
+
+void connection::release(connection* conn)
+{
+    connection_pool::get_instance()->release_connection(conn);
 }
 
 bool connection::connect()
@@ -34,7 +42,7 @@ bool connection::connect(const std::string& ip, const std::string& user, const s
     catch (sql::SQLException& e)
     {
         // 处理连接错误
-        ERRORLOG("connect to mysql failed: %s", e.what());
+        std::println("connect to mysql failed: %s", e.what());
         return false;
     }
 }
@@ -87,6 +95,18 @@ void connection::set_savepoint(const std::string& name)
 
 void connection::release_savepoint(const std::string& name)
 {
+    // 释放所有保存点
+    if(name.empty())
+    {
+        for(const auto& [name, savepoint] : _savepoints)
+        {
+            _conn->releaseSavepoint(savepoint);
+        }
+        _savepoints.clear();
+        return;
+    }
+
+    // 释放指定保存点
     auto iter = _savepoints.find(name);
     CHECK_BUG(iter != _savepoints.end(), throw exception("savepoint not exists", -1));
     _conn->releaseSavepoint(iter->second);
@@ -111,7 +131,8 @@ void connection_pool::init()
     _minsize = cfg->get<size_t>("mysql", "minsize");
     _maxsize = cfg->get<size_t>("mysql", "maxsize");
     _timeout =  cfg->get<TIMETYPE>("mysql", "timeout");
-    // _max_idle_time = cfg->get<TIMETYPE>("mysql", "max_idle_time");
+    _max_idle_time = cfg->get<TIMETYPE>("mysql", "max_idle_time");
+    std::println("mysql connection pool init: %s:%d %s %s %s %zu %zu %zu", _ip.data(), _port, _user.data(), _password.data(), _db.data(), _minsize, _maxsize, _timeout);
 
     objectpool::init(_maxsize);
 
@@ -133,30 +154,38 @@ auto connection_pool::get_connection() -> connection*
     {
         if(!conn->is_connected())
         {
-            conn->reconnect();
-            if(!conn->is_connected())
+            if(!conn->connect(_ip, _user, _password, _db, _port))
             {
                 free(id);
                 return nullptr;
             }
         }
+        conn->set_last_access(systemtime::get_time());
+    }
+    else
+    {
+        std::println("mysql connection pool exhausted.");
     }
     return conn;
 }
 
 void connection_pool::release_connection(connection* conn)
 {
+    if(!conn) return;
+    if(conn->has_transaction())
+    {
+        conn->rollback();
+    }
+    conn->release_savepoint();
 
-}
-
-void connection_pool::try_shrink()
-{
-
+    conn->set_last_access(systemtime::get_time());
+    free(conn);
 }
 
 void connection_pool::clear()
 {
-
+    objectpool::destroy();
+    std::println("mysql connection pool clear");
 }
 
-} // namespace cassobee::mysql
+} // namespace bee::mysql

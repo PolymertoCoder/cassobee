@@ -1,7 +1,9 @@
 #pragma once
 #include "log.h"
+#include <string>
+#include <unordered_map>
 
-namespace cassobee
+namespace bee
 {
 class log_event;
 class log_appender;
@@ -19,9 +21,9 @@ public:
     void clr_appender();
 
 private:
-    LOG_LEVEL _loglevel = LOG_LEVEL_DEBUG;
+    LOG_LEVEL _loglevel = LOG_LEVEL::DEBUG;
     log_appender* _root_appender = nullptr;
     std::unordered_map<std::string, log_appender*> _appenders;
 };
 
-} // namespace cassobee
+} // namespace bee

@@ -62,7 +62,7 @@ def generate_header_content(name, base_class, fields, type, maxsize, codefield=N
     included_headers = generate_included_headers(fields)
     header_content.extend(included_headers)
 
-    header_content.append("\nnamespace cassobee\n{\n\n")
+    header_content.append("\nnamespace bee\n{\n\n")
     header_content.append(f"class {name} : public {base_class}\n{{\npublic:\n")
 
     if base_class == "protocol":
@@ -88,7 +88,7 @@ def generate_header_content(name, base_class, fields, type, maxsize, codefield=N
     header_content.append(generate_pack_unpack_methods(name))
     header_content.append(generate_public_fields(fields, codefield))
 
-    header_content.append("\n}; // namespace cassobee\n")
+    header_content.append("\n}; // namespace bee\n")
 
     return header_content
 
@@ -229,12 +229,12 @@ def generate_cpp_content(name, fields, base_class, codefield=None):
     cpp_content = []
 
     cpp_content.append(f'#include "{name}.h"\n\n')
-    cpp_content.append("namespace cassobee\n{\n\n")
+    cpp_content.append("namespace bee\n{\n\n")
     cpp_content.append(generate_pack_method(name, fields, codefield))
     cpp_content.append(generate_unpack_method(name, fields, codefield))
     if base_class == "protocol":
         cpp_content.append(f"\n__attribute__((weak)) void {name}::run() {{}}\n")
-    cpp_content.append("\n} // namespace cassobee")
+    cpp_content.append("\n} // namespace bee")
 
     return cpp_content
 
@@ -387,7 +387,7 @@ def parse_state(xmlpath, state_output_directory, force):
                         raise ValueError(f"Protocol '{protocol_name}' not defined")
                     protocol_type = enum2type[protocol_enum]
                     state_headers_content += f"#include \"{protocol_name}.h\"\n"
-                    register_content += f"static cassobee::{protocol_name} __register_{protocol_name}_{protocol_type}({protocol_type});\n"
+                    register_content += f"static bee::{protocol_name} __register_{protocol_name}_{protocol_type}({protocol_type});\n"
 
                 state_content = f"{state_headers_content}\n{register_content}"
                 write_file(state_filename, state_content)

@@ -204,12 +204,12 @@ private:
 
 // 声明一个单播委托类型
 #define SINGLE_DELEGATE_DECLEAR(name, return_type, ...) \
-    using name = delegate<return_type, cassobee::mutex, __VA_ARGS__>;
+    using name = delegate<return_type, bee::mutex, __VA_ARGS__>;
 
 // 声明一个多播委托类型
 #define MULTICAST_DELEGATE_DECLEAR(name, ...) \
-    using name = multicast_delegate<int, delegate_list_storage, cassobee::mutex, __VA_ARGS__>;
+    using name = multicast_delegate<int, delegate_list_storage, bee::mutex, __VA_ARGS__>;
 
 // 声明一个可能有大量的多播委托类型
 #define NUMEROUS_MULTICAST_DELEGATE_DECLEAR(name, ...) \
-    using name = multicast_delegate<int, delegate_map_storage, cassobee::mutex, __VA_ARGS__>;
+    using name = multicast_delegate<int, delegate_map_storage, bee::mutex, __VA_ARGS__>;

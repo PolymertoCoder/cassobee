@@ -1,7 +1,7 @@
 #pragma once
 #include "octets.h"
 
-namespace cassobee
+namespace bee
 {
 
 class ostringstream
@@ -14,4 +14,4 @@ private:
     octets _buf;
 };
 
-} // namespace cassobee
+} // namespace bee

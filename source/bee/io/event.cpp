@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <print>
 #include <unistd.h>
 #include <sys/socket.h>
 #include "demultiplexer.h"
@@ -32,7 +33,7 @@ bool control_event::handle_event(int active_events)
     {
         CHECK_BUG(data == 0, return false);
     }
-    local_log("control_event wakeup...");
+    std::println("control_event wakeup...");
     return true;
 }
 
@@ -64,12 +65,12 @@ sigio_event::sigio_event()
     }
     set_nonblocking(_signal_pipe[0]);
     set_nonblocking(_signal_pipe[1]);
-    local_log("sigio_event readfd=%d writefd=%d.", _signal_pipe[0], _signal_pipe[1]);
+    std::println("sigio_event readfd=%d writefd=%d.", _signal_pipe[0], _signal_pipe[1]);
 }
 
 bool sigio_event::handle_event(int active_events)
 {
-    local_log("sigio_event handle_event run.");
+    std::println("sigio_event handle_event run.");
     if(!_base) return false;
     int signum;
     if(read(_signal_pipe[0], &signum, sizeof(signum)) == -1)
@@ -78,26 +79,26 @@ bool sigio_event::handle_event(int active_events)
         return false;
     }
     if(!_base->handle_signal_event(signum)) return false;
-    local_log("sigio_event handle_event run success, signum=%d.", signum);
+    std::println("sigio_event handle_event run success, signum=%d.", signum);
     return true;
 }
 
 void sigio_event::sigio_callback(int signum)
 {
     write(_signal_pipe[1], &signum, sizeof(signum));
-    local_log("sigio_event callback run.");
+    std::println("sigio_event callback run.");
 }
 
 signal_event::signal_event(int signum, signal_callback callback)
     : _signum(signum), _callback(callback)
 {
-    local_log("signal_event constructor, signum=%d.", _signum);
+    std::println("signal_event constructor, signum=%d.", _signum);
     set_signal(signum, sigio_event::sigio_callback);
 }
 
 bool signal_event::handle_event(int active_events)
 {
-    local_log("signal_event handle_event run, _signum=%d.", _signum);
+    std::println("signal_event handle_event run, _signum=%d.", _signum);
     if(active_events != EVENT_SIGNAL) return false;
     if(!_callback(_signum)) return false;
     return true;

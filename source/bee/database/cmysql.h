@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include "lock.h"
 #include "objectpool.h"
 #include "traits.h"
 #include "types.h"
@@ -15,7 +16,7 @@
 #include <memory>
 #include <vector>
 
-namespace cassobee::mysql
+namespace bee::mysql
 {
 
 using dbstmt   = sql::Statement;
@@ -176,6 +177,7 @@ public:
     ~connection() { close(); }
 
     static connection* get();
+    static void release(connection* conn);
     bool connect();
     bool connect(const std::string& ip, const std::string& user, const std::string& password, const std::string& db, int port = 3306);
     void close();
@@ -187,13 +189,16 @@ public:
 
     // 事务
     FORCE_INLINE void begin_transaction() { _conn->setAutoCommit(false); }
+    FORCE_INLINE bool has_transaction() const { return !_conn->getAutoCommit();}
     FORCE_INLINE void commit() { _conn->commit(); _conn->setAutoCommit(true); }
     FORCE_INLINE void rollback() { _conn->rollback(); _conn->setAutoCommit(true); }
     FORCE_INLINE void set_autocommit(bool mode) { _conn->setAutoCommit(mode); }
     void set_savepoint(const std::string& name);
-    void release_savepoint(const std::string& name);
+    void release_savepoint(const std::string& name = "");
     void rollback_to_savepoint(const std::string& name); // 不释放保存点
 
+    FORCE_INLINE void set_last_access(TIMETYPE time) { _last_access = time; }
+    FORCE_INLINE auto get_last_access() -> TIMETYPE { return _last_access; }
     FORCE_INLINE auto get_handle() const { return _conn; }
     FORCE_INLINE bool is_connected() const { return _conn && !_conn->isClosed(); }
     FORCE_INLINE void reconnect() { close(); connect(); }
@@ -239,7 +244,7 @@ public:
     }
 
 private:
-    int       _idx    = 0;
+    TIMETYPE  _last_access = 0;
     dbdriver* _driver = nullptr;
     dbconn*   _conn   = nullptr;
     std::map<std::string, dbsavept*> _savepoints;
@@ -347,7 +352,7 @@ class table
 {
     connection* _conn = nullptr;
     std::string _name;
-    cassobee::typelist<Fields...> _fields;
+    bee::typelist<Fields...> _fields;
 
     template<typename T>
     static std::string build_column_def(const field<T>& f)
@@ -371,7 +376,7 @@ public:
         sql += _name;
         sql += "` (";
 
-        [&]<typename... Ts>(cassobee::typelist<Ts...>)
+        [&]<typename... Ts>(bee::typelist<Ts...>)
         {
             ((sql += build_column_def(Ts{}) + ", "), ...);
         }(_fields);
@@ -408,10 +413,10 @@ public:
     void init();
     auto get_connection() -> connection*;
     void release_connection(connection* conn);
-    void try_shrink();
     void clear();
 
 private:
+    bee::mutex _locker;
     std::string _ip;
     uint16_t    _port = 0;
     std::string _user;
@@ -424,4 +429,4 @@ private:
     TIMETYPE _max_idle_time = 0;
 };
 
-} // namespace cassobee::mysql
+} // namespace bee::mysql

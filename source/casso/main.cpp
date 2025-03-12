@@ -36,6 +36,34 @@ bool sigusr1_handler(int signum)
     return true;
 }
 
+struct TestObject {
+    int value;
+    double data[100];
+    TestObject() : value(0) {}
+};
+
+void stress_test() {
+    lockfree_objectpool<TestObject> pool(1000);
+    constexpr int THREADS = 8;
+    constexpr int OPS_PER_THREAD = 100000;
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < THREADS; ++i) {
+        threads.emplace_back([&] {
+            for (int j = 0; j < OPS_PER_THREAD; ++j) {
+                auto [idx, obj] = pool.alloc();
+                if (obj) {
+                    obj->value = j;
+                    pool.free(obj);
+                }
+            }
+        });
+    }
+
+    for (auto& t : threads) t.join();
+    local_log("Stress test completed");
+}
+
 int main(int argc, char* argv[])
 {
     if(argc < 3)
@@ -56,7 +84,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    auto logclient = cassobee::logclient::get_instance();
+    auto logclient = bee::logclient::get_instance();
     logclient->init();
     logclient->set_process_name("cassobee");
 
@@ -87,6 +115,7 @@ int main(int argc, char* argv[])
     add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
     add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
 
+    /*
     std::thread testlog_thread([]()
     {
         while(true)
@@ -100,6 +129,9 @@ int main(int argc, char* argv[])
         }
     });
     testlog_thread.detach();
+    */
+
+    stress_test();
 
     // add_timer(1000, [](){ static int i = 0; DEBUGLOG("DEBUG=%d", i++); return true; });
 
@@ -125,28 +157,28 @@ int main(int argc, char* argv[])
 
     // {
     //     octetsstream os; os << vec; os >> vec2;
-    //     printf("vec2 %s\n", cassobee::to_string(vec2).data());
+    //     printf("vec2 %s\n", bee::to_string(vec2).data());
     // }
     // {
     //     octetsstream os; os << set; os >> set2;
-    //     printf("set2 %s\n", cassobee::to_string(set2).data());
+    //     printf("set2 %s\n", bee::to_string(set2).data());
     // }
     // {
     //     octetsstream os; os << map; os >> map2;
-    //     printf("map2 %s\n", cassobee::to_string(map2).data());
+    //     printf("map2 %s\n", bee::to_string(map2).data());
     // }
     // {
     //     octetsstream os; os << uset; os >> uset2;
-    //     printf("uset2 %s\n", cassobee::to_string(uset2).data());
+    //     printf("uset2 %s\n", bee::to_string(uset2).data());
     // }
     // {
     //     octetsstream os; os << umap; os >> umap2;
-    //     printf("umap2 %s\n", cassobee::to_string(umap2).data());
+    //     printf("umap2 %s\n", bee::to_string(umap2).data());
     // }
 
-    // local_log("type_name:%s", cassobee::type_name_string<int>().data());
-    // local_log("type_name:%s", cassobee::type_name_string<cassobee::logger>().data());
-    // local_log("type_name:%s", cassobee::short_type_name_string<cassobee::logger>().data());
+    // local_log("type_name:%s", bee::type_name_string<int>().data());
+    // local_log("type_name:%s", bee::type_name_string<bee::logger>().data());
+    // local_log("type_name:%s", bee::short_type_name_string<bee::logger>().data());
 
     // local_log("run here:%s.", address_factory::get_instance()->infomation().data());
 
@@ -163,11 +195,11 @@ int main(int argc, char* argv[])
     // printf("empty:%d\n", map.empty());
 
     // octetsstream os;
-    // cassobee::remotelog prot(123, {});
+    // bee::remotelog prot(123, {});
     // prot.logevent.set_all_fields();
     // prot.encode(os);
     // auto temp = protocol::decode(os, nullptr);
-    // auto prot2 = dynamic_cast<cassobee::remotelog*>(temp);
+    // auto prot2 = dynamic_cast<bee::remotelog*>(temp);
     // printf("prot2 loglevel:%d\n", prot2->loglevel),
 
     looper->run();

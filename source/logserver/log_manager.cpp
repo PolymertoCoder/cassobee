@@ -4,7 +4,9 @@
 #include "config.h"
 #include "remotelog.h"
 #include "log.h"
-namespace cassobee
+#include "logclient.h"
+
+namespace bee
 {
 
 void log_manager::init()
@@ -14,7 +16,7 @@ void log_manager::init()
     std::string filename = cfg->get("log", "filename");
 
     bool asynclog = cfg->get<bool>("log", "asynclog");
-    auto loglevel = cfg->get<int>("log", "loglevel", LOG_LEVEL_TRACE);
+    auto loglevel = cfg->get<int>("log", "loglevel", LOG_LEVEL::TRACE);
     if(asynclog)
     {
         _file_logger = new logger((LOG_LEVEL)loglevel, new async_appender(logdir, filename));
@@ -61,4 +63,4 @@ void remotelog::run()
     log_manager::get_instance()->log((LOG_LEVEL)loglevel, logevent);
 }
 
-} // namespace cassobee
+} // namespace bee

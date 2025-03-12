@@ -3,7 +3,7 @@
 #include <cstring>
 #include <fstream>
 
-namespace cassobee
+namespace bee
 {
 
 template<size_t N>

@@ -6,6 +6,7 @@
 #include "protocol.h"
 #include "reactor.h"
 #include "threadpool.h"
+#include <print>
 
 session::session(session_manager* manager)
     : _manager(manager)
@@ -60,7 +61,7 @@ session* session::dup()
 
 SID session::get_next_sessionid()
 {
-    static sequential_id_generator<SID, cassobee::spinlock> sid_generator;
+    static sequential_id_generator<SID, bee::spinlock> sid_generator;
     return sid_generator.gen();
 }
 
@@ -80,13 +81,13 @@ void session::close()
 
 void session::on_recv(size_t len)
 {
-    local_log("session::on_recv len=%zu, _readbuf size:%zu _reados size:%zu.", len, _readbuf.size(), _reados.size());
+    std::println("session::on_recv len=%zu, _readbuf size:%zu _reados size:%zu.", len, _readbuf.size(), _reados.size());
     set_state(SESSION_STATE_RECVING);
 
     size_t append_length = std::min(_readbuf.size(), _reados.data().free_space());
     _reados.data().append(_readbuf, append_length);
     _readbuf.erase(0, append_length);
-    local_log("on_recv append size:%zu, _readbuf size:%zu _reados size:%zu.", append_length, _readbuf.size(), _reados.size());
+    std::println("on_recv append size:%zu, _readbuf size:%zu _reados size:%zu.", append_length, _readbuf.size(), _reados.size());
 
     while(protocol* prot = protocol::decode(_reados, this))
     {
@@ -101,7 +102,7 @@ void session::on_recv(size_t len)
 
 void session::on_send(size_t len)
 {
-    local_log("session::on_send len=%zu.", len);
+    std::println("session::on_send len=%zu.", len);
     set_state(SESSION_STATE_SENDING);
 }
 
@@ -110,7 +111,7 @@ void session::permit_recv()
     if(!_event || _event->is_close() || (_event->get_events() & EVENT_RECV)) return;
     _event->_events |= EVENT_RECV;
     reactor::get_instance()->add_event(_event);
-    local_log("session %s permit_recv.", _peer->to_string().data());
+    std::println("session %s permit_recv.", _peer->to_string().data());
 }
 
 void session::permit_send()
@@ -118,7 +119,7 @@ void session::permit_send()
     if(!_event || _event->is_close() || (_event->get_events() & EVENT_SEND)) return;
     _event->_events |= EVENT_SEND;
     reactor::get_instance()->add_event(_event);
-    local_log("session %s permit_send.", _peer->to_string().data());
+    std::println("session %s permit_send.", _peer->to_string().data());
 }
 
 void session::forbid_recv()
@@ -126,7 +127,7 @@ void session::forbid_recv()
     if(!_event || _event->is_close() || !(_event->get_events() & EVENT_RECV)) return;
     _event->_events &= (~EVENT_RECV);
     reactor::get_instance()->add_event(_event);
-    local_log("session %s forbid_recv.", _peer->to_string().data());
+    std::println("session %s forbid_recv.", _peer->to_string().data());
 }
 
 void session::forbid_send()
@@ -134,7 +135,7 @@ void session::forbid_send()
     if(!_event || _event->is_close() || !(_event->get_events() & EVENT_SEND)) return;
     _event->_events &= (~EVENT_SEND);
     reactor::get_instance()->add_event(_event);
-    local_log("session %s forbid_send.", _peer->to_string().data());
+    std::println("session %s forbid_send.", _peer->to_string().data());
 }
 
 octets& session::rbuffer()

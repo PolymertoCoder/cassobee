@@ -3,6 +3,7 @@
 
 #include "modes.h"
 #include "filters.h"
+#include <print>
 
 using byte = unsigned char;
 
@@ -24,7 +25,7 @@ std::string AES_crypt::encrypt(const char* plaintext, size_t size)
     }
     catch(const CryptoPP::Exception& e)
     {
-        ERRORLOG("AES Encryption error: %s", e.what());
+        std::println("AES Encryption error: %s", e.what());
         throw;
     }
     return ciphertext;
@@ -48,7 +49,7 @@ std::string AES_crypt::decrypt(const char* ciphertext, size_t size)
     }
     catch (const CryptoPP::Exception& e)
     {
-        ERRORLOG("AES Decryption error: %s", e.what());
+        std::println("AES Decryption error: %s", e.what());
         throw;
     }
     return decryptedtext;

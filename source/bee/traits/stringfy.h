@@ -6,7 +6,7 @@
 #include <utility>
 #include <string>
 
-namespace cassobee
+namespace bee
 {
     // forward declaration
     std::string to_string(const char* val);
@@ -16,11 +16,11 @@ namespace cassobee
 
     template<typename T> requires std::is_arithmetic_v<T> std::string to_string(T val);
     template<typename T1, typename T2> std::string to_string(const std::pair<T1, T2>& val);
-    template<typename T> requires cassobee::stl_container<T> std::string to_string(const T& val, bool prefix = false);
+    template<typename T> requires bee::stl_container<T> std::string to_string(const T& val, bool prefix = false);
     template<typename... Args> std::string to_string(const std::tuple<Args...>& val);
 }
 
-namespace cassobee
+namespace bee
 {
 inline std::string to_string(const char* val) { return val; }
 inline std::string to_string(const octets& val) { return val; }
@@ -52,13 +52,13 @@ std::string container_to_string(const STL_CONTAINER& container, const std::strin
     }
     return str.append("}");
 }
-} // namespace cassobee::detail
+} // namespace bee::detail
 
 template<typename T>
-requires cassobee::stl_container<T>
+requires bee::stl_container<T>
 std::string to_string(const T& val, bool prefix)
 {
-    return detail::container_to_string(val, prefix ? cassobee::type_name<T>() : "");
+    return detail::container_to_string(val, prefix ? bee::type_name<T>() : "");
 }
 
 template<typename... Args>
@@ -73,4 +73,4 @@ std::string to_string(const std::tuple<Args...>& val)
     return str.append("}");
 }
 
-} // namespace cassobee
+} // namespace bee

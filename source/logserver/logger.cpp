@@ -1,7 +1,7 @@
 #include "logger.h"
 #include "log_appender.h"
 
-namespace cassobee
+namespace bee
 {
 
 logger::logger(LOG_LEVEL level, log_appender* appender)
@@ -53,4 +53,4 @@ void logger::clr_appender()
     _appenders.clear();
 }
 
-} // namespace cassobee
+} // namespace bee

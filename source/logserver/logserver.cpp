@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    auto logclient = cassobee::logclient::get_instance();
+    auto logclient = bee::logclient::get_instance();
     logclient->init();
     logclient->set_process_name("logserver");
 
@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     looper->add_signal(SIGUSR1, sigusr1_handler);
     std::thread timer_thread = start_threadpool_and_timer();
 
-    cassobee::log_manager::get_instance()->init();
+    bee::log_manager::get_instance()->init();
 
     auto logclientmgr = logclient_manager::get_instance();
     logclientmgr->init();

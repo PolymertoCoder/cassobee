@@ -77,7 +77,7 @@ int main()
 
     close(sockfd);
 #elif 1
-    auto logclient = cassobee::logclient::get_instance();
+    auto logclient = bee::logclient::get_instance();
     logclient->init();
     logclient->set_process_name("client");
 

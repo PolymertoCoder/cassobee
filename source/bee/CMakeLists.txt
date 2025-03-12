@@ -1,60 +1,21 @@
-# liblog
-file(GLOB LIBLOG_SRC ${SOURCE_PATH}/bee/log/*.cpp)
-set(LIBLOG_SRC ${LIBLOG_SRC}
-               ${PROTOCOL_PATH}/state/state_log.cpp
-               ${PROTOCOL_PATH}/source/log_event.cpp
-               ${PROTOCOL_PATH}/source/remotelog.cpp
-)
-message("liblog source: " ${LIBLOG_SRC})
-add_library(log SHARED ${LIBLOG_SRC})
-target_include_directories(log
-                           PUBLIC
-                           ${SOURCE_PATH}/bee/log
-                           PRIVATE
-                           ${SOURCE_PATH}/bee/common
-                           ${SOURCE_PATH}/bee/io
-                           ${SOURCE_PATH}/bee/traits
-                           ${SOURCE_PATH}/bee/utility
-                           ${SOURCE_PATH}/bee/thread
-                           ${SOURCE_PATH}/protocol/
-                           ${SOURCE_PATH}/protocol/include
-)
-add_common_flags(log)
+# log module
 
-# libsecurity
-file(GLOB LIBSECURITY_SRC ${SOURCE_PATH}/bee/security/*.cpp)
-message("libsecurity source: " ${LIBSECURITY_SRC})
-add_library(security SHARED ${LIBSECURITY_SRC})
-target_include_directories(security
-                           PUBLIC
-                           ${THIRDPARTY_PATH}/cryptopp
-                           ${SOURCE_PATH}/bee/security
-                           PRIVATE
-                           ${SOURCE_PATH}/bee/common
-                           ${SOURCE_PATH}/bee/io
-                           ${SOURCE_PATH}/bee/log
-                           ${SOURCE_PATH}/bee/traits
-                           ${SOURCE_PATH}/bee/utility
-                           ${SOURCE_PATH}/bee/thread
-                           ${SOURCE_PATH}/protocol
-                           ${SOURCE_PATH}/protocol/include
-)
-target_link_libraries(security ${LIBCRYPTOPP_PATH})
-add_common_flags(security)
+
+# security module
+set(SECURITY_LINK_LIB ${LIBCRYPTOPP_PATH})
+set(SECURITY_INCLUDE ${THIRDPARTY_PATH}/cryptopp)
 
 # libcli
-add_subdirectory(cli)
+set(CLI_LINK_LIB ncurses)
+set(CLI_INCLUDE ${THIRDPARTY_PATH}/readline
+                ${THIRDLIB_OUTPUT_PATH}/readline/include
+)
 
-# libdatabase
+# libcmysql
 add_subdirectory(database)
 
 # libbee
 file(GLOB_RECURSE LIBBEE_SRC ${SOURCE_PATH}/bee/*.cpp)
-# 排除指定目录下的源文件
-list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/log/.*")
-list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/security/.*")
-list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/cli/.*")
-list(FILTER LIBBEE_SRC EXCLUDE REGEX "${SOURCE_PATH}/bee/database/.*")
 message("libbee source: " ${LIBBEE_SRC})
 add_library(bee SHARED ${LIBBEE_SRC})
 target_include_directories(bee
@@ -67,13 +28,19 @@ target_include_directories(bee
                            ${SOURCE_PATH}/bee/thread
                            ${SOURCE_PATH}/protocol
                            ${SOURCE_PATH}/protocol/include
+                           PRIVATE
+                           ${CLI_INCLUDE}
+                           ${SECURITY_INCLUDE}
 )
 
-set(LIBBEE_DEPEND_LIB log security database)
-add_dependencies(bee ${LIBBEE_DEPEND_LIB})
-target_link_libraries(bee ${LIBBEE_DEPEND_LIB})
-add_common_flags(bee)
+target_link_libraries(bee
+                      atomic
+                      ${CLI_LINK_LIB}
+                      ${SECURITY_LINK_LIB}
+)
 
 if(${CASSOBEE_BENCHMARK_ENABLE})
     target_link_libraries(bee benchmark benchmark_main)
 endif()
+
+add_common_flags(bee)

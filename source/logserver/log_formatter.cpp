@@ -9,7 +9,7 @@
 #include "macros.h"
 #include "log_event.h"
 
-namespace cassobee
+namespace bee
 {
 
 class message_format_item : public log_formatter::format_item
@@ -30,12 +30,12 @@ public:
     {
         switch(level)
         {
-            case LOG_LEVEL_TRACE: { os << "TRACE"; } break;
-            case LOG_LEVEL_DEBUG: { os << "DEBUG"; } break;
-            case LOG_LEVEL_INFO:  { os << "INFO";  } break;
-            case LOG_LEVEL_WARN:  { os << "WARN";  } break;
-            case LOG_LEVEL_ERROR: { os << "ERROR"; } break;
-            case LOG_LEVEL_FATAL: { os << "FATAL"; } break;
+            case LOG_LEVEL::TRACE: { os << "TRACE"; } break;
+            case LOG_LEVEL::DEBUG: { os << "DEBUG"; } break;
+            case LOG_LEVEL::INFO:  { os << "INFO";  } break;
+            case LOG_LEVEL::WARN:  { os << "WARN";  } break;
+            case LOG_LEVEL::ERROR: { os << "ERROR"; } break;
+            case LOG_LEVEL::FATAL: { os << "FATAL"; } break;
             default:{ os << "UNKNOWN"; } break;
         }
     }

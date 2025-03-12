@@ -64,7 +64,7 @@ private:
     address* _peer = nullptr;
     session_manager* _manager;
 
-    cassobee::rwlock _locker;
+    bee::rwlock _locker;
     event* _event = nullptr;
 
     octetsstream _reados;

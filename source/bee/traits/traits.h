@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <source_location>
 
-namespace cassobee
+namespace bee
 {
 
 template<typename container_type>
@@ -121,4 +121,4 @@ struct string_literal
     char data[N];
 };
 
-} // namespace cassobee
+} // namespace bee

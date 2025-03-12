@@ -1,10 +1,11 @@
 file(GLOB_RECURSE LOGSERVER_SRC ${SOURCE_PATH}/logserver/*.cpp)
 message("logserver source: " ${LOGSERVER_SRC})
 
-add_executable(logserver logserver.cpp ${LOGSERVER_SRC})
+add_executable(logserver logserver.cpp ${LOGSERVER_SRC} ${LOGCLIENT_SRC})
 target_include_directories(logserver
                            PRIVATE
                            ${SOURCE_PATH}/logserver/network
+                           ${SOURCE_PATH}/logclient
 )
 
 set(LOGSERVER_DEPEND_LIB bee prot)

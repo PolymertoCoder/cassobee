@@ -50,7 +50,7 @@ bool config::reload()
         return false;
     }
     ifs.close();
-    printf("config %s load finished, %s.\n", _config_file.data(), cassobee::to_string(_sections).data());
+    printf("config %s load finished, %s.\n", _config_file.data(), bee::to_string(_sections).data());
     return true;
 }
     

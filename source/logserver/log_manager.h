@@ -1,12 +1,11 @@
 #pragma once
-#include <stdio.h>
 #include <unordered_map>
 
 #include "log.h"
 #include "common.h"
 #include "log_event.h"
 
-namespace cassobee
+namespace bee
 {
 class logger;
 
@@ -25,4 +24,4 @@ private:
     std::unordered_map<std::string, logger*> _loggers;
 };
 
-} // namespace cassobee
+} // namespace bee

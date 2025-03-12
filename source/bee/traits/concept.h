@@ -3,11 +3,11 @@
 #include <cstddef>
 #include <utility>
 
-namespace cassobee
+namespace bee
 {
 
 template<typename T>
-concept stl_container = cassobee::is_stl_container_v<T>;
+concept stl_container = bee::is_stl_container_v<T>;
 
 template<typename T>
 concept has_reserve = requires { std::declval<T>().reserve(std::declval<size_t>()); };
@@ -15,4 +15,4 @@ concept has_reserve = requires { std::declval<T>().reserve(std::declval<size_t>(
 template<typename T>
 concept can_reserve_stl_container = (stl_container<T> && has_reserve<T>);
 
-} // namespace cassobee
+} // namespace bee

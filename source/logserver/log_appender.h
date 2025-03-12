@@ -12,7 +12,7 @@
 #include "types.h"
 
 
-namespace cassobee
+namespace bee
 {
 class log_event;
 class log_formatter;
@@ -102,7 +102,7 @@ public:
     void stop();
 
 private:
-    template<size_t N> using buffer_type = cassobee::ring_buffer<N>;
+    template<size_t N> using buffer_type = bee::ring_buffer<N>;
     TIMETYPE _timeout = 0; // ms
     size_t   _threshold = 0;
     std::condition_variable _cond;

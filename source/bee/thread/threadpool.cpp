@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <atomic>
 #include <bits/chrono.h>
+#include <print>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -63,11 +64,11 @@ thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
                 try
                 {
                     task();
-                    //local_log("thread_task run success");
+                    //std::println("thread_task run success");
                 }
                 catch(...)
                 {
-                    local_log("thread_task run throw exception!!!");
+                    std::println("thread_task run throw exception!!!");
                 }
                 --_busy;
 
@@ -155,17 +156,17 @@ void threadpool::start()
         if(_groups[i] == nullptr)
         {
             _groups[i] = new thread_group(i, maxsize, threadcnt);
-            local_log("thread group %d run %d threads, task queue maxsize:%d.", (int)i, threadcnt, maxsize);
+            std::println("thread group %d run %d threads, task queue maxsize:%d.", (int)i, threadcnt, maxsize);
         }
         else
         {
-            local_log("thread group %d already start.", (int)i);
+            std::println("thread group %d already start.", (int)i);
         }
     }
     _is_steal = cfg->get("threadpool", "steal", false);
     if(_is_steal)
     {
-        local_log("threadpool enable steal task.");
+        std::println("threadpool enable steal task.");
     }
     _stop.store(false, std::memory_order_release);
 }
@@ -188,7 +189,7 @@ void threadpool::add_task(int groupidx, const std::function<void()>& task)
 {
     if(_stop.load(std::memory_order_acquire))
     {
-        local_log("threadpool is stopped, add_task failed.");
+        std::println("threadpool is stopped, add_task failed.");
         return;
     }
     ASSERT(groupidx >= 0 && groupidx < static_cast<int>(_groups.size()));
@@ -199,7 +200,7 @@ void threadpool::add_essential_task(const std::function<void()>& task)
 {
     if(_stop.load(std::memory_order_acquire))
     {
-        local_log("threadpool is stopped, add_essential_task failed.");
+        std::println("threadpool is stopped, add_essential_task failed.");
         return;
     }
     _essential_task_queue.push_back(task);
@@ -212,7 +213,7 @@ void threadpool::try_steal_one(int current_idx, std::function<void()>& task)
     for(auto i = 0; i < group_size; ++i)
     {
         size_t idx = (offset + i) % group_size;
-        if(idx == current_idx) continue;
+        if(idx == (size_t)current_idx) continue;
 
         std::unique_lock<std::mutex> l(_groups[idx]->_queue_lock, std::try_to_lock);
         if(l.owns_lock() && _groups[idx]->has_task())
@@ -223,7 +224,7 @@ void threadpool::try_steal_one(int current_idx, std::function<void()>& task)
             {
                 _groups[idx]->notify_one(); // 继续唤醒等待中的线程来窃取任务
             }
-            local_log("thread group %d steal group %d task success.", current_idx, (int)_groups[idx]->_idx);
+            std::println("thread group %d steal group %d task success.", current_idx, (int)_groups[idx]->_idx);
             return;
         }
     }
