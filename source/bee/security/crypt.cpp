@@ -54,3 +54,47 @@ std::string AES_crypt::decrypt(const char* ciphertext, size_t size)
     }
     return decryptedtext;
 }
+
+std::string RSA_crypt::encrypt(const std::string_view& plaintext)
+{
+    return encrypt(plaintext.data(), plaintext.size());
+}
+
+std::string RSA_crypt::encrypt(const char* plaintext, size_t size)
+{
+    std::string ciphertext;
+    try
+    {
+        CryptoPP::RSAES_OAEP_SHA_Encryptor encryptor(_public_key);
+        CryptoPP::StringSource ss(reinterpret_cast<const byte*>(plaintext), size, true,
+            new CryptoPP::PK_EncryptorFilter(_rng, encryptor, new CryptoPP::StringSink(ciphertext)));
+    }
+    catch(const CryptoPP::Exception& e)
+    {
+        std::println("RSA Encryption error: %s", e.what());
+        throw;
+    }
+    return ciphertext;
+}
+
+std::string RSA_crypt::decrypt(const std::string_view& ciphertext)
+{
+    return decrypt(ciphertext.data(), ciphertext.size());
+}
+
+std::string RSA_crypt::decrypt(const char* ciphertext, size_t size)
+{
+    std::string decryptedtext;
+    try
+    {
+        CryptoPP::RSAES_OAEP_SHA_Decryptor decryptor(_private_key);
+        CryptoPP::StringSource ss(reinterpret_cast<const byte*>(ciphertext), size, true,
+            new CryptoPP::PK_DecryptorFilter(_rng, decryptor, new CryptoPP::StringSink(decryptedtext)));
+    }
+    catch(const CryptoPP::Exception& e)
+    {
+        std::println("RSA Decryption error: %s", e.what());
+        throw;
+    }
+    return decryptedtext;
+}

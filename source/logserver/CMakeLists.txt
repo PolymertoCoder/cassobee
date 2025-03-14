@@ -1,16 +1,11 @@
 file(GLOB_RECURSE LOGSERVER_SRC ${SOURCE_PATH}/logserver/*.cpp)
-message("logserver source: " ${LOGSERVER_SRC})
 
-add_executable(logserver logserver.cpp ${LOGSERVER_SRC} ${LOGCLIENT_SRC})
-target_include_directories(logserver
-                           PRIVATE
-                           ${SOURCE_PATH}/logserver/network
-                           ${SOURCE_PATH}/logclient
-)
+add_executable(logserver ${LOGSERVER_SRC})
 
-set(LOGSERVER_DEPEND_LIB bee prot)
-add_dependencies(logserver ${LOGSERVER_DEPEND_LIB})
-target_link_libraries(logserver pthread ${LOGSERVER_DEPEND_LIB})
+target_include_directories(logserver PRIVATE ${SOURCE_PATH}/logserver/network)
+
+target_link_libraries(logserver pthread bee_r prot logclient)
 
 gen_startup_script(logserver)
+
 add_common_flags(logserver)

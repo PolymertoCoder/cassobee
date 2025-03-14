@@ -16,6 +16,7 @@
 #include "timewheel.h"
 #include "systemtime.h"
 #include "log.h"
+#include "glog.h"
 #include "traits.h"
 #include "common.h"
 #include "factory.h"

@@ -4,7 +4,7 @@
 #include "config.h"
 #include "remotelog.h"
 #include "log.h"
-#include "logclient.h"
+#include "glog.h"
 
 namespace bee
 {

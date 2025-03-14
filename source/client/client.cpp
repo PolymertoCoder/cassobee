@@ -11,6 +11,7 @@
 #include "command_line.h"
 #include "session_manager.h"
 #include "log.h"
+#include "glog.h"
 #include "reactor.h"
 #include "threadpool.h"
 #include "timewheel.h"

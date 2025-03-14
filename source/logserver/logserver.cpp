@@ -6,6 +6,7 @@
 #include "threadpool.h"
 #include "log_manager.h"
 #include "logclient_manager.h"
+#include "glog.h"
 
 bool sigusr1_handler(int signum)
 {

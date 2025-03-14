@@ -31,7 +31,7 @@ set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_C_COMPILER "/usr/local/bin/clang")
 #set(CMAKE_CXX_COMPILER "/usr/local/bin/clang++")
 
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++23 -Wall -Wno-deprecated -Wno-unused-function -Wno-interference-size -D_REENTRANT")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++23 -Wall -Wno-deprecated -Wno-unused-function -Wno-interference-size")
 
 # debug or release
 if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")

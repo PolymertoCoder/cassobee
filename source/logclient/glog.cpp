@@ -1,8 +1,9 @@
-#include "logclient.h"
+#include "glog.h"
 
 #include <cstdarg>
 #include <cstdio>
 #include "log.h"
+#include "logger.h"
 #include "config.h"
 #include "log_event.h"
 #include "systemtime.h"

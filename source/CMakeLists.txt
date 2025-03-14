@@ -41,11 +41,6 @@ function(add_sanitize_flag target)
     target_link_libraries(${target} -fsanitize=address)
 endfunction()
 
-set(LOGCLIENT_SRC ${PROTOCOL_PATH}/state/state_log.cpp
-                  ${PROTOCOL_PATH}/source/log_event.cpp
-                  ${PROTOCOL_PATH}/source/remotelog.cpp
-)
-
 # libprot
 file(GLOB LIBPROT_SRC ${SOURCE_PATH}/protocol/source/*.cpp)
 add_library(prot SHARED ${LIBPROT_SRC})
@@ -57,6 +52,9 @@ target_include_directories(prot PUBLIC ./protocol/include)
 
 # libbee
 add_subdirectory(bee)
+
+# liblogclient
+add_subdirectory(logclient)
 
 # cassobee exe
 add_subdirectory(casso)

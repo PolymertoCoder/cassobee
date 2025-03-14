@@ -5,13 +5,13 @@
 void logserver_manager::on_add_session(SID sid)
 {
     _localsid = sid;
-    local_log("logserver_manager on_add_session %lu %s.", sid, get_addr()->to_string().data());
+    std::println("logserver_manager on_add_session %lu %s.", sid, get_addr()->to_string().data());
 }
 
 void logserver_manager::on_del_session(SID sid)
 {
     _localsid = 0;
-    local_log("logserver_manager on_del_session %lu.", sid);
+    std::println("logserver_manager on_del_session %lu.", sid);
     reconnect();
 }
 
