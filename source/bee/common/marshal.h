@@ -68,6 +68,7 @@ public:
     FORCE_INLINE bool data_ready(size_t len) const { return (_data.size() - _pos) >= len; }
     FORCE_INLINE size_t get_pos() const { return _pos; }
     FORCE_INLINE size_t size() const { return _data.size(); }
+    FORCE_INLINE bool empty() const { return _data.empty(); }
     FORCE_INLINE size_t capacity() const { return _data.capacity(); }
 
 public:

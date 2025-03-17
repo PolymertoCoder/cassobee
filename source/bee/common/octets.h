@@ -142,6 +142,12 @@ public:
         memcpy(_buf + pos, data, len);
         _len += len;
     }
+    void append(const char ch)
+    {
+        reserve(_len + 1);
+        *(_buf + _len) = ch;
+		_len += 1;
+    }
     void append(const char* data, size_t len)
     {
         if(len == 0) return;
