@@ -2,23 +2,11 @@
 
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
-outputfile=$rootpath/debug/cassobee.log
-configpath=$rootpath/config
+if [ -z $1 ]; then
+    echo please enter target for paragram1
+    exit -1
+fi
 
 mkdir $rootpath/build
 
-cd $rootpath/build && cmake .. && make -j8
-
-echo use $outputfile as output file.
-
-#echo nohup $rootpath/debug/cassobee --config $configpath/cassobee.conf '>' $outputfile '2>&1 &' > $rootpath/bin/run_cassobee.sh
-#chmod 775 $rootpath/bin/run_cassobee.sh
-
-#echo gdb --args $rootpath/debug/cassobee --config $configpath/cassobee.conf > $rootpath/bin/gdbrun_cassobee.sh
-#chmod 775 $rootpath/bin/gdbrun_cassobee.sh
-
-#echo nohup $rootpath/debug/client --config $configpath/client.conf '>' $outputfile '2>&1 &' > $rootpath/bin/run_client.sh
-#chmod 775 $rootpath/bin/run_client.sh
-
-#echo gdb --args $rootpath/debug/client --config $configpath/client.conf > $rootpath/bin/gdbrun_client.sh
-#chmod 775 $rootpath/bin/gdbrun_client.sh
+cd $rootpath/build && cmake .. && make $1

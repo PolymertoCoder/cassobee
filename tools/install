@@ -18,6 +18,12 @@ echo alias bb=\"cd ${rootpath}/build\"           >> ~/.cassobee_config
 echo alias pp=\"cd ${rootpath}/progen\"          >> ~/.cassobee_config
 echo alias trace=\"cd ${rootpath}/debug/logdir\" >> ~/.cassobee_config
 echo alias third=\"cd ${rootpath}/thirdparty\"   >> ~/.cassobee_config
+echo ''                                          >> ~/.cassobee_config
+
+echo source ${rootpath}/tools/completions   	 >> ~/.cassobee_config
+echo complete -F process_name_completions rs     >> ~/.cassobee_config
+echo complete -F process_name_completions ks     >> ~/.cassobee_config
+echo complete -F process_name_completions mk     >> ~/.cassobee_config
 
 sh ./build_tool/setup_pretty_printer.sh
 

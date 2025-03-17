@@ -1,0 +1,23 @@
+extract_process_names()
+{
+    local process_names=()
+    local binpath=$(cd $(dirname "${BASH_SOURCE[0]}") && cd ../bin; pwd)
+
+    for file in "$binpath"/run_*.sh; do
+        if [ -f "$file" ]; then
+            local filename=$(basename "$file")
+            local process_name="${filename#run_}"
+            process_name="${process_name%.sh}"
+            process_names+=("$process_name")
+        fi
+    done
+
+    echo "${process_names[@]}"
+}
+
+process_name_completions()
+{
+    local cur_word="${COMP_WORDS[COMP_CWORD]}"
+    local processes=$(extract_process_names)
+    COMPREPLY=($(compgen -W "${processes}" -- "$cur_word"))
+}
