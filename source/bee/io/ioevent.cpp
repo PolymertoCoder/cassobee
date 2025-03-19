@@ -7,11 +7,11 @@
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <cstring>
+#include <openssl/err.h>
 
 #include "ioevent.h"
 #include "address.h"
 #include "event.h"
-#include "log.h"
 #include "common.h"
 #include "reactor.h"
 #include "session.h"
@@ -318,3 +318,167 @@ int streamio_event::handle_send()
     _ses->on_send(total_send);
     return total_send;
 }
+
+sslio_event::sslio_event(int fd, session* ses, SSL* ssl)
+    : streamio_event(fd, ses), _ssl(ssl)
+{
+    SSL_set_fd(_ssl, _fd);
+    SSL_set_mode(_ssl, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+}
+
+sslio_event::~sslio_event()
+{
+    if(_ssl)
+    {
+        SSL_shutdown(_ssl);
+        SSL_free(_ssl);
+    }
+}
+
+bool sslio_event::do_handshake()
+{
+    int ret = SSL_do_handshake(_ssl);
+    if (ret == 1) return true;
+
+    int err = SSL_get_error(_ssl, ret);
+    switch(err) {
+    case SSL_ERROR_WANT_READ:
+        _ses->permit_recv();
+        return true;
+    case SSL_ERROR_WANT_WRITE:
+        _ses->permit_send();
+        return true;
+    default:
+        char errbuf[256];
+        ERR_error_string_n(ERR_get_error(), errbuf, sizeof(errbuf));
+        std::println("SSL handshake failed: %s", errbuf);
+        return false;
+    }
+}
+
+int sslio_event::handle_recv()
+{
+    if(!SSL_is_init_finished(_ssl))
+    {
+        if(!do_handshake())
+        {
+            close_socket();
+            return -1;
+        }
+        return 0;
+    }
+
+    bee::rwlock::wrscoped sesl(_ses->_locker);
+    octets& rbuffer = _ses->rbuffer();
+    
+    int total = 0;
+    while(true)
+    {
+        size_t space = rbuffer.free_space();
+        if(space == 0) break;
+
+        int len = SSL_read(_ssl, rbuffer.end(), space);
+        if(len > 0)
+        {
+            rbuffer.fast_resize(rbuffer.size() + len);
+            total += len;
+        }
+        else
+        {
+            int err = SSL_get_error(_ssl, len);
+            if(err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) break;
+            close_socket();
+            std::println("sslio_event handle_read failed: %s", ERR_error_string(err, nullptr));
+            return -1;
+        }
+    }
+
+    if(total > 0)
+    {
+        _ses->on_recv(total);
+        return total;
+    }
+    return 0;
+}
+
+#include "traffic_shaper.h"
+
+// 优化SSL写操作（减少内存拷贝）
+int sslio_event::handle_send()
+{
+    static traffic_shaper ssl_shaper(10 * 1024 * 1024); // 10MB/s
+
+    int total_sent = 0;
+    bool need_retry = false;
+    
+    {
+        bee::rwlock::wrscoped sesl(_ses->_locker);
+        octets& wbuffer = _ses->wbuffer();
+        if(wbuffer.size() == _ses->_write_offset)
+        {
+            _ses->forbid_send();
+            return 0;
+        }
+
+        if(!ssl_shaper.acquire(wbuffer.size() - _ses->_write_offset))
+        {
+            // 超过速率限制，延迟发送
+            add_timer(50, [this]()
+            {
+                bee::rwlock::wrscoped sesl(_ses->_locker);
+                _ses->permit_send();
+                return false;
+            });
+            return 0;
+        }
+
+        // 使用分散写优化
+        struct iovec iov[2];
+        iov[0].iov_base = wbuffer.data() + _ses->_write_offset;
+        iov[0].iov_len = wbuffer.size() - _ses->_write_offset;
+        
+        while(true)
+        {
+            int len = SSL_write(_ssl, iov, 1);
+            if(len > 0)
+            {
+                total_sent += len;
+                _ses->_write_offset += len;
+                if(_ses->_write_offset == wbuffer.size()) break;
+                iov[0].iov_base = wbuffer.data() + _ses->_write_offset;
+                iov[0].iov_len = wbuffer.size() - _ses->_write_offset;
+            }
+            else
+            {
+                int err = SSL_get_error(_ssl, len);
+                if(err == SSL_ERROR_WANT_WRITE)
+                {
+                    need_retry = true;
+                }
+                else
+                {
+                    close_socket();
+                    return -1;
+                }
+                break;
+            }
+        }
+
+        // 缓冲区整理优化
+        if(_ses->_write_offset > wbuffer.capacity() / 2)
+        {
+            wbuffer.erase(0, _ses->_write_offset);
+            _ses->_write_offset = 0;
+        }
+    }
+
+    if(total_sent > 0)
+    {
+        _ses->on_send(total_sent);
+    }
+    if(need_retry)
+    {
+        _ses->permit_send();
+    }
+    return total_sent;
+} 

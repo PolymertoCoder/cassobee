@@ -24,18 +24,18 @@ class session
 {
 public:
     session(session_manager* manager);
-    ~session();
+    virtual ~session();
 
     void clear();
     session* dup();
 
     SID get_next_sessionid();
 
-    void open();
-    void close();
+    virtual void open();
+    virtual void close();
 
-    void on_recv(size_t len);
-    void on_send(size_t len);
+    virtual void on_recv(size_t len);
+    virtual void on_send(size_t len);
 
     void permit_recv();
     void permit_send();
@@ -55,9 +55,10 @@ public:
     FORCE_INLINE void set_state(SESSION_STATE state) { _state = state; }
     FORCE_INLINE void set_event(event* ev) { _event = ev; }
 
-private:
+protected:
     friend class session_manager;
     friend class streamio_event;
+    friend class sslio_event;
     SID _sid = 0;
     int _sockfd = 0;
     uint8_t _state = SESSION_STATE_NONE;

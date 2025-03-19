@@ -1,6 +1,4 @@
 #include "crypt.h"
-#include "log.h"
-
 #include "modes.h"
 #include "filters.h"
 #include <print>

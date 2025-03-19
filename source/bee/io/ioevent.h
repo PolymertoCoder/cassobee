@@ -1,5 +1,6 @@
 #pragma once
 #include "event.h"
+#include <openssl/ssl.h>
 
 class session;
 class session_manager;
@@ -35,6 +36,20 @@ struct streamio_event : netio_event
 {
     streamio_event(int fd, session* ses);
     virtual bool handle_event(int active_events) override;
-    int handle_recv();
-    int handle_send();
+    virtual int handle_recv();
+    virtual int handle_send();
+};
+
+class sslio_event : public streamio_event {
+public:
+    sslio_event(int fd, session* ses, SSL* ssl);
+    virtual ~sslio_event();
+    
+protected:
+    bool do_handshake();
+    virtual int handle_recv() override;
+    virtual int handle_send() override;
+    
+private:
+    SSL* _ssl = nullptr;
 };

@@ -18,7 +18,7 @@ class session_manager
 public:
     session_manager();
     virtual ~session_manager();
-    void init();
+    virtual void init();
     FORCE_INLINE virtual const char* identity() const { return "session_manager"; }
     FORCE_INLINE address* get_addr() { return _addr; }
     FORCE_INLINE int socktype() { return _socktype; }
@@ -28,12 +28,12 @@ public:
 
     virtual void on_add_session(SID sid);
     virtual void on_del_session(SID sid);
-    void reconnect();
+    virtual void reconnect();
 
-    session* create_session();
+    virtual session* create_session();
     void add_session(SID sid, session* ses);
     void del_session(SID sid);
-    session* find_session(SID sid);
+    virtual session* find_session(SID sid);
 
     void add_session_nolock(SID sid, session* ses);
     void del_session_nolock(SID sid);
@@ -42,7 +42,7 @@ public:
     void send_protocol(SID sid, const protocol& prot);
     void send_octets(SID sid, const octets& oct);
 
-private:
+protected:
     friend class session;
     struct state
     {
