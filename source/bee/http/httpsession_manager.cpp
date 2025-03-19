@@ -37,6 +37,11 @@ void httpsession_manager::init()
         {
             throw std::runtime_error("Failed to initialize SSL context");
         }
+        std::println("SSL context initialized for %s", identity());
+    }
+    else
+    {
+        std::println("SSL is disabled for %s", identity());
     }
 }
 
@@ -137,25 +142,21 @@ SSL_CTX* httpsession_manager::create_ssl_context(const std::string& cert_path, c
 // 智能连接保活
 void httpsession_manager::check_keepalive()
 {
-    const TIMETYPE now = systemtime::get_millseconds();
     auto cfg = config::get_instance();
     const TIMETYPE timeout = cfg->get<TIMETYPE>(identity(), "keepalive_timeout", 30000);
-    const size_t max_requests = cfg->get<size_t>(identity(), "max_requests", 1000);
 
     bee::rwlock::wrscoped l(_locker);
-    for(auto it = _sessions.begin(); it != _sessions.end();) {
+    for (auto it = _sessions.begin(); it != _sessions.end();)
+    {
         httpsession* ses = dynamic_cast<httpsession*>(it->second);
-        bool should_close = 
-            (now - ses->_last_active > timeout) ||
-            (ses->_request_count >= max_requests) ||
-            (ses->_writeos.size() > 10 * 1024 * 1024); // 10MB写缓冲限制
-
-        if(should_close) {
-            std::println("Closing session %lu (requests:%zu buffer:%zuMB)", 
-                it->first, ses->_request_count, ses->_writeos.size()/(1024*1024));
+        if (ses && ses->is_timeout(timeout))
+        {
+            std::println("Session %lu timed out, closing.", it->first);
             delete ses;
             it = _sessions.erase(it);
-        } else {
+        }
+        else
+        {
             ++it;
         }
     }

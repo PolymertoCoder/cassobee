@@ -3,7 +3,6 @@
 #include "address.h"
 #include "ioevent.h"
 #include "lock.h"
-#include "log.h"
 #include "marshal.h"
 #include "reactor.h"
 #include "config.h"

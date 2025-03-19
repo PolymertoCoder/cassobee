@@ -2,7 +2,6 @@
 
 #include "address.h"
 #include "event.h"
-#include "log.h"
 #include "protocol.h"
 #include "reactor.h"
 #include "threadpool.h"

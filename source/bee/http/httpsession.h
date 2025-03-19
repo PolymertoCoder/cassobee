@@ -22,12 +22,14 @@ public:
 
 protected:
     void handle_request(httpprotocol* prot);
+    void update_last_active(); // 更新会话的最后活跃时间
+    bool is_timeout(TIMETYPE timeout) const; // 检查会话是否超时
 
 private:
     friend class httpsession_manager;
     SSL* _ssl = nullptr;
     size_t _request_count = 0;
-    TIMETYPE _last_active = 0;
+    TIMETYPE _last_active = 0; // 最后活跃时间
 };
 
 } // namespace bee
