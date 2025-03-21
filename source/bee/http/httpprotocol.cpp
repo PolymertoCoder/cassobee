@@ -78,8 +78,6 @@ octetsstream& httpprotocol::unpack(octetsstream& os)
 }
 
 // httprequest implementation
-httprequest::httprequest() : httpprotocol(get_type()) {}
-
 size_t httprequest::maxsize() const
 {
     return config::get_instance()->get<size_t>("http", "max_request_size", 1024 * 1024);

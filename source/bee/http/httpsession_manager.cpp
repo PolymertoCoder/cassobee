@@ -137,26 +137,18 @@ SSL_CTX* httpsession_manager::create_ssl_context(const std::string& cert_path, c
 bool httpsession_manager::check_headers(const httpprotocol* req)
 {
     constexpr size_t MAX_BODY_SIZE = 1024 * 1024; // 1MB
-    if (req->get_header("Content-Length").size() > MAX_BODY_SIZE) {
-        return false;
-    }
+    if (req->get_header("Content-Length").size() > MAX_BODY_SIZE) return false;
 
     // 检查Host头
-    if (!req->has_header("Host")) {
-        return false;
-    }
+    if (!req->has_header("Host")) return false;
 
     // 限制头数量
     constexpr size_t MAX_HEADERS = 64;
-    if (req->header_count() > MAX_HEADERS) {
-        return false;
-    }
+    if (req->header_count() > MAX_HEADERS) return false;
 
     // 防御请求走私攻击
     if (req->has_header("Transfer-Encoding") && 
-        req->has_header("Content-Length")) {
-        return false;
-    }
+        req->has_header("Content-Length")) return false;
 
     // 检查头字段合法性
     static const std::set<std::string> ALLOWED_HEADERS = {
@@ -164,19 +156,22 @@ bool httpsession_manager::check_headers(const httpprotocol* req)
         "Content-Type", "Connection"
     };
 
-    for (const auto& [k, v] : req->headers()) {
+    for (const auto& [k, v] : req->headers())
+    {
         // 检查字段名合法性
-        if (k.find_first_not_of("abcdefghijklmnopqrstuvwxyz-") != std::string::npos) {
+        if (k.find_first_not_of("abcdefghijklmnopqrstuvwxyz-") != std::string::npos)
             return false;
-        }
         
         // 白名单检查
-        if (!ALLOWED_HEADERS.contains(k)) {
-            return false;
-        }
+        if (!ALLOWED_HEADERS.contains(k)) return false;
     }
     return true;
 }
 
+
+void httpsession_manager::ocsp_callback(SSL* ssl, void* arg)
+{
+
+}
 
 } // namespace bee

@@ -1,7 +1,7 @@
 #include "session.h"
 
 #include "address.h"
-#include "event.h"
+#include "ioevent.h"
 #include "protocol.h"
 #include "reactor.h"
 #include "threadpool.h"
@@ -62,17 +62,25 @@ session* session::dup()
     return ses;
 }
 
-void session::open()
+void session::set_open()
 {
     set_state(SESSION_STATE_ACTIVE);
     _manager->add_session(_sid, this);
 }
 
-void session::close()
+void session::set_close()
 {
     set_state(SESSION_STATE_CLOSING);
     _manager->del_session(_sid);
     clear();
+}
+
+void session::close()
+{
+    if(auto event = dynamic_cast<netio_event*>(_event))
+    {
+        event->close_socket();
+    }
 }
 
 void session::on_recv(size_t len)

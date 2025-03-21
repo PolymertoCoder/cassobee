@@ -22,6 +22,132 @@
 namespace bee
 {
 
+stdio_event::stdio_event(int fd, size_t buffer_size)
+{
+    _fd = fd;
+    _buffer.reserve(buffer_size);
+    set_nonblocking(_fd);
+}
+
+size_t stdio_event::on_read()
+{
+    size_t total_read = 0;
+    while(true)
+    {
+        size_t free_size = _buffer.free_space();
+        if(free_size == 0) break;
+
+        char* recv_ptr = _buffer.end();
+        int len = read(_fd, recv_ptr, free_size);
+        if(len > 0)
+        {
+            _buffer.fast_resize(len);
+            total_read += len;
+            std::println("stdio_event handle_event read %d bytes from stdin.", len);
+        }
+        else if(len == 0)
+        {
+            std::println("stdio_event handle_event stdin closed.");
+            return false;
+        }
+        else
+        {
+            if(errno == EAGAIN || errno == EINTR)
+            {
+                std::println("stdio_event handle_event temporary error (errno=%d: %s).", errno, strerror(errno));
+                return true;
+            }
+            else
+            {
+                perror("read");
+                return false;
+            }
+        }
+    }
+    return total_read;
+}
+
+size_t stdio_event::on_write()
+{
+    size_t total_write = 0;
+    while(true)
+    {
+        int len = write(_fd, _buffer, _buffer.size());
+        if(len > 0)
+        {
+            total_write += len;
+            std::println("stdio_event handle_event write %d bytes to stdout.", len);
+        }
+        else if(len == 0)
+        {
+            std::println("stdio_event handle_event stdout closed.");
+            return false;
+        }
+        else
+        {
+            if(errno == EAGAIN || errno == EINTR)
+            {
+                std::println("stdio_event handle_event temporary error (errno=%d: %s).", errno, strerror(errno));
+                return true;
+            }
+            else
+            {
+                perror("write");
+                return false;
+            }
+        }
+    }
+    return total_write;
+}
+
+stdin_event::stdin_event(size_t buffer_size)
+    : stdio_event(fileno(stdin), buffer_size)
+{
+    set_events(EVENT_RECV);
+}
+
+bool stdin_event::handle_event(int active_events)
+{
+    if(active_events & EVENT_RECV)
+    {
+        size_t total_read = stdio_event::on_read();
+        return handle_read(total_read);
+    }
+    return true;
+}
+
+stdout_event::stdout_event(size_t buffer_size)
+    : stdio_event(fileno(stdout), buffer_size)
+{
+    set_events(EVENT_SEND);
+}
+
+bool stdout_event::handle_event(int active_events)
+{
+    if(active_events & EVENT_SEND)
+    {
+        size_t total_write = stdio_event::on_write();
+        return handle_write(total_write);
+    }
+    return true;
+}
+
+stderr_event::stderr_event(size_t buffer_size)
+    : stdio_event(fileno(stderr), buffer_size)
+{
+    set_events(EVENT_RECV);
+}
+
+bool stderr_event::handle_event(int active_events)
+{
+    if(active_events & EVENT_RECV)
+    {
+        size_t total_read = stdio_event::on_read();
+        return handle_error(total_read);
+    }
+    return true;
+}
+
 netio_event::netio_event(session* ses) : _ses(ses)
 {
     _ses->set_event(this);
@@ -29,18 +155,17 @@ netio_event::netio_event(session* ses) : _ses(ses)
 
 netio_event::~netio_event()
 {
-    close_socket();
+    if(_fd >= 0)
+    {
+        ::close(_fd);
+    }
+    _ses->set_close();
     delete _ses;
 }
 
 void netio_event::close_socket()
 {
-    if(_fd >= 0)
-    {
-        ::close(_fd);
-        _fd = -1;
-        _ses->close();
-    }
+    _base->del_event(this);
 }
 
 passiveio_event::passiveio_event(session_manager* manager)
@@ -201,7 +326,7 @@ streamio_event::streamio_event(int fd, session* ses)
         close(_fd);
         exit(-1);
     }
-    ses->open();
+    ses->set_open();
     //std::println("streamio_event constructor run");
 }
 
@@ -226,60 +351,68 @@ bool streamio_event::handle_event(int active_events)
 
 int streamio_event::handle_recv()
 {
-    if(_base == nullptr) return -1;
-
     bee::rwlock::wrscoped sesl(_ses->_locker);
     octets& rbuffer = _ses->rbuffer();
     size_t free_space = rbuffer.free_space();
     if(free_space == 0)
     {
+        _ses->on_recv(rbuffer.size());
         std::println("recv[fd=%d]: buffer is full, no space to receive data", _fd);
-        return 0;
     }
+    
+    int total_recv = 0;
+    while(true)
+    {
+        size_t free_space = rbuffer.free_space();
+        if(free_space == 0)
+        {
+            _ses->forbid_recv();
+            std::println("recv[fd=%d]: buffer is full on receiving, forbid_recv", _fd);
+            break;
+        }
 
-    char* recv_ptr = rbuffer.end();
-    int len = recv(_fd, recv_ptr, free_space, 0);
-    if(len > 0)
-    {
-        rbuffer.fast_resize(len);
-        std::println("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
-              _fd, len, rbuffer.size(), rbuffer.free_space());
-        _ses->on_recv(len);
-    }
-    else if(len == 0)
-    {
-        std::println("recv[fd=%d]: connection closed by peer, buffer size=%zu",
-              _fd, rbuffer.size());
-        close_socket();
-    }
-    else // len < 0
-    {
-        if(errno == EAGAIN || errno == EINTR)
+        char* recv_ptr = rbuffer.end();
+        int len = recv(_fd, recv_ptr, free_space, 0);
+        if(len > 0)
         {
-            // 非阻塞模式下的正常情况，不需要额外处理
-            std::println("recv[fd=%d]: temporary error (errno=%d: %s), buffer size=%zu, free space=%zu",
-                  _fd, errno, strerror(errno), rbuffer.size(), rbuffer.free_space());
+            rbuffer.fast_resize(len);
+            total_recv += len;
+            std::println("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
+                _fd, len, rbuffer.size(), rbuffer.free_space());
         }
-        else
+        else if(len == 0)
         {
-            perror("recv");
-            std::println("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
-                  _fd, errno, strerror(errno), rbuffer.size());
+            std::println("recv[fd=%d]: connection closed by peer, buffer size=%zu",
+                _fd, rbuffer.size());
             close_socket();
+            return -1;
         }
-        std::println("recv[fd=%d] len=%d error[%d]:%s", _fd, len, errno, strerror(errno));
+        else // len < 0
+        {
+            if(errno == EAGAIN || errno == EINTR)
+            {
+                // 非阻塞模式下的正常情况，不需要额外处理
+                std::println("recv[fd=%d]: temporary error (errno=%d: %s), buffer size=%zu, free space=%zu",
+                    _fd, errno, strerror(errno), rbuffer.size(), rbuffer.free_space());
+                break;
+            }
+            else
+            {
+                perror("recv");
+                std::println("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
+                    _fd, errno, strerror(errno), rbuffer.size());
+                close_socket();
+                return -1;
+            }
+        }
     }
-    if(rbuffer.free_space() == 0)
-    {
-        _ses->forbid_recv();
-    }
-    return len;
+    
+    _ses->on_recv(total_recv);
+    return total_recv;
 }
 
 int streamio_event::handle_send()
 {
-    if(_base == nullptr) return -1;
-
     int total_send = 0;
     octets* wbuffer = nullptr;
     {
@@ -336,42 +469,7 @@ int streamio_event::handle_send()
 }
 
 sslio_event::sslio_event(int fd, httpsession* ses)
-    : streamio_event(fd, ses), _ssl(ses->get_ssl())
-{
-    _fd = fd;
-    address* addr = ses->get_peer();
-    if(getsockname(_fd, addr->addr(), &addr->len()) < 0)
-    {
-        perror("getsockname");
-        close(_fd);
-        exit(-1);
-    }
-    int flag = 1;
-    if(setsockopt(_fd, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(int)) < 0)
-    {
-        perror("setsockopt");
-        close(_fd);
-        exit(-1);
-    }
-    if(setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int)) < 0)
-    {
-        perror("setsockopt");
-        close(_fd);
-        exit(-1);
-    }
-    ses->open();
-    SSL_set_fd(_ssl, _fd);
-    SSL_set_mode(_ssl, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
-}
-
-sslio_event::~sslio_event()
-{
-    if(_ssl)
-    {
-        SSL_shutdown(_ssl);
-        SSL_free(_ssl);
-    }
-}
+    : streamio_event(fd, ses), _ssl(ses->get_ssl()) {}
 
 bool sslio_event::do_handshake()
 {
@@ -379,28 +477,32 @@ bool sslio_event::do_handshake()
     if (ret == 1) return true;
 
     int err = SSL_get_error(_ssl, ret);
-    switch(err) {
-    case SSL_ERROR_WANT_READ:
-        _ses->permit_recv();
-        return true;
-    case SSL_ERROR_WANT_WRITE:
-        _ses->permit_send();
-        return true;
-    default:
-        char errbuf[256];
-        ERR_error_string_n(ERR_get_error(), errbuf, sizeof(errbuf));
-        std::println("SSL handshake failed: %s", errbuf);
-        return false;
+    switch(err)
+    {
+        case SSL_ERROR_WANT_READ:
+        {
+            _ses->permit_recv();
+            return true;
+        }
+        case SSL_ERROR_WANT_WRITE:
+        {
+            _ses->permit_send();
+            return true;
+        }
+        default:
+        {
+            char errbuf[256];
+            ERR_error_string_n(ERR_get_error(), errbuf, sizeof(errbuf));
+            std::println("SSL handshake failed: %s", errbuf);
+            return false;
+        }
     }
-}
-
-bool sslio_event::handle_event(int active_events)
-{
-    return true;
 }
 
 int sslio_event::handle_recv()
 {
+    bee::rwlock::wrscoped sesl(_ses->_locker);
+
     if(!SSL_is_init_finished(_ssl))
     {
         if(!do_handshake())
@@ -411,16 +513,15 @@ int sslio_event::handle_recv()
         return 0;
     }
 
-    bee::rwlock::wrscoped sesl(_ses->_locker);
     octets& rbuffer = _ses->rbuffer();
     
     int total = 0;
     while(true)
     {
-        size_t space = rbuffer.free_space();
-        if(space == 0) break;
+        size_t free_space = rbuffer.free_space();
+        if(free_space == 0) break;
 
-        int len = SSL_read(_ssl, rbuffer.end(), space);
+        int len = SSL_read(_ssl, rbuffer.end(), free_space);
         if(len > 0)
         {
             rbuffer.fast_resize(rbuffer.size() + len);

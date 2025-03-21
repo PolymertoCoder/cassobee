@@ -1,6 +1,7 @@
 #pragma once
 #include "event.h"
 #include "httpsession.h"
+#include <cstdio>
 #include <openssl/ssl.h>
 
 namespace bee
@@ -17,6 +18,37 @@ struct io_event : event
     int _fd = -1;
 };
 
+// 标准输入/输出/错误
+struct stdio_event : io_event
+{
+    stdio_event(int fd, size_t buffer_size);
+    size_t on_read();
+    size_t on_write();
+    octets _buffer;
+};
+
+struct stdin_event : stdio_event
+{
+    stdin_event(size_t buffer_size);
+    virtual bool handle_event(int active_events) override;
+    virtual bool handle_read(size_t n) = 0;
+};
+
+struct stdout_event : stdio_event
+{
+    stdout_event(size_t buffer_size);
+    virtual bool handle_event(int active_events) override;
+    virtual bool handle_write(size_t n) = 0;
+};
+
+struct stderr_event : stdio_event
+{
+    stderr_event(size_t buffer_size);
+    virtual bool handle_event(int active_events) override;
+    virtual bool handle_error(size_t n) = 0;
+};
+
+// 网络io
 struct netio_event : io_event
 {
     netio_event(session* ses);
@@ -45,21 +77,14 @@ struct streamio_event : netio_event
     virtual int handle_send();
 };
 
-class sslio_event : public streamio_event
+struct sslio_event : streamio_event
 {
-public:
     sslio_event(int fd, httpsession* ses);
-    virtual ~sslio_event();
-
-    virtual bool handle_event(int active_events) override;
-    
-protected:
     bool do_handshake();
     virtual int handle_recv() override;
     virtual int handle_send() override;
 
-private:
-    SSL* _ssl;
+    SSL* _ssl = nullptr;
     enum class SSLState {
         HANDSHAKE,
         STREAMING,

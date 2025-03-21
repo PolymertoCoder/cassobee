@@ -13,6 +13,7 @@ class httpresponse;
 class httpprotocol : public protocol
 {
 public:
+    httpprotocol() = default;
     httpprotocol(PROTOCOLID type) : protocol(type) {}
     virtual ~httpprotocol() = default;
 
@@ -38,7 +39,7 @@ class httprequest : public httpprotocol
 {
 public:
     static constexpr PROTOCOLID TYPE = HTTPREQUEST_TYPE;
-    httprequest();
+    httprequest() = default;
     httprequest(PROTOCOLID type) : httpprotocol(type) {}
     virtual ~httprequest() = default;
 
@@ -68,7 +69,7 @@ class httpresponse : public httpprotocol
 {
 public:
     static constexpr PROTOCOLID TYPE = HTTPRESPONCE_TYPE;
-    httpresponse();
+    httpresponse() = default;
     httpresponse(PROTOCOLID type) : httpprotocol(type) {}
     virtual ~httpresponse() = default;
 

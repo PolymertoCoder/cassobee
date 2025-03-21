@@ -16,8 +16,8 @@ public:
 
     virtual httpsession* dup() override;
 
-    virtual void open() override;
-    virtual void close() override;
+    virtual void set_open() override;
+    virtual void set_close() override;
 
     virtual void on_recv(size_t len) override;
     virtual void on_send(size_t len) override;

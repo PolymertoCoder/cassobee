@@ -42,12 +42,13 @@ httpsession* httpsession::dup()
     return ses;
 }
 
-void httpsession::open()
+void httpsession::set_open()
 {
-    session::open();
+    session::set_open();
     if (_ssl)
     {
         SSL_set_fd(_ssl, _sockfd);
+        SSL_set_mode(_ssl, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
         int ret = SSL_accept(_ssl);
         if (ret <= 0)
         {
@@ -65,13 +66,13 @@ void httpsession::open()
     }
 }
 
-void httpsession::close()
+void httpsession::set_close()
 {
     if (_ssl)
     {
         SSL_shutdown(_ssl);
     }
-    session::close();
+    session::set_close();
 }
 
 void httpsession::on_recv(size_t len)

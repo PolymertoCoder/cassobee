@@ -32,7 +32,9 @@ public:
     void clear();
     virtual session* dup();
 
-    virtual void open();
+    virtual void set_open();
+    virtual void set_close();
+
     virtual void close();
 
     virtual void on_recv(size_t len);
@@ -65,8 +67,8 @@ public:
 protected:
     friend class session_manager;
     friend class httpsession_manager;
-    friend class streamio_event;
-    friend class sslio_event;
+    friend struct streamio_event;
+    friend struct sslio_event;
     SID _sid = 0;
     int _sockfd = 0;
     uint8_t _state = SESSION_STATE_NONE;

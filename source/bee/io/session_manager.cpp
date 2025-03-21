@@ -137,7 +137,7 @@ session* session_manager::find_session_nolock(SID sid)
     auto iter = _sessions.find(sid);
     return iter != _sessions.end() ? iter->second : nullptr;
 }
-
+    
 void session_manager::send_protocol(SID sid, const protocol& prot)
 {
     bee::rwlock::rdscoped l(_locker);
