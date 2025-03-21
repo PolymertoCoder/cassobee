@@ -5,6 +5,9 @@
 #include "stringfy.h"
 #include "traits.h"
 
+namespace bee
+{
+
 template<typename base_product, typename... products>
 class factory_base
 {
@@ -89,3 +92,5 @@ public:
 
 template<typename base_product, typename... products>
 using factory_template = factory_impl<base_product, products...>;
+
+}

@@ -1,4 +1,5 @@
 #include <cerrno>
+#include <openssl/bio.h>
 #include <print>
 #include <unistd.h>
 #include <errno.h>
@@ -15,6 +16,11 @@
 #include "common.h"
 #include "reactor.h"
 #include "session.h"
+#include "httpsession.h"
+#include "httpsession_manager.h"
+
+namespace bee
+{
 
 netio_event::netio_event(session* ses) : _ses(ses)
 {
@@ -101,7 +107,17 @@ bool passiveio_event::handle_event(int active_events)
         return false;
     }
 
-    auto evt = new streamio_event(clientfd, _ses->dup());
+    streamio_event* evt = nullptr;
+
+    if(_ses->get_manager()->is_httpsession_manager())
+    {
+        evt = new sslio_event(clientfd, ((bee::httpsession*)_ses)->dup());
+    }
+    else
+    {
+        evt = new streamio_event(clientfd, _ses->dup());
+    }
+
     evt->set_events(EVENT_RECV | EVENT_SEND);
     _base->add_event(evt);
     std::println("accept clientid=%d.", clientfd);
@@ -319,9 +335,31 @@ int streamio_event::handle_send()
     return total_send;
 }
 
-sslio_event::sslio_event(int fd, session* ses, SSL* ssl)
-    : streamio_event(fd, ses), _ssl(ssl)
+sslio_event::sslio_event(int fd, httpsession* ses)
+    : streamio_event(fd, ses), _ssl(ses->get_ssl())
 {
+    _fd = fd;
+    address* addr = ses->get_peer();
+    if(getsockname(_fd, addr->addr(), &addr->len()) < 0)
+    {
+        perror("getsockname");
+        close(_fd);
+        exit(-1);
+    }
+    int flag = 1;
+    if(setsockopt(_fd, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(int)) < 0)
+    {
+        perror("setsockopt");
+        close(_fd);
+        exit(-1);
+    }
+    if(setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int)) < 0)
+    {
+        perror("setsockopt");
+        close(_fd);
+        exit(-1);
+    }
+    ses->open();
     SSL_set_fd(_ssl, _fd);
     SSL_set_mode(_ssl, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
 }
@@ -354,6 +392,11 @@ bool sslio_event::do_handshake()
         std::println("SSL handshake failed: %s", errbuf);
         return false;
     }
+}
+
+bool sslio_event::handle_event(int active_events)
+{
+    return true;
 }
 
 int sslio_event::handle_recv()
@@ -401,18 +444,18 @@ int sslio_event::handle_recv()
     return 0;
 }
 
-#include "traffic_shaper.h"
+// #include "traffic_shaper.h"
 
 // 优化SSL写操作（减少内存拷贝）
 int sslio_event::handle_send()
 {
-    static traffic_shaper ssl_shaper(10 * 1024 * 1024); // 10MB/s
+    // static traffic_shaper ssl_shaper(10 * 1024 * 1024); // 10MB/s
 
     int total_sent = 0;
     bool need_retry = false;
     
     {
-        bee::rwlock::wrscoped sesl(_ses->_locker);
+        rwlock::wrscoped sesl(_ses->_locker);
         octets& wbuffer = _ses->wbuffer();
         if(wbuffer.size() == _ses->_write_offset)
         {
@@ -420,6 +463,15 @@ int sslio_event::handle_send()
             return 0;
         }
 
+    #if 1
+        BIO* rbio = SSL_get_wbio(_ssl);
+        BIO_reset(rbio);
+        
+        total_sent = BIO_write(rbio, wbuffer.data(), wbuffer.size());
+        if(total_sent > 0) {
+            _ses->clear_wbuffer(); // 立即释放内存
+        }
+    #else
         if(!ssl_shaper.acquire(wbuffer.size() - _ses->_write_offset))
         {
             // 超过速率限制，延迟发送
@@ -470,6 +522,7 @@ int sslio_event::handle_send()
             wbuffer.erase(0, _ses->_write_offset);
             _ses->_write_offset = 0;
         }
+    #endif
     }
 
     if(total_sent > 0)
@@ -480,5 +533,8 @@ int sslio_event::handle_send()
     {
         _ses->permit_send();
     }
+    
     return total_sent;
-} 
+}
+
+} // namespace bee

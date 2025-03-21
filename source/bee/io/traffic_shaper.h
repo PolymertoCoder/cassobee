@@ -2,6 +2,9 @@
 #include "lock.h"
 #include "systemtime.h"
 
+namespace bee
+{
+
 class traffic_shaper
 {
 public:
@@ -33,3 +36,5 @@ private:
     size_t _tokens = 0;
     TIMETYPE _last_fill = 0;
 }; 
+
+} // namespace bee

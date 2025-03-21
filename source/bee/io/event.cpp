@@ -5,8 +5,10 @@
 #include "demultiplexer.h"
 #include "reactor.h"
 #include "event.h"
-#include "log.h"
 #include "types.h"
+
+namespace bee
+{
 
 control_event::control_event()
 {
@@ -103,3 +105,5 @@ bool signal_event::handle_event(int active_events)
     if(!_callback(_signum)) return false;
     return true;
 }
+
+} // namespace bee

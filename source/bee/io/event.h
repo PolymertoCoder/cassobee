@@ -3,6 +3,9 @@
 
 #include "types.h"
 
+namespace bee
+{
+
 class reactor;
 
 enum EVENT_MASK
@@ -87,3 +90,5 @@ struct signal_event : event
     int _signum;
     signal_callback _callback;
 };
+
+} // namespace bee

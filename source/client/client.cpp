@@ -16,6 +16,8 @@
 #include "threadpool.h"
 #include "timewheel.h"
 
+using namespace bee;
+
 bool sigusr1_handler(int signum)
 {
     add_timer(3000, []()
@@ -82,9 +84,9 @@ int main()
     logclient->init();
     logclient->set_process_name("client");
 
-    auto cli = cli::command_line::get_instance();
-    cli->add_command("config", new cli::config_command("config", "Load config"));
-    cli->add_command("connect", new cli::connect_command("connect", "Connect server"));
+    auto cli = bee::command_line::get_instance();
+    cli->add_command("config", new bee::config_command("config", "Load config"));
+    cli->add_command("connect", new bee::connect_command("connect", "Connect server"));
     auto root_path   = fs::current_path().parent_path();
     auto config_file = root_path/"source/client/.cliinit";
     cli->execute_file(config_file);

@@ -1,6 +1,5 @@
 #include "cmysql.h"
 #include "config.h"
-#include "log.h"
 #include "objectpool.h"
 #include "systemtime.h"
 #include <cppconn/connection.h>

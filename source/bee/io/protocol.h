@@ -5,6 +5,9 @@
 #include "marshal.h"
 #include "types.h"
 
+namespace bee
+{
+
 class session;
 class session_manager;
 
@@ -51,3 +54,5 @@ protected:
     SID _sid;
     session_manager* _manager;
 };
+
+} // namespace bee

@@ -5,7 +5,7 @@
 #include <memory>
 #include <sstream>
 
-namespace cli
+namespace bee
 {
 
 command::command(const std::string& name, const std::string& description, bool init)
@@ -72,15 +72,15 @@ int command::execute(std::vector<std::string>& params)
     }
 }
 
-auto command::get_option(const std::string& option_name) -> cli::command*
+auto command::get_option(const std::string& option_name) -> bee::command*
 {
     auto iter = _options.find(option_name);
     return iter != _options.end() ? iter->second.get() : nullptr;
 }
 
-int command::add_option(const std::string& short_name, const std::string& long_name, cli::command* option)
+int command::add_option(const std::string& short_name, const std::string& long_name, bee::command* option)
 {
-    std::shared_ptr<cli::command> opt(option);
+    std::shared_ptr<bee::command> opt(option);
     if(short_name.size() && !startswith(short_name, "-"))
     {
         printf("Command %s short name option %s failed, must starts with \'-\'.\n", _name.data(), short_name.data());
@@ -117,13 +117,13 @@ int command::remove_option(const std::string& option_name)
     return ERROR;
 }
 
-auto command::get_subcommand(const std::string& subcommand_name) -> cli::command*
+auto command::get_subcommand(const std::string& subcommand_name) -> bee::command*
 {
     auto iter = _subcommands.find(subcommand_name);
     return iter != _subcommands.end() ? iter->second : nullptr;
 }
 
-void command::add_subcommand(const std::string& subcommand_name, cli::command* subcommand)
+void command::add_subcommand(const std::string& subcommand_name, bee::command* subcommand)
 {
     remove_subcommand(subcommand_name);
     _subcommands.emplace(subcommand_name, subcommand);
@@ -177,4 +177,4 @@ void command::get_param_completions(const std::string& param, std::vector<std::s
 
 }
 
-}
+} // namespace bee

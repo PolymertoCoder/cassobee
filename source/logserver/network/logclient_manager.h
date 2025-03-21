@@ -2,6 +2,9 @@
 #include "common.h"
 #include "session_manager.h"
 
+namespace bee
+{
+
 class logclient_manager : public session_manager, public singleton_support<logclient_manager>
 {
 public:
@@ -16,3 +19,5 @@ public:
 private:
     SID _localsid = 0;
 };
+
+} // namespace bee

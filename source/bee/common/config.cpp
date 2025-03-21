@@ -2,6 +2,9 @@
 #include <fstream>
 #include "stringfy.h"
 
+namespace bee
+{
+
 void config::init(const char* config_file)
 {
     _config_file = config_file;
@@ -65,3 +68,5 @@ std::string config::get(const std::string section, const std::string item, const
     }
     return default_value;
 }
+
+} // namespace bee

@@ -6,6 +6,9 @@
 
 #include "common.h"
 
+namespace bee
+{
+
 class config : public singleton_support<config>
 {
 public:
@@ -47,3 +50,5 @@ private:
     using SECTION_MAP = std::map<std::string, ITEM_MAP>;
     SECTION_MAP _sections;
 };
+
+} // namespace bee

@@ -12,6 +12,9 @@
 #include "lock.h"
 #endif
 
+namespace bee
+{
+
 static constexpr size_t OBJECT_POOL_MAX = 4194304;
 
 /*
@@ -310,3 +313,5 @@ private:
     std::atomic<head_ptr> _free;
     size_t _cap = 0;
 };
+
+} // namespace bee

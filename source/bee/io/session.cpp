@@ -5,7 +5,11 @@
 #include "protocol.h"
 #include "reactor.h"
 #include "threadpool.h"
+#include "systemtime.h"
 #include <print>
+
+namespace bee
+{
 
 session::session(session_manager* manager)
     : _manager(manager)
@@ -58,16 +62,9 @@ session* session::dup()
     return ses;
 }
 
-SID session::get_next_sessionid()
-{
-    static sequential_id_generator<SID, bee::spinlock> sid_generator;
-    return sid_generator.gen();
-}
-
 void session::open()
 {
     set_state(SESSION_STATE_ACTIVE);
-    _sid = get_next_sessionid();
     _manager->add_session(_sid, this);
 }
 
@@ -157,3 +154,15 @@ void session::clear_wbuffer()
     _writebuf.clear();
     _write_offset = 0;
 }
+
+void session::activate()
+{
+    _last_active = systemtime::get_millseconds();
+}
+
+bool session::is_timeout(TIMETYPE timeout) const
+{
+    return (systemtime::get_millseconds() - _last_active) > timeout;
+}
+
+} // namespace bee

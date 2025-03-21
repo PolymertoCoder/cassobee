@@ -7,6 +7,9 @@
 
 // see cassobee/doc/CppCon/How to make your data structures wait-free for reads - Pedro Ramalhete - CppCon 2015.pdf
 
+namespace bee
+{
+
 enum LEFT_RIGHT
 {
     LEFT  = 0,
@@ -194,3 +197,4 @@ private:
     T* _right_inst = nullptr;
 };
 
+} // namespace bee

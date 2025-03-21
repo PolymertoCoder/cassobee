@@ -344,6 +344,8 @@ def generate_protocol_definitions(outpath):
         with open(define_filename, 'w') as define_file:
             define_file.write("#pragma once\n")
             define_file.write("#include \"types.h\"\n\n")
+            define_file.write("namespace bee\n")
+            define_file.write("{\n\n")
             lasttype, lastenum = sorted_protocol_enum_entries[-1]
             define_file.write(f"static constexpr PROTOCOLID MAXPROTOCOLID = {lasttype};\n\n")
             define_file.write("enum PROTOCOL_TYPE\n")
@@ -351,6 +353,7 @@ def generate_protocol_definitions(outpath):
             for type, enum in sorted_protocol_enum_entries:
                 define_file.write(f"    {enum} = {type},\n")
             define_file.write("};\n\n")
+            define_file.write("} // namespace bee\n")
     except IOError as e:
         print(f"Error writing to file {define_filename}: {e}")
 

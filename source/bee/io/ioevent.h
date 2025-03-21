@@ -1,8 +1,13 @@
 #pragma once
 #include "event.h"
+#include "httpsession.h"
 #include <openssl/ssl.h>
 
+namespace bee
+{
+
 class session;
+class httpsession;
 class session_manager;
 
 struct io_event : event
@@ -40,16 +45,26 @@ struct streamio_event : netio_event
     virtual int handle_send();
 };
 
-class sslio_event : public streamio_event {
+class sslio_event : public streamio_event
+{
 public:
-    sslio_event(int fd, session* ses, SSL* ssl);
+    sslio_event(int fd, httpsession* ses);
     virtual ~sslio_event();
+
+    virtual bool handle_event(int active_events) override;
     
 protected:
     bool do_handshake();
     virtual int handle_recv() override;
     virtual int handle_send() override;
-    
+
 private:
-    SSL* _ssl = nullptr;
+    SSL* _ssl;
+    enum class SSLState {
+        HANDSHAKE,
+        STREAMING,
+        ERROR
+    } _ssl_state = SSLState::HANDSHAKE;
 };
+
+} // namespace bee

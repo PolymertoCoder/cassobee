@@ -4,7 +4,7 @@
 #include <sstream>
 #include "command.h"
 
-namespace cli
+namespace bee
 {
 
 class global_help_command : public command
@@ -62,4 +62,4 @@ private:
      function_type _func;
 };
 
-} // namespace cli
+} // namespace bee

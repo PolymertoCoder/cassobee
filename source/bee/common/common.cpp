@@ -10,8 +10,12 @@
 #include <ctime>
 #include <cstdarg>
 #include <csignal>
+#include <algorithm>
 
 #include "common.h"
+
+namespace bee
+{
 
 void set_signal(int signum, SIG_HANDLER handler)
 {
@@ -36,7 +40,7 @@ int set_nonblocking(int fd, bool nonblocking)
 int rand(int min, int max)
 {
     srand(time(NULL));
-    return (rand() % (max - min + 1)) + min;
+    return (::rand() % (max - min + 1)) + min;
 }
 
 pid_t gettid()
@@ -138,3 +142,5 @@ bool endswith(const std::string_view& str, const std::string_view& suffix)
     }
     return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
+
+} // namespace bee

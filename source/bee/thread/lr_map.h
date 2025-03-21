@@ -2,6 +2,9 @@
 #include <map>
 #include "left_right.h"
 
+namespace bee
+{
+
 template<typename key_type, typename value_type>
 class lr_map
 {
@@ -58,3 +61,5 @@ public:
 private:
     left_right<std::map<key_type, value_type>> _lr;
 };
+
+} // namespace bee

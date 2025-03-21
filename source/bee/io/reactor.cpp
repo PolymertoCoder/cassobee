@@ -6,14 +6,15 @@
 #include <utility>
 
 #include "event.h"
-#include "lock.h"
 #include "systemtime.h"
 #include "timewheel.h"
-#include "log.h"
 #include "demultiplexer.h"
 #include "threadpool.h"
 #include "types.h"
 #include "config.h"
+
+namespace bee
+{
 
 reactor::~reactor()
 {
@@ -252,3 +253,5 @@ int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool(void
         return 0;
     }
 }
+
+} // namespace bee

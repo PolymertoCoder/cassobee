@@ -23,6 +23,9 @@
 #include "client_manager.h"
 #include "logserver_manager.h"
 #include "lr_map.h"
+#include "format.h"
+
+using namespace bee;
 
 bool sigusr1_handler(int signum)
 {
@@ -202,6 +205,10 @@ int main(int argc, char* argv[])
     // auto temp = protocol::decode(os, nullptr);
     // auto prot2 = dynamic_cast<bee::remotelog*>(temp);
     // printf("prot2 loglevel:%d\n", prot2->loglevel),
+
+    bee::ostringstream oss;
+    oss << "its test code.";
+    std::println("%s", oss.c_str());
 
     looper->run();
     timer_thread.join();

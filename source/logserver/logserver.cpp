@@ -8,6 +8,8 @@
 #include "logclient_manager.h"
 #include "glog.h"
 
+using namespace bee;
+
 bool sigusr1_handler(int signum)
 {
     add_timer(3000, []()

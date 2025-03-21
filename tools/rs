@@ -2,12 +2,32 @@
 
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
-ks
-
-echo 'start process...'
-
 cd $rootpath/bin
-./run_cassobee.sh
-./run_logserver.sh
+
+if [ -z "$1" ]; then
+    rs cassobee
+    rs logserver
+else
+    process_name=$1
+
+    ks $process_name
+
+    echo start $process_name...
+
+    case process_name in
+        link)
+            command ...
+            ;;
+        *)
+            command bash "run_$1.sh"
+            ;;
+    esac
+fi
+
+
+
+
+
+
 
 psall

@@ -6,13 +6,13 @@
 
 namespace fs = std::filesystem;
 
-namespace cli
+namespace bee
 {
 
-class config_command : public cli::command
+class config_command : public bee::command
 {
 public:
-    class config_reload_command : public cli::command
+    class config_reload_command : public bee::command
     {
     public:
         config_reload_command(const std::string& name, const std::string& description) : command(name, description) {}
@@ -76,7 +76,7 @@ public:
     }
 };
 
-class connect_command : public cli::command
+class connect_command : public bee::command
 {
 public:
     connect_command(const std::string& name, const std::string& description) : command(name, description) {}
@@ -89,4 +89,4 @@ public:
     }
 };
 
-} // namespace cli
+} // namespace bee

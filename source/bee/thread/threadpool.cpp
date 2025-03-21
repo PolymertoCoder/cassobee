@@ -9,7 +9,9 @@
 #include "threadpool.h"
 #include "config.h"
 #include "common.h"
-#include "log.h"
+
+namespace bee
+{
 
 thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
     : _idx(idx), _maxsize(maxsize), _threadcnt(threadcnt)
@@ -229,3 +231,5 @@ void threadpool::try_steal_one(int current_idx, std::function<void()>& task)
         }
     }
 }
+
+} // namespace bee

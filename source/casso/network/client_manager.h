@@ -2,6 +2,9 @@
 #include "common.h"
 #include "session_manager.h"
 
+namespace bee
+{
+
 class client_manager : public session_manager, public singleton_support<client_manager>
 {
 public:
@@ -13,3 +16,5 @@ public:
 private:
 
 };
+
+} // namespace bee

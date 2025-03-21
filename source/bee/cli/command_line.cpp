@@ -11,7 +11,7 @@
 #include "history.h"
 #include "config.h"
 
-namespace cli
+namespace bee
 {
 
 command_line::command_line()
@@ -122,7 +122,7 @@ int command_line::execute_file(const std::string& filename)
     return OK;
 }
 
-auto command_line::get_command(const std::string& command_name) -> cli::command*
+auto command_line::get_command(const std::string& command_name) -> bee::command*
 {
     auto name = command_name;
     if(auto aiter = _alias.find(name); aiter != _alias.end())
@@ -139,7 +139,7 @@ auto command_line::get_command(const std::string& command_name) -> cli::command*
     }
 }
 
-int command_line::add_command(const std::string& command_name, cli::command* command, const std::vector<std::string>& alias)
+int command_line::add_command(const std::string& command_name, bee::command* command, const std::vector<std::string>& alias)
 {
     auto [iter, inserted] = _commands.emplace(command_name, command);
     if(inserted)
@@ -240,7 +240,7 @@ int command_line::remove_alias(const std::string& command_name, const std::strin
     return OK;
 }
 
-auto command_line::parse_command(const std::vector<std::string>& tokens, std::vector<std::string>& params, std::unordered_map<std::string, std::string>& options) -> const cli::command*
+auto command_line::parse_command(const std::vector<std::string>& tokens, std::vector<std::string>& params, std::unordered_map<std::string, std::string>& options) -> const bee::command*
 {
     const command* command  = nullptr;
     const auto*    commands = &_commands;
@@ -406,4 +406,4 @@ char** command_line::do_command_completion(const char* text, int start, int end)
     return rl_completion_matches(text, command_line::command_generator);
 }
 
-} // namespace cli
+} // namespace bee

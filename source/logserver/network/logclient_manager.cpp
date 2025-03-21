@@ -1,5 +1,8 @@
 #include "logclient_manager.h"
 
+namespace bee
+{
+
 void logclient_manager::on_add_session(SID sid)
 {
     _localsid = sid;
@@ -21,3 +24,5 @@ bool logclient_manager::send(const protocol& prot)
     }
     return false;   
 }
+
+} // namespace bee

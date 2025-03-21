@@ -13,7 +13,7 @@ class httpresponse;
 class httpprotocol : public protocol
 {
 public:
-    httpprotocol(PROTOCOLID type);
+    httpprotocol(PROTOCOLID type) : protocol(type) {}
     virtual ~httpprotocol() = default;
 
     virtual octetsstream& pack(octetsstream& os) const override;
@@ -37,10 +37,12 @@ protected:
 class httprequest : public httpprotocol
 {
 public:
+    static constexpr PROTOCOLID TYPE = HTTPREQUEST_TYPE;
     httprequest();
+    httprequest(PROTOCOLID type) : httpprotocol(type) {}
     virtual ~httprequest() = default;
 
-    virtual PROTOCOLID get_type() const override { return HTTPREQUEST_TYPE; }
+    virtual PROTOCOLID get_type() const override { return TYPE; }
     virtual size_t maxsize() const override;
     virtual protocol* dup() const override { return new httprequest(*this); }
     virtual void run() override;
@@ -65,7 +67,9 @@ private:
 class httpresponse : public httpprotocol
 {
 public:
+    static constexpr PROTOCOLID TYPE = HTTPRESPONCE_TYPE;
     httpresponse();
+    httpresponse(PROTOCOLID type) : httpprotocol(type) {}
     virtual ~httpresponse() = default;
 
     virtual PROTOCOLID get_type() const override { return HTTPRESPONCE_TYPE; }
@@ -80,7 +84,11 @@ public:
     int get_status() const { return _status; }
 
 private:
-    int _status = HTTP_STATUS::OK;
+    int _status = HTTP_STATUS_OK;
 };
 
 } // namespace bee
+
+// register httprequest and httpresponse
+static bee::httprequest __register_httprequest(bee::httprequest::TYPE);
+static bee::httprequest __register_httpresponse(bee::httpresponse::TYPE);

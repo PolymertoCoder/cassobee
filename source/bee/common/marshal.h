@@ -7,6 +7,9 @@
 #include "types.h"
 #include "bytes_order.h"
 
+namespace bee
+{
+
 class octetsstream;
 
 class marshal
@@ -272,3 +275,5 @@ private:
     size_t _pos = 0;
     size_t _transpos = 0;
 };
+
+} // namespace bee

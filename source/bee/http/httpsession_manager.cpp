@@ -1,6 +1,7 @@
 #include "httpsession_manager.h"
 #include "reactor.h"
 #include "config.h"
+#include "session_manager.h"
 #include "systemtime.h"
 #include "httpprotocol.h"
 #include <openssl/err.h>
@@ -9,6 +10,12 @@
 namespace bee
 {
 
+httpsession_manager::httpsession_manager()
+    : session_manager()
+{
+    _session_type = SESSION_TYPE_HTTP;
+}
+    
 httpsession_manager::~httpsession_manager()
 {
     if (_ssl_ctx)
@@ -24,15 +31,15 @@ void httpsession_manager::init()
     auto cfg = config::get_instance();
     if (cfg->get<bool>(identity(), "ssl_enabled", false))
     {
-        std::string cert_path = cfg->get(identity(), "cert_file");
-        std::string key_path = cfg->get(identity(), "key_file");
+        _cert_path = cfg->get(identity(), "cert_file");
+        _key_path = cfg->get(identity(), "key_file");
 
-        if (cert_path.empty() || key_path.empty())
+        if (_cert_path.empty() || _key_path.empty())
         {
             throw std::runtime_error("SSL enabled but cert/key not configured");
         }
 
-        _ssl_ctx = create_ssl_context(cert_path, key_path);
+        _ssl_ctx = create_ssl_context(_cert_path, _key_path);
         if (!_ssl_ctx)
         {
             throw std::runtime_error("Failed to initialize SSL context");
@@ -48,28 +55,7 @@ void httpsession_manager::init()
 void httpsession_manager::on_add_session(SID sid)
 {
     session_manager::on_add_session(sid);
-
-    // 动态保活配置
-    auto cfg = config::get_instance();
-    int keepalive_timeout = cfg->get<int>(identity(), "keepalive_timeout", 30000);
-    int max_requests = cfg->get<int>(identity(), "max_requests", 100);
-
-    add_timer(keepalive_timeout, [this, sid, max_requests, keepalive_timeout]()
-    {
-        if(auto s = find_session(sid)) {
-            // 双重检查避免竞态条件
-            bee::rwlock::wrscoped l(s->_locker);
-            if(s->_state == SESSION_STATE_ACTIVE) {
-                if(s->_request_count >= max_requests || 
-                  (s->_last_active + keepalive_timeout) < systemtime::get_millseconds()) {
-                    s->close();
-                    return false;
-                }
-                return true;
-            }
-        }
-        return false;
-    });
+    // TODO 动态保活配置
 }
 
 void httpsession_manager::on_del_session(SID sid)
@@ -79,12 +65,14 @@ void httpsession_manager::on_del_session(SID sid)
 
 void httpsession_manager::reconnect()
 {
-
+    
 }
 
 httpsession* httpsession_manager::create_session()
 {
     auto ses = new httpsession(this);
+    ses->set_sid(session_manager::get_next_sessionid());
+
     if (_ssl_ctx)
     {
         ses->_ssl = SSL_new(_ssl_ctx);
@@ -113,7 +101,13 @@ SSL_CTX* httpsession_manager::create_ssl_context(const std::string& cert_path, c
         return nullptr;
     }
 
-    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
+    SSL_CTX_set_ciphersuites(ctx, 
+        "TLS_AES_256_GCM_SHA384:"
+        "TLS_CHACHA20_POLY1305_SHA256");
+
+    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TICKET | SSL_OP_NO_COMPRESSION);
+
+    SSL_CTX_set_tlsext_status_cb(ctx, ocsp_callback); // OCSP Stapling
 
     if (SSL_CTX_use_certificate_file(ctx, cert_path.c_str(), SSL_FILETYPE_PEM) <= 0)
     {
@@ -139,32 +133,14 @@ SSL_CTX* httpsession_manager::create_ssl_context(const std::string& cert_path, c
     return ctx;
 }
 
-// 智能连接保活
-void httpsession_manager::check_keepalive()
-{
-    auto cfg = config::get_instance();
-    const TIMETYPE timeout = cfg->get<TIMETYPE>(identity(), "keepalive_timeout", 30000);
-
-    bee::rwlock::wrscoped l(_locker);
-    for (auto it = _sessions.begin(); it != _sessions.end();)
-    {
-        httpsession* ses = dynamic_cast<httpsession*>(it->second);
-        if (ses && ses->is_timeout(timeout))
-        {
-            std::println("Session %lu timed out, closing.", it->first);
-            delete ses;
-            it = _sessions.erase(it);
-        }
-        else
-        {
-            ++it;
-        }
-    }
-}
-
 // 请求头安全检查
-bool httpsession_manager::validate_headers(const httpprotocol* req)
+bool httpsession_manager::check_headers(const httpprotocol* req)
 {
+    constexpr size_t MAX_BODY_SIZE = 1024 * 1024; // 1MB
+    if (req->get_header("Content-Length").size() > MAX_BODY_SIZE) {
+        return false;
+    }
+
     // 检查Host头
     if (!req->has_header("Host")) {
         return false;
@@ -173,6 +149,12 @@ bool httpsession_manager::validate_headers(const httpprotocol* req)
     // 限制头数量
     constexpr size_t MAX_HEADERS = 64;
     if (req->header_count() > MAX_HEADERS) {
+        return false;
+    }
+
+    // 防御请求走私攻击
+    if (req->has_header("Transfer-Encoding") && 
+        req->has_header("Content-Length")) {
         return false;
     }
 

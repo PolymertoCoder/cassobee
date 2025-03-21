@@ -2,11 +2,10 @@
 
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
-if [ -z $1 ]; then
-    echo please enter target for paragram1
-    exit -1
-fi
-
 mkdir $rootpath/build
 
-cd $rootpath/build && cmake .. && make $1
+if [ -z $1 ]; then
+	cd $rootpath/build && cmake .. && make -j8
+else
+	cd $rootpath/build && cmake .. && make $1
+fi

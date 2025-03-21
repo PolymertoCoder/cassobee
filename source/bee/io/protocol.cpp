@@ -1,12 +1,14 @@
 #include "protocol.h"
 #include "bytes_order.h"
-#include "log.h"
 #include "marshal.h"
 #include "session.h"
 #include "session_manager.h"
 #include "types.h"
 #include <cstdio>
 #include <print>
+
+namespace bee
+{
 
 bool protocol::size_policy(PROTOCOLID type, size_t size)
 {
@@ -89,3 +91,5 @@ protocol* protocol::decode(octetsstream& os, session* ses)
     os >> octetsstream::ROLLBACK;
     return nullptr;
 }
+
+} // namespace bee

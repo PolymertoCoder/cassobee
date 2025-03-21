@@ -6,6 +6,9 @@
 #include <string_view>
 #include "types.h"
 
+namespace bee
+{
+
 inline constexpr size_t frob_size(size_t n)
 {
     if(n > (size_t(1) << 63))
@@ -214,3 +217,5 @@ private:
     size_t _len = 0;
     size_t _cap = 0;
 };
+
+} // namespace bee

@@ -5,6 +5,9 @@
 #include "macros.h"
 #include "types.h"
 
+namespace bee
+{
+
 static constexpr TIMETYPE INVALID_TIME = -1;
 
 class systemtime
@@ -80,3 +83,5 @@ public:
         return curhour_start + ONEHOUR;
     }
 };
+
+} // namespace bee

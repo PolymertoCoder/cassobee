@@ -10,6 +10,9 @@
 #include "common.h"
 #include "objectpool.h"
 
+namespace bee
+{
+
 #define NEAR_SLOTS 4096
 
 using callback = std::function<bool(void*)>;
@@ -150,3 +153,5 @@ private:
 
     lockfree_objectpool<timer_node> _timerpool;
 };
+
+} // namespace bee

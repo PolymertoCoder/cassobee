@@ -20,7 +20,7 @@ enum LOG_LEVEL
 };
 
 #define GLOG(loglevel, fmt, ...) \
-    bee::logclient::get_instance()->glog(loglevel, __FILENAME__, __LINE__, gettid(), 0, {}, fmt, ##__VA_ARGS__)
+    bee::logclient::get_instance()->glog(loglevel, __FILENAME__, __LINE__, bee::gettid(), 0, {}, fmt, ##__VA_ARGS__)
 
 #define TRACELOG(fmt, ...) GLOG(LOG_LEVEL::TRACE, fmt, ##__VA_ARGS__)
 #define DEBUGLOG(fmt, ...) GLOG(LOG_LEVEL::DEBUG, fmt, ##__VA_ARGS__)
@@ -30,4 +30,4 @@ enum LOG_LEVEL
 #define FATALLOG(fmt, ...) GLOG(LOG_LEVEL::FATAL, fmt, ##__VA_ARGS__)
 
 #define local_log(fmt, ...) \
-    bee::logclient::get_instance()->console_log(LOG_LEVEL::INFO, __FILENAME__, __LINE__, gettid(), 0, {}, fmt, ##__VA_ARGS__)
+    bee::logclient::get_instance()->console_log(LOG_LEVEL::INFO, __FILENAME__, __LINE__, bee::gettid(), 0, {}, fmt, ##__VA_ARGS__)

@@ -3,6 +3,9 @@
 #include <set>
 #include "event.h"
 
+namespace bee
+{
+
 struct event;
 class reactor;
 
@@ -42,3 +45,5 @@ private:
     std::set<int> _listenfds;
 };
 
+
+} // namespace bee

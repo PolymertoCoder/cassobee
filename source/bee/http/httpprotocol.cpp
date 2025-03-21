@@ -7,7 +7,6 @@ namespace bee
 {
 
 // httpprotocol implementation
-httpprotocol::httpprotocol(PROTOCOLID type) : protocol(type) {}
 
 void httpprotocol::set_body(const std::string& body)
 {
@@ -26,8 +25,8 @@ void httpprotocol::set_header(const std::string& key, const std::string& value)
 const std::string& httpprotocol::get_header(const std::string& key) const
 {
     static const std::string empty;
-    auto it = _headers.find(key);
-    return it != _headers.end() ? it->second : empty;
+    auto iter = _headers.find(key);
+    return iter != _headers.end() ? iter->second : empty;
 }
 
 octetsstream& httpprotocol::pack(octetsstream& os) const
@@ -46,7 +45,7 @@ octetsstream& httpprotocol::pack(octetsstream& os) const
 octetsstream& httpprotocol::unpack(octetsstream& os)
 {
     std::string data(os.data().data(), os.size());
-    std::istringstream ss(data);
+    std::istringstream ss(std::move(data));
     std::string line;
 
     try
@@ -134,7 +133,6 @@ octetsstream& httprequest::unpack(octetsstream& os)
 }
 
 // httpresponse implementation
-httpresponse::httpresponse() : httpprotocol(get_type()) {}
 
 void httpresponse::set_status(int code)
 {

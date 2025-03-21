@@ -5,7 +5,7 @@
 #include <vector>
 #include <unordered_map>
 
-namespace cli
+namespace bee
 {
 
 class command;
@@ -35,7 +35,7 @@ public:
     int remove_alias(const std::string& command_name, const std::string& alias);
 
     // completions
-    auto parse_command(const std::vector<std::string>& tokens, std::vector<std::string>& params, std::unordered_map<std::string, std::string>& options) -> const cli::command*;
+    auto parse_command(const std::vector<std::string>& tokens, std::vector<std::string>& params, std::unordered_map<std::string, std::string>& options) -> const bee::command*;
     void get_param_completions(const std::string& command_name, const std::string& param, std::vector<std::string>& completions);
 
 private:
@@ -53,4 +53,4 @@ private:
 #define REGISTER_CLI_COMMAND(command_name, command) \
     command_line::get_instance()->register_command(command_name, command);
 
-} // namespace cli
+} // namespace bee

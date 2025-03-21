@@ -1,4 +1,13 @@
 <application>
+    <!-- <protocol name="challenge" type="2" maxsize="1024">
+
+    </protocol>
+
+    <protocol name="keyexchange" type="2" maxsize="1024">
+        <field name="key" type="std::string" default="std::string()"/>
+        
+    </protocol> -->
+
     <protocol name="c2s_user_login" type="2" maxsize="1024">
         <field name="username" type="std::string" default="std::string()"/>
         <field name="password" type="std::string" default="std::string()"/>

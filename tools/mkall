@@ -1,7 +1,0 @@
-#!/bin/bash
-
-rootpath=$(cd $(dirname $0) && cd ..; pwd)
-
-mkdir $rootpath/build
-
-cd $rootpath/build && cmake .. && make -j8

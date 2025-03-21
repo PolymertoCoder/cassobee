@@ -2,7 +2,9 @@
 #include <unistd.h>
 #include "timewheel.h"
 #include "config.h"
-#include "log.h"
+
+namespace bee
+{
 
 void timewheel::init()
 {
@@ -204,3 +206,5 @@ void timewheel::stop()
 {
     _stop = true;
 }
+
+} // namespace bee

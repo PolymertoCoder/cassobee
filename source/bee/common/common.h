@@ -8,6 +8,9 @@
 #include "lock.h"
 #include "types.h"
 
+namespace bee
+{
+
 #define GET_TIME_BEGIN() \
 struct timeval begintime; \
 gettimeofday(&begintime, NULL); \
@@ -73,3 +76,5 @@ std::string trim(const std::string_view& str, const char c = ' ');
 std::vector<std::string> split(const std::string_view& str, const char* delim = " ");
 bool startswith(const std::string_view& str, const std::string_view& prefix);
 bool endswith(const std::string_view& str, const std::string_view& suffix);
+
+} // namespace bee

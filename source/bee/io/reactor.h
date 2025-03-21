@@ -2,11 +2,15 @@
 #include <map>
 #include <set>
 #include <functional>
+#include <thread>
 
 #include "cc_changelist.h"
 #include "common.h"
 #include "event.h"
 #include "types.h"
+
+namespace bee
+{
 
 class demultiplexer;
 struct event;
@@ -59,3 +63,5 @@ std::thread start_threadpool_and_timer();
 
 int add_timer(TIMETYPE timeout/*ms*/, std::function<bool()> handler);
 int add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, std::function<bool(void*)> handler, void* param);
+
+} // namespace bee

@@ -7,6 +7,9 @@
 #include "types.h"
 #include "session_manager.h"
 
+namespace bee
+{
+
 class address;
 class session_manager;
 struct event;
@@ -27,9 +30,7 @@ public:
     virtual ~session();
 
     void clear();
-    session* dup();
-
-    SID get_next_sessionid();
+    virtual session* dup();
 
     virtual void open();
     virtual void close();
@@ -49,14 +50,21 @@ public:
     octets& wbuffer();
     void clear_wbuffer();
 
+    FORCE_INLINE void set_sid(SID sid) { _sid = sid; }
+    FORCE_INLINE SID  get_sid() const { return _sid;}
+
     FORCE_INLINE address* get_peer() { return _peer; }
     FORCE_INLINE session_manager* get_manager() const { return _manager; }
 
     FORCE_INLINE void set_state(SESSION_STATE state) { _state = state; }
     FORCE_INLINE void set_event(event* ev) { _event = ev; }
 
+    void activate(); // 更新会话的最后活跃时间
+    bool is_timeout(TIMETYPE timeout) const; // 检查会话是否超时
+
 protected:
     friend class session_manager;
+    friend class httpsession_manager;
     friend class streamio_event;
     friend class sslio_event;
     SID _sid = 0;
@@ -74,4 +82,8 @@ protected:
     size_t _write_offset = 0;
     octetsstream _writeos;
     octets _writebuf;
+
+    TIMETYPE _last_active = 0; // 最后活跃时间
 };
+
+} // namespace bee

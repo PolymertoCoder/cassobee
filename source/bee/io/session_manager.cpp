@@ -10,6 +10,9 @@
 #include "session.h"
 #include <print>
 
+namespace bee
+{
+
 session_manager::session_manager()
 {
 }
@@ -46,7 +49,15 @@ void session_manager::reconnect()
 
 session* session_manager::create_session()
 {
-    return new session(this);
+    session* ses = new session(this);
+    ses->_sid = get_next_sessionid();
+    return ses;
+}
+
+SID session_manager::get_next_sessionid()
+{
+    static sequential_id_generator<SID, bee::spinlock> sid_generator;
+    return sid_generator.gen();
 }
 
 void session_manager::init()
@@ -84,6 +95,8 @@ void session_manager::init()
 
     _read_buffer_size  = cfg->get<size_t>(identity(), "read_buffer_size");
     _write_buffer_size = cfg->get<size_t>(identity(), "write_buffer_size");
+
+    _keepalive_timeout = cfg->get<TIMETYPE>(identity(), "keepalive_timeout", 30000);
 }
 
 void session_manager::add_session(SID sid, session* ses)
@@ -168,3 +181,5 @@ void server(session_manager* manager)
 {
     reactor::get_instance()->add_event(new passiveio_event(manager));
 }
+
+} // namespace bee

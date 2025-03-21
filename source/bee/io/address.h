@@ -10,6 +10,9 @@
 #include "common.h"
 #include "factory.h"
 
+namespace bee
+{
+
 class address
 {
 public:
@@ -164,3 +167,5 @@ using address_factory = factory_template<address,
                                          general_address,
                                          ipv4_address,
                                          ipv6_address>;
+
+} // namespace bee

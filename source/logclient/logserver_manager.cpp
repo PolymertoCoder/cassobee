@@ -2,6 +2,9 @@
 #include "address.h"
 #include "log.h"
 
+namespace bee
+{
+
 void logserver_manager::on_add_session(SID sid)
 {
     _localsid = sid;
@@ -24,3 +27,5 @@ bool logserver_manager::send(const protocol& prot)
     }
     return false;   
 }
+
+} // namespace bee

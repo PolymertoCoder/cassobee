@@ -1,12 +1,15 @@
 #pragma once
 #include "types.h"
-#include <atomic>
-#include <mutex>
 #include <pthread.h>
-#include <stdexcept>
-#include <thread>
 #include <unistd.h>
 #include <immintrin.h>
+
+#ifdef _REENTRANT
+#include <atomic>
+#include <mutex>
+#include <stdexcept>
+#include <thread>
+#endif
 
 namespace bee
 {

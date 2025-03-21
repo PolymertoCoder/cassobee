@@ -8,7 +8,7 @@
 #include "types.h"
 #include "errcode.h"
 
-namespace cli
+namespace bee
 {
 class subcommand;
 
@@ -47,10 +47,10 @@ protected:
     friend class command_line;
     std::string _name;
     std::string _description;
-    cli::command* _parent = nullptr;
+    bee::command* _parent = nullptr;
     std::set<std::string> _alias;
-    std::unordered_map<std::string, cli::command*> _subcommands;
-    std::unordered_map<std::string, std::shared_ptr<cli::command>> _options;
+    std::unordered_map<std::string, bee::command*> _subcommands;
+    std::unordered_map<std::string, std::shared_ptr<bee::command>> _options;
 };
 
-}; // namespace cli
+}; // namespace bee

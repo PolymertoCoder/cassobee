@@ -11,6 +11,9 @@
 #include "types.h"
 #include "common.h"
 
+namespace bee
+{
+
 // TODO 线程本地任务
 
 using TASK_QUEUE = std::deque<std::function<void()>>;
@@ -64,3 +67,5 @@ private:
     std::atomic_bool _is_steal = false;
     std::vector<thread_group*> _groups;
 };
+
+} // namespace bee

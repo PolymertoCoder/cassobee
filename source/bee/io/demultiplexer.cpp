@@ -3,10 +3,12 @@
 #include <cstdio>
 
 #include "demultiplexer.h"
-#include "log.h"
 #include "event.h"
 #include "reactor.h"
 #include "types.h"
+
+namespace bee
+{
 
 epoller::~epoller()
 {
@@ -169,3 +171,5 @@ void epoller::wakeup()
     }
     std::println("epoller::wakeup() run success");
 }
+
+} // namespace bee

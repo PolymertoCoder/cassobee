@@ -1,7 +1,8 @@
 #include "httpsession.h"
+#include "address.h"
 #include "httpprotocol.h"
 #include "httpsession_manager.h"
-#include "systemtime.h"
+#include "session.h"
 #include <openssl/err.h>
 #include <print>
 
@@ -18,6 +19,27 @@ httpsession::~httpsession()
         SSL_shutdown(_ssl);
         SSL_free(_ssl);
     }
+}
+
+httpsession* httpsession::dup()
+{
+    auto ses = new httpsession(*this);
+    ses->_sid = 0;
+    ses->_sockfd = 0;
+    ses->_state = SESSION_STATE_NONE;
+    ses->_peer = _peer->dup();
+
+    ses->_event = nullptr;
+    ses->_readbuf.clear();
+    ses->_writebuf.clear();
+    ses->_reados.clear();
+    ses->_writeos.clear();
+
+    if(_ssl)
+    {
+        ses->_ssl = SSL_new(((httpsession_manager*)_manager)->get_ssl_ctx());
+    }
+    return ses;
 }
 
 void httpsession::open()
@@ -52,19 +74,10 @@ void httpsession::close()
     session::close();
 }
 
-void httpsession::update_last_active()
-{
-    _last_active = systemtime::get_millseconds();
-}
-
-bool httpsession::is_timeout(TIMETYPE timeout) const
-{
-    return (systemtime::get_millseconds() - _last_active) > timeout;
-}
-
 void httpsession::on_recv(size_t len)
 {
-    update_last_active();
+    activate();
+
     if (_ssl)
     {
         char buffer[4096];
@@ -94,7 +107,8 @@ void httpsession::on_recv(size_t len)
 
 void httpsession::on_send(size_t len)
 {
-    update_last_active();
+    activate();
+
     if (_ssl)
     {
         const char* data = _writebuf.data();
@@ -126,22 +140,6 @@ void httpsession::on_send(size_t len)
     {
         session::on_send(len);
     }
-}
-
-void httpsession::handle_request(httpprotocol* prot)
-{
-    auto req = dynamic_cast<httprequest*>(prot);
-    if (!req) return;
-
-    req->set_callback([this](httpresponse* response)
-    {
-        octetsstream os;
-        response->pack(os);
-        _writeos.data().append(os.data(), os.size());
-        permit_send();
-    });
-    req->run();
-    delete req;
 }
 
 } // namespace bee

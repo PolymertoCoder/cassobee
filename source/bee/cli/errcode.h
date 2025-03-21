@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace cli
+namespace bee
 {
 
 enum ERRCODE
@@ -25,4 +25,4 @@ inline std::string to_error_string(int errcode)
     return "Unkonwn Error";
 }
 
-} // namespace cli
+} // namespace bee
