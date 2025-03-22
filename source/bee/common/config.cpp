@@ -30,6 +30,15 @@ bool config::parse(std::ifstream& filestream)
         {
             std::string key   = trim(line.substr(0, pos));
             std::string value = trim(line.substr(pos + 1));
+
+            if(key.front() == '#') continue; // 整行注释
+            if(size_t n = value.find_first_of('#'); n != std::string::npos) // 尾部注释
+            {
+                value.erase(n);
+                value = rtrim(value);
+            }
+            if(key.empty() || value.empty()) continue;
+
             CHECK_BUG(_sections[section].emplace(key, value).second, printf("section %s emplace key %s repeat.", section.data(), key.data()); return false;);
         }
     }
