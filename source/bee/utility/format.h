@@ -13,10 +13,11 @@ public:
     ostringstream(const std::string& str) : _buf(str) {}
 
     template<typename T>
-    requires std::is_trivially_copyable_v<T>
+    requires std::is_arithmetic_v<T>
     ostringstream& operator<<(const T& value)
     {
-        _buf.append(&value, sizeof(T));
+        auto str = std::to_string(value);
+        _buf.append(str.data(), str.size());
         return *this;
     }
 
@@ -28,8 +29,18 @@ public:
 
     ostringstream& operator<<(const std::string& value)
     {
-        _buf.append(value.c_str(), value.size());
+        _buf.append(value.data(), value.size());
         return *this;
+    }
+
+    bool empty()
+    {
+        return _buf.empty();
+    }
+
+    void clear()
+    {
+        _buf.clear();
     }
 
     std::string str() const

@@ -1,4 +1,6 @@
 #pragma once
+#include <format>
+#include <utility>
 
 namespace bee
 {
@@ -19,15 +21,22 @@ enum LOG_LEVEL
     FATAL,
 };
 
-#define GLOG(loglevel, fmt, ...) \
-    bee::logclient::get_instance()->glog(loglevel, __FILENAME__, __LINE__, bee::gettid(), 0, {}, fmt, ##__VA_ARGS__)
+// #define GLOG(loglevel, fmt, ...)
+//     bee::logclient::get_instance()->glog(loglevel, __FILENAME__, __LINE__, fmt, ##__VA_ARGS__)
 
-#define TRACELOG(fmt, ...) GLOG(LOG_LEVEL::TRACE, fmt, ##__VA_ARGS__)
-#define DEBUGLOG(fmt, ...) GLOG(LOG_LEVEL::DEBUG, fmt, ##__VA_ARGS__)
-#define INFOLOG(fmt,  ...) GLOG(LOG_LEVEL::INFO,  fmt, ##__VA_ARGS__)
-#define WARNLOG(fmt,  ...) GLOG(LOG_LEVEL::WARN,  fmt, ##__VA_ARGS__)
-#define ERRORLOG(fmt, ...) GLOG(LOG_LEVEL::ERROR, fmt, ##__VA_ARGS__)
-#define FATALLOG(fmt, ...) GLOG(LOG_LEVEL::FATAL, fmt, ##__VA_ARGS__)
+// #define TRACELOG(fmt, ...) GLOG(LOG_LEVEL::TRACE, fmt, ##__VA_ARGS__)
+// #define DEBUGLOG(fmt, ...) GLOG(LOG_LEVEL::DEBUG, fmt, ##__VA_ARGS__)
+// #define INFOLOG(fmt,  ...) GLOG(LOG_LEVEL::INFO,  fmt, ##__VA_ARGS__)
+// #define WARNLOG(fmt,  ...) GLOG(LOG_LEVEL::WARN,  fmt, ##__VA_ARGS__)
+// #define ERRORLOG(fmt, ...) GLOG(LOG_LEVEL::ERROR, fmt, ##__VA_ARGS__)
+// #define FATALLOG(fmt, ...) GLOG(LOG_LEVEL::FATAL, fmt, ##__VA_ARGS__)
+
+#define TRACELOG GLOG(LOG_LEVEL::TRACE, __FILENAME__, __LINE__)
+#define DEBUGLOG GLOG(LOG_LEVEL::DEBUG, __FILENAME__, __LINE__)
+#define INFOLOG  GLOG(LOG_LEVEL::INFO,  __FILENAME__, __LINE__)
+#define WARNLOG  GLOG(LOG_LEVEL::WARN,  __FILENAME__, __LINE__)
+#define ERRORLOG GLOG(LOG_LEVEL::ERROR, __FILENAME__, __LINE__)
+#define FATALLOG GLOG(LOG_LEVEL::FATAL, __FILENAME__, __LINE__)
 
 #define local_log(fmt, ...) \
-    bee::logclient::get_instance()->console_log(LOG_LEVEL::INFO, __FILENAME__, __LINE__, bee::gettid(), 0, {}, fmt, ##__VA_ARGS__)
+    bee::logclient::get_instance()->console_log(LOG_LEVEL::INFO, __FILENAME__, __LINE__, fmt, ##__VA_ARGS__)

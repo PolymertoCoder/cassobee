@@ -109,6 +109,13 @@ int main(int argc, char* argv[])
     local_log("nowtime1=%ld", systemtime::get_microseconds());
     sleep(3);
     local_log("nowtime2=%ld", systemtime::get_microseconds());
+    int a = 1;
+    float b = 2.f;
+    std::string c = "hello world";
+    DEBUGLOG << "logstream test, a:" << a << ", b:"<< b << ", c:" << c << ".";
+    ERRORLOG << "logstream test2, a:" << a << ", b:"<< b << ", c:" << c << ".";
+    DEBUGLOG("logformat test, a:{}, b:{}, c:{}.", a, b, c);
+
     // add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, -1, [](void*){ local_log("timer3 nowtime3: %ld.", systemtime::get_time()); return false; }, nullptr);
@@ -135,7 +142,7 @@ int main(int argc, char* argv[])
     testlog_thread.detach();
     */
 
-    stress_test();
+    // stress_test();
 
     // add_timer(1000, [](){ static int i = 0; DEBUGLOG("DEBUG=%d", i++); return true; });
 
