@@ -72,7 +72,11 @@ size_t stdio_event::on_write()
     size_t total_write = 0;
     while(true)
     {
-        int len = write(_fd, _buffer, _buffer.size());
+        size_t free_size = _buffer.free_space();
+        if(free_size == 0) break;
+
+        char* recv_ptr = _buffer.end();
+        int len = write(_fd, recv_ptr, free_size);
         if(len > 0)
         {
             total_write += len;
@@ -158,9 +162,14 @@ netio_event::~netio_event()
     if(_fd >= 0)
     {
         ::close(_fd);
+        _fd = -1;
     }
-    _ses->set_close();
-    delete _ses;
+    if(_ses)
+    {
+        _ses->set_close();
+        delete _ses;
+        _ses = nullptr;
+    }
 }
 
 void netio_event::close_socket()
@@ -246,7 +255,7 @@ bool passiveio_event::handle_event(int active_events)
     evt->set_events(EVENT_RECV | EVENT_SEND);
     _base->add_event(evt);
     std::println("accept clientid=%d.", clientfd);
-    return 0;
+    return true;
 }
 
 activeio_event::activeio_event(session_manager* manager)
@@ -293,8 +302,20 @@ bool activeio_event::handle_event(int active_events)
         return false;
     }
 
-    //_base->del_event(this);
-    auto evt = new streamio_event(_fd, _ses->dup());
+    streamio_event* evt = nullptr;
+
+    if(_ses->get_manager()->is_httpsession_manager())
+    {
+        evt = new sslio_event(_fd, (bee::httpsession*)_ses);
+    }
+    else
+    {
+        evt = new streamio_event(_fd, _ses);
+    }
+
+    // 所有权转移给新的streamio_event
+    _fd = -1;
+    _ses = nullptr; 
     evt->set_events(EVENT_RECV | EVENT_SEND | EVENT_HUP);
     evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
@@ -339,7 +360,7 @@ bool streamio_event::handle_event(int active_events)
         // _ses->permit_send();
         std::println("streamio_event handle_event EVENT_RECV fd=%d", _fd);
     }
-    else if(active_events & EVENT_SEND)
+    if(active_events & EVENT_SEND)
     {
         handle_send();
         // _ses->permit_recv();
@@ -351,13 +372,12 @@ bool streamio_event::handle_event(int active_events)
 
 int streamio_event::handle_recv()
 {
-    bee::rwlock::wrscoped sesl(_ses->_locker);
     octets& rbuffer = _ses->rbuffer();
     size_t free_space = rbuffer.free_space();
     if(free_space == 0)
     {
         _ses->on_recv(rbuffer.size());
-        std::println("recv[fd=%d]: buffer is full, no space to receive data", _fd);
+        std::println("recv[fd=%d]: session %llu buffer is fulled, no space to receive data", _ses->get_sid(), _fd);
     }
     
     int total_recv = 0;
@@ -366,8 +386,7 @@ int streamio_event::handle_recv()
         size_t free_space = rbuffer.free_space();
         if(free_space == 0)
         {
-            _ses->forbid_recv();
-            std::println("recv[fd=%d]: buffer is full on receiving, forbid_recv", _fd);
+            std::println("recv[fd=%d]: session %llu buffer is fulled on receiving", _ses->get_sid(), _fd);
             break;
         }
 
@@ -413,7 +432,6 @@ int streamio_event::handle_recv()
 
 int streamio_event::handle_send()
 {
-    int total_send = 0;
     octets* wbuffer = nullptr;
     {
         bee::rwlock::wrscoped sesl(_ses->_locker);
@@ -424,6 +442,8 @@ int streamio_event::handle_send()
             return 0;
         }
     }
+
+    int total_send = 0;
     while(true)
     {
         int len = send(_fd, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset, 0);
@@ -464,6 +484,7 @@ int streamio_event::handle_send()
             }
         }
     }
+
     _ses->on_send(total_send);
     return total_send;
 }
@@ -501,48 +522,49 @@ bool sslio_event::do_handshake()
 
 int sslio_event::handle_recv()
 {
-    bee::rwlock::wrscoped sesl(_ses->_locker);
-
-    if(!SSL_is_init_finished(_ssl))
-    {
-        if(!do_handshake())
-        {
-            close_socket();
-            return -1;
-        }
-        return 0;
-    }
-
     octets& rbuffer = _ses->rbuffer();
+    size_t free_space = rbuffer.free_space();
+    if(free_space == 0)
+    {
+        _ses->on_recv(rbuffer.size());
+        std::println("recv[fd=%d]: session %llu buffer is fulled, no space to receive data", _ses->get_sid(), _fd);
+    }
     
-    int total = 0;
+    int total_recv = 0;
     while(true)
     {
         size_t free_space = rbuffer.free_space();
-        if(free_space == 0) break;
+        if(free_space == 0)
+        {
+            std::println("recv[fd=%d]: session %llu buffer is fulled on receiving", _ses->get_sid(), _fd);
+            break;
+        }
 
-        int len = SSL_read(_ssl, rbuffer.end(), free_space);
+        char* recv_ptr = rbuffer.end();
+        int len = SSL_read(_ssl, recv_ptr, free_space);
         if(len > 0)
         {
-            rbuffer.fast_resize(rbuffer.size() + len);
-            total += len;
+            rbuffer.fast_resize(len);
+            total_recv += len;
+            std::println("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
+                _fd, len, rbuffer.size(), rbuffer.free_space());
         }
         else
         {
             int err = SSL_get_error(_ssl, len);
-            if(err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) break;
+            if (err == SSL_ERROR_WANT_READ) break;
+            if (err == SSL_ERROR_WANT_WRITE)
+            {
+                _ses->permit_send();
+                break;
+            }
             close_socket();
-            std::println("sslio_event handle_read failed: %s", ERR_error_string(err, nullptr));
             return -1;
         }
     }
-
-    if(total > 0)
-    {
-        _ses->on_recv(total);
-        return total;
-    }
-    return 0;
+    
+    _ses->on_recv(total_recv);
+    return total_recv;
 }
 
 // #include "traffic_shaper.h"
@@ -550,92 +572,50 @@ int sslio_event::handle_recv()
 // 优化SSL写操作（减少内存拷贝）
 int sslio_event::handle_send()
 {
-    // static traffic_shaper ssl_shaper(10 * 1024 * 1024); // 10MB/s
-
-    int total_sent = 0;
-    bool need_retry = false;
-    
+    octets* wbuffer = nullptr;
     {
-        rwlock::wrscoped sesl(_ses->_locker);
-        octets& wbuffer = _ses->wbuffer();
-        if(wbuffer.size() == _ses->_write_offset)
+        bee::rwlock::wrscoped sesl(_ses->_locker);
+        wbuffer = &_ses->wbuffer();
+        if(wbuffer->size() == _ses->_write_offset)
         {
             _ses->forbid_send();
             return 0;
         }
+    }
 
-    #if 1
-        BIO* rbio = SSL_get_wbio(_ssl);
-        BIO_reset(rbio);
-        
-        total_sent = BIO_write(rbio, wbuffer.data(), wbuffer.size());
-        if(total_sent > 0) {
-            _ses->clear_wbuffer(); // 立即释放内存
-        }
-    #else
-        if(!ssl_shaper.acquire(wbuffer.size() - _ses->_write_offset))
+    int total_send = 0;
+    while(true)
+    {
+        int len = SSL_write(_ssl, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset);
+        if(len > 0)
         {
-            // 超过速率限制，延迟发送
-            add_timer(50, [this]()
-            {
-                bee::rwlock::wrscoped sesl(_ses->_locker);
-                _ses->permit_send();
-                return false;
-            });
-            return 0;
+            //std::println("send data:%s", std::string(wbuffer.peek(0), len).data());
+            total_send += len;
+            _ses->_write_offset += len;
+        }
+        else // len < 0
+        {
+            int err = SSL_get_error(_ssl, len);
+            if(err == SSL_ERROR_WANT_WRITE) break;
+            close_socket();
+            return -1;
         }
 
-        // 使用分散写优化
-        struct iovec iov[2];
-        iov[0].iov_base = wbuffer.data() + _ses->_write_offset;
-        iov[0].iov_len = wbuffer.size() - _ses->_write_offset;
-        
-        while(true)
+        if(_ses->_write_offset == wbuffer->size())
         {
-            int len = SSL_write(_ssl, iov, 1);
-            if(len > 0)
+            _ses->clear_wbuffer();
+            bee::rwlock::wrscoped sesl(_ses->_locker);
+            wbuffer = &_ses->wbuffer();
+            if(wbuffer->size() == 0)
             {
-                total_sent += len;
-                _ses->_write_offset += len;
-                if(_ses->_write_offset == wbuffer.size()) break;
-                iov[0].iov_base = wbuffer.data() + _ses->_write_offset;
-                iov[0].iov_len = wbuffer.size() - _ses->_write_offset;
-            }
-            else
-            {
-                int err = SSL_get_error(_ssl, len);
-                if(err == SSL_ERROR_WANT_WRITE)
-                {
-                    need_retry = true;
-                }
-                else
-                {
-                    close_socket();
-                    return -1;
-                }
+                _ses->forbid_send();
                 break;
             }
         }
-
-        // 缓冲区整理优化
-        if(_ses->_write_offset > wbuffer.capacity() / 2)
-        {
-            wbuffer.erase(0, _ses->_write_offset);
-            _ses->_write_offset = 0;
-        }
-    #endif
     }
 
-    if(total_sent > 0)
-    {
-        _ses->on_send(total_sent);
-    }
-    if(need_retry)
-    {
-        _ses->permit_send();
-    }
-    
-    return total_sent;
+    _ses->on_send(total_send);
+    return total_send;
 }
 
 } // namespace bee

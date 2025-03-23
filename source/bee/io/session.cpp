@@ -22,6 +22,8 @@ session::session(session_manager* manager)
     _write_offset = 0;
     _writeos.reserve(_manager->_write_buffer_size);
     _writebuf.reserve(_manager->_write_buffer_size);
+
+    activate();
 }
 
 session::~session()
@@ -49,16 +51,17 @@ void session::clear()
 session* session::dup()
 {
     auto ses = new session(*this);
-    ses->_sid = 0;
+    ses->_sid = _manager->get_next_sessionid();
     ses->_sockfd = 0;
     ses->_state = SESSION_STATE_NONE;
     ses->_peer = _peer->dup();
 
     ses->_event = nullptr;
-    ses->_readbuf.clear();
-    ses->_writebuf.clear();
     ses->_reados.clear();
+    ses->_readbuf.clear();
+    ses->_write_offset = 0;
     ses->_writeos.clear();
+    ses->_writebuf.clear();
     return ses;
 }
 
@@ -165,7 +168,7 @@ void session::clear_wbuffer()
 
 void session::activate()
 {
-    _last_active = systemtime::get_millseconds();
+    _last_active = systemtime::get_time();
 }
 
 bool session::is_timeout(TIMETYPE timeout) const

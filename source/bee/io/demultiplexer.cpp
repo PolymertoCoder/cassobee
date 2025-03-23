@@ -137,21 +137,23 @@ void epoller::dispatch(reactor* base, int timeout)
         if(ev == nullptr || ev->get_status() != EVENT_STATUS_ADD) continue;
 
         //printf("epoller dispatch event fd=%d events=%d\n", events[i].data.fd, events[i].events);
+        int active_events = 0;
         if(events[i].events & EPOLLIN || events[i].events & EPOLLHUP)
         {
             if(_listenfds.contains(events[i].data.fd))
             {
-                ev->handle_event(EVENT_ACCEPT);
+                active_events |= EVENT_ACCEPT;
             }
             else
             {
-                ev->handle_event(EVENT_RECV);
+                active_events |= EVENT_RECV;
             }
         }
         if(events[i].events & EPOLLOUT)
         {
-            ev->handle_event(EVENT_SEND);
+            active_events |= EVENT_SEND;
         }
+        ev->handle_event(active_events);
     }
 }
 

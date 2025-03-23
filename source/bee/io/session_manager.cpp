@@ -148,6 +148,12 @@ void session_manager::send_protocol(SID sid, const protocol& prot)
         prot.encode(os);
 
         bee::rwlock::wrscoped sesl(ses->_locker);
+        if(os.size() > ses->_writeos.data().free_space())
+        {
+            std::println("session_manager %s, session %llu write buffer is fulled.", identity(), sid);
+            return;
+        }
+
         ses->_writeos.data().append(os.data(), os.size());
         ses->permit_send();
     }
@@ -163,6 +169,12 @@ void session_manager::send_octets(SID sid, const octets& oct)
     if(session* ses = find_session_nolock(sid))
     {
         bee::rwlock::wrscoped sesl(ses->_locker);
+        if(oct.size() > ses->_writeos.data().free_space())
+        {
+            std::println("session_manager %s, session %llu write buffer is fulled.", identity(), sid);
+            return;
+        }
+
         ses->_writeos.data().append(oct.data(), oct.size());
         ses->permit_send();
     }

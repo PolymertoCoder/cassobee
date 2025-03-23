@@ -1,6 +1,5 @@
 #include "reactor.h"
 
-#include <filesystem>
 #include <map>
 #include <print>
 #include <utility>
@@ -146,7 +145,13 @@ int reactor::add_event_inner(event* ev)
     int events = ev->get_events();
     if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP || events & EVENT_WAKEUP)
     {
-        _io_events[ev->get_handle()] = ev;
+        int handle = ev->get_handle();
+        if(auto iter = _io_events.find(handle); iter != _io_events.end() && iter->second != ev)
+        {
+            delete iter->second;
+            std::println("new event {} substitute old event {}", (void*)ev, (void*)iter->second);
+        }
+        _io_events[handle] = ev;
         if(int ret = _dispatcher->add_event(ev, events))
         {
             std::println("add_io_event error, ret=%d.", ret);
