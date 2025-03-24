@@ -80,6 +80,8 @@ std::string format_string(const char* fmt, ...)
     vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
     return buf;
+    int a, b;
+    // std::format("{}", a, b);
 }
 
 std::string ltrim(const std::string& str, const char c)

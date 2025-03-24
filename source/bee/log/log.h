@@ -1,6 +1,4 @@
 #pragma once
-#include <format>
-#include <utility>
 
 namespace bee
 {
@@ -11,7 +9,7 @@ namespace bee
 #define __FILENAME__ __FILE__
 #endif
 
-enum LOG_LEVEL
+enum LOG_LEVEL : unsigned char
 {
     TRACE,
     DEBUG,
@@ -37,6 +35,13 @@ enum LOG_LEVEL
 #define WARNLOG  GLOG(LOG_LEVEL::WARN,  __FILENAME__, __LINE__)
 #define ERRORLOG GLOG(LOG_LEVEL::ERROR, __FILENAME__, __LINE__)
 #define FATALLOG GLOG(LOG_LEVEL::FATAL, __FILENAME__, __LINE__)
+
+#define TRACELOGF(fmt, ...) GLOGF(LOG_LEVEL::TRACE, fmt, ##__VA_ARGS__)
+#define DEBUGLOGF(fmt, ...) GLOGF(LOG_LEVEL::DEBUG, fmt, ##__VA_ARGS__)
+#define INFOLOGF(fmt, ...)  GLOGF(LOG_LEVEL::INFO,  fmt, ##__VA_ARGS__)
+#define WARNLOGF(fmt, ...)  GLOGF(LOG_LEVEL::WARN,  fmt, ##__VA_ARGS__)
+#define ERRORLOGF(fmt, ...) GLOGF(LOG_LEVEL::ERROR, fmt, ##__VA_ARGS__)
+#define FATALLOGF(fmt, ...) GLOGF(LOG_LEVEL::FATAL, fmt, ##__VA_ARGS__)
 
 #define local_log(fmt, ...) \
     bee::logclient::get_instance()->console_log(LOG_LEVEL::INFO, __FILENAME__, __LINE__, fmt, ##__VA_ARGS__)

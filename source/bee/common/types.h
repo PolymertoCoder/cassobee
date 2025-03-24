@@ -44,16 +44,16 @@ constexpr std::size_t CACHELINE_WORDS = std::hardware_destructive_interference_s
 
 #ifndef _OPEN_VERSION
 #define CHECK_BUG(expr, dosth) \
-if(!(expr)) \
-{ \
-    assert(false); \
-}
+do { \
+    if (!(expr)) { \
+        assert(false && #expr); \
+    } \
+} while(0)
 #else
-#define CHECK_BUG(expr) \
-if(!expr) \
-{ \
-    dosth; \
-}
+#define CHECK_BUG(expr, dosth) \
+do { \
+    if (!(expr)) { dosth; } \
+} while(0)
 #endif
 
 #define UNUSE(x) ((void)(x))

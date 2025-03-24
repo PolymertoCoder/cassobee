@@ -114,7 +114,8 @@ int main(int argc, char* argv[])
     std::string c = "hello world";
     DEBUGLOG << "logstream test, a:" << a << ", b:"<< b << ", c:" << c << ".";
     ERRORLOG << "logstream test2, a:" << a << ", b:"<< b << ", c:" << c << ".";
-    DEBUGLOG("logformat test, a:{}, b:{}, c:{}.", a, b, c);
+    DEBUGLOGF("logformat test, a:{}, b:{}, c:{}.", a, b, c.data());
+    DEBUGLOG("logformat test, a:%d, b:%f, c:%s.", a, b, c.data());
 
     // add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
@@ -216,6 +217,7 @@ int main(int argc, char* argv[])
     bee::ostringstream oss;
     oss << "its test code.";
     std::println("%s", oss.c_str());
+    std::fflush(stdout);
 
     looper->run();
     timer_thread.join();

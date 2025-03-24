@@ -1,9 +1,22 @@
 #pragma once
 #include "octets.h"
+#include <format>
 #include <type_traits>
 
 namespace bee
 {
+
+template<typename... Args>
+auto format(const char* fmt, Args&&... args)
+{
+    return format_string(fmt, std::forward<Args>(args)...);
+}
+
+template<typename... Args>
+auto format(std::format_string<Args...> fmt, Args&&... args)
+{
+    return std::format(fmt, std::forward<Args>(args)...);
+}
 
 class ostringstream
 {
@@ -43,9 +56,9 @@ public:
         _buf.clear();
     }
 
-    std::string str() const
+    std::string str()
     {
-        return std::string(_buf.data(), _buf.size());
+        return std::string(c_str());
     }
 
     const char* c_str()

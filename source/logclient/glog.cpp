@@ -23,17 +23,6 @@ void logclient::init()
     _console_logger = new logger(_loglevel, new console_appender());
 }
 
-// void logclient::glog(LOG_LEVEL level, const char* filename, int line, int threadid, int fiberid, const char* fmt, ...)
-// {
-//     if(level < _loglevel) return;
-//     thread_local char content[2048];
-//     va_list args;
-//     va_start(args, fmt);
-//     vsnprintf(content, sizeof(content), fmt, args);
-//     va_end(args);
-//     glog(level, filename, line, threadid, fiberid, std::string(content));
-// }
-
 void logclient::glog(LOG_LEVEL level, const char* filename, int line, std::string content)
 {
     g_remotelog.loglevel = level;
@@ -60,19 +49,6 @@ void logclient::console_log(LOG_LEVEL level, const char* filename, int line, std
     g_logevent.set_content(content);
     
     _console_logger->log(level, g_logevent);
-}
-
-void logclient::start_logstream(LOG_LEVEL level, const char* filename, int line)
-{
-    _logstream_param.loglevel = level;
-    _logstream_param.filename = filename;
-    _logstream_param.line = line;
-}
-
-void logclient::end_logstream()
-{
-    glog(_logstream_param.loglevel, _logstream_param.filename, _logstream_param.line, _logstream_param.content_buf.str());
-    _logstream_param.content_buf.clear();
 }
 
 void logclient::set_process_name(const std::string& process_name)
@@ -105,7 +81,35 @@ void logclient::send(remotelog& remotelog)
     {
         _console_logger->log((LOG_LEVEL)remotelog.loglevel, remotelog.logevent);
     }
-    //printf("logclient::send run\n");
+}
+
+thread_local bee::ostringstream g_logstream;
+
+logclient::impl::impl(LOG_LEVEL level, const char* filename, int line)
+    : _is_logstream(false), _loglevel(level), _line(line), _filename(filename) {}
+
+logclient::impl::~impl()
+{
+    if(_is_logstream)
+    {
+        logclient::get_instance()->glog(_loglevel, _filename, _line, g_logstream.str());
+        g_logstream.clear();
+    }
+}
+
+void logclient::impl::operator()(std::string content)
+{
+    logclient::get_instance()->glog(_loglevel, _filename, _line, std::move(content));
+}
+
+void logclient::impl::operator()(const char* fmt, ...)
+{
+    thread_local char content[2048];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(content, sizeof(content), fmt, args);
+    va_end(args);
+    logclient::get_instance()->glog(_loglevel, _filename, _line, std::string(content));
 }
 
 } // namespace bee
