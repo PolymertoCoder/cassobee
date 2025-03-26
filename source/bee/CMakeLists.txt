@@ -23,6 +23,7 @@ set(BEE_PUBLIC_INCLUDES ${SOURCE_PATH}/bee/common
                         ${SOURCE_PATH}/bee/log
                         ${SOURCE_PATH}/bee/traits
                         ${SOURCE_PATH}/bee/utility
+                        ${SOURCE_PATH}/bee/format
                         ${SOURCE_PATH}/bee/thread
                         ${SOURCE_PATH}/bee/security
                         ${SOURCE_PATH}/bee/cli

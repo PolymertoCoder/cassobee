@@ -2,7 +2,7 @@
 #include "octets.h"
 #include "concept.h"
 #include "stringfy.h"
-#include "format_impl.h"
+#include "formatter.h"
 
 namespace bee
 {
