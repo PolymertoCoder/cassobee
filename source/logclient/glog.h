@@ -1,19 +1,14 @@
 #pragma once
-#include <cstdio>
-#include <format>
-#include <print>
-#include <string>
-#include <type_traits>
 #include "common.h"
 #include "types.h"
 #include "format.h"
 #include "log.h"
-#include "logserver_manager.h"
 
 namespace bee
 {
 class logger;
 class remotelog;
+class logserver_manager;
 
 extern thread_local bee::ostringstream g_logstream;
 
@@ -68,12 +63,13 @@ public:
 
         template<typename T> impl& operator<<(T&& arg)
         {
-            _is_logstream = true;
-            g_logstream << std::forward<T>(arg);
+            if(g_logstream.size() < LOG_BUFFER_SIZE)
+            {
+                g_logstream << std::forward<T>(arg);
+            }
             return *this;
         }
 
-        bool _is_logstream;
         LOG_LEVEL _loglevel;
         int _line;
         const char* _filename;

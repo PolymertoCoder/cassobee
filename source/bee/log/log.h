@@ -9,6 +9,8 @@ namespace bee
 #define __FILENAME__ __FILE__
 #endif
 
+#define LOG_BUFFER_SIZE 2048
+
 enum LOG_LEVEL : unsigned char
 {
     TRACE,

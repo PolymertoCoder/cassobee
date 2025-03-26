@@ -1,7 +1,8 @@
 #pragma once
 #include "octets.h"
-#include <format>
-#include <type_traits>
+#include "concept.h"
+#include "stringfy.h"
+#include "format_impl.h"
 
 namespace bee
 {
@@ -21,57 +22,36 @@ auto format(std::format_string<Args...> fmt, Args&&... args)
 class ostringstream
 {
 public:
-    ostringstream() = default;
+    static constexpr size_t INITIAL_CAPACITY = 64;
+
+    ostringstream() { _buf.reserve(INITIAL_CAPACITY); }
     ostringstream(const char* data, size_t size) : _buf(data, size) {}
     ostringstream(const std::string& str) : _buf(str) {}
+    ostringstream(ostringstream&& other) noexcept = default;
 
-    template<typename T>
-    requires std::is_arithmetic_v<T>
-    ostringstream& operator<<(const T& value)
+    template<typename T> ostringstream& operator<<(const T& value)
     {
-        auto str = std::to_string(value);
-        _buf.append(str.data(), str.size());
+        *this << bee::to_string(value);
         return *this;
     }
 
-    ostringstream& operator<<(const char* value)
-    {
-        _buf.append(value, std::strlen(value));
-        return *this;
-    }
+    ostringstream& operator<<(bool value);
+    ostringstream& operator<<(const char* value);
+    ostringstream& operator<<(const std::string& value);
+    ostringstream& operator<<(ostringstream& (*manipulator)(ostringstream&));
 
-    ostringstream& operator<<(const std::string& value)
-    {
-        _buf.append(value.data(), value.size());
-        return *this;
-    }
-
-    bool empty()
-    {
-        return _buf.empty();
-    }
-
-    void clear()
-    {
-        _buf.clear();
-    }
-
-    std::string str()
-    {
-        return std::string(c_str());
-    }
-
-    const char* c_str()
-    {
-        if(_buf.begin()[_buf.size() - 1] != '\0')
-        {
-            _buf.append('\0');
-        }
-        return _buf;
-    }
+    size_t size() const { return _buf.size(); }
+    bool empty() const { return _buf.empty(); }
+    void truncate(size_t size) { if(size < _buf.size()) _buf.fast_resize(size); }
+    void reserve(size_t cap) { _buf.reserve(cap); }
+    void clear() { _buf.clear();}
+    std::string str() { return std::string(_buf.data(), _buf.size()); }
+    const char* c_str();
 
 private:
     octets _buf;
 };
+
+ostringstream& endl(ostringstream& oss);
 
 } // namespace bee

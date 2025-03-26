@@ -14,7 +14,7 @@ namespace bee
     std::string to_string(const std::string& val);
     std::string to_string(const std::string_view& val);
 
-    template<typename T> requires std::is_arithmetic_v<T> std::string to_string(T val);
+    template<bee::arithmetic T> std::string to_string(T val);
     template<typename T1, typename T2> std::string to_string(const std::pair<T1, T2>& val);
     template<typename T> requires bee::stl_container<T> std::string to_string(const T& val, bool prefix = false);
     template<typename... Args> std::string to_string(const std::tuple<Args...>& val);
@@ -27,8 +27,7 @@ inline std::string to_string(const octets& val) { return val; }
 inline std::string to_string(const std::string& val) { return val; }
 inline std::string to_string(const std::string_view& val) { return {val.data(), val.size()}; }
 
-template<typename T>
-requires std::is_arithmetic_v<T>
+template<bee::arithmetic T>
 std::string to_string(T val) { return std::to_string(val); }
 
 template<typename T1, typename T2>

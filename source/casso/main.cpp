@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <functional>
 #include <thread>
+#include <ranges>
 
 #include "config.h"
 #include "marshal.h"
@@ -112,10 +113,11 @@ int main(int argc, char* argv[])
     int a = 1;
     float b = 2.f;
     std::string c = "hello world";
-    DEBUGLOG << "logstream test, a:" << a << ", b:"<< b << ", c:" << c << ".";
-    ERRORLOG << "logstream test2, a:" << a << ", b:"<< b << ", c:" << c << ".";
-    DEBUGLOGF("logformat test, a:{}, b:{}, c:{}.", a, b, c.data());
-    DEBUGLOG("logformat test, a:%d, b:%f, c:%s.", a, b, c.data());
+    auto dview = std::views::iota(0, 11);
+    std::vector<int> d{dview.begin(), dview.end()};
+    DEBUGLOG << "logstream test, a:" << a << ", b:"<< b << ", c:" << c << ", d:" << d << "." << bee::endl;
+    DEBUGLOGF("logformat test, a:{}, b:{}, c:{} d:{}.", a, b, c, d);
+    DEBUGLOG("logformat test, a:%d, b:%f, c:%s, d:%s.", a, b, c.data(), bee::to_string(d).data());
 
     // add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
@@ -213,11 +215,6 @@ int main(int argc, char* argv[])
     // auto temp = protocol::decode(os, nullptr);
     // auto prot2 = dynamic_cast<bee::remotelog*>(temp);
     // printf("prot2 loglevel:%d\n", prot2->loglevel),
-
-    bee::ostringstream oss;
-    oss << "its test code.";
-    std::println("%s", oss.c_str());
-    std::fflush(stdout);
 
     looper->run();
     timer_thread.join();

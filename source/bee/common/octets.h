@@ -151,6 +151,14 @@ public:
         *(_buf + _len) = ch;
 		_len += 1;
     }
+    void append(const char* data)
+    {
+        size_t len = strlen(data);
+        if(len == 0) return;
+        reserve(_len + len);
+        memcpy(_buf + _len, data, len);
+        _len += len;
+    }
     void append(const char* data, size_t len)
     {
         if(len == 0) return;
@@ -184,6 +192,8 @@ public:
     FORCE_INLINE char* end() const { return _buf + _len; }
     FORCE_INLINE char* data() const { return _buf; }
     FORCE_INLINE char* buf() const { return _buf; }
+    FORCE_INLINE char& front() const { return _buf[0]; }
+    FORCE_INLINE char& back() const { return _buf[_len-1]; }
     FORCE_INLINE char* peek(size_t pos) const { return _buf + pos; }
     FORCE_INLINE size_t size() const { return _len; }
     FORCE_INLINE size_t capacity() const { return _cap; }

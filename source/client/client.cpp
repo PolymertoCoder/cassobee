@@ -10,6 +10,7 @@
 #include "app_command.h"
 #include "command_line.h"
 #include "session_manager.h"
+#include "logserver_manager.h"
 #include "log.h"
 #include "glog.h"
 #include "reactor.h"

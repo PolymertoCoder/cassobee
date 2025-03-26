@@ -5,6 +5,7 @@
 #include "log.h"
 #include "log_appender.h"
 #include "logger.h"
+#include "logserver_manager.h"
 #include "config.h"
 #include "log_event.h"
 #include "systemtime.h"
@@ -15,12 +16,14 @@ namespace bee
 {
 thread_local bee::remotelog g_remotelog;
 thread_local bee::log_event g_logevent;
+thread_local bee::ostringstream g_logstream;
 
 void logclient::init()
 {
     auto cfg = config::get_instance();
     _loglevel = cfg->get<LOG_LEVEL>("log", "loglevel", LOG_LEVEL::TRACE);
     _console_logger = new logger(_loglevel, new console_appender());
+    g_logstream.reserve(LOG_BUFFER_SIZE);
 }
 
 void logclient::glog(LOG_LEVEL level, const char* filename, int line, std::string content)
@@ -83,15 +86,14 @@ void logclient::send(remotelog& remotelog)
     }
 }
 
-thread_local bee::ostringstream g_logstream;
-
 logclient::impl::impl(LOG_LEVEL level, const char* filename, int line)
-    : _is_logstream(false), _loglevel(level), _line(line), _filename(filename) {}
+    : _loglevel(level), _line(line), _filename(filename) {}
 
 logclient::impl::~impl()
 {
-    if(_is_logstream)
+    if(!g_logstream.empty())
     {
+        g_logstream.truncate(LOG_BUFFER_SIZE);
         logclient::get_instance()->glog(_loglevel, _filename, _line, g_logstream.str());
         g_logstream.clear();
     }
@@ -104,7 +106,7 @@ void logclient::impl::operator()(std::string content)
 
 void logclient::impl::operator()(const char* fmt, ...)
 {
-    thread_local char content[2048];
+    thread_local char content[LOG_BUFFER_SIZE];
     va_list args;
     va_start(args, fmt);
     vsnprintf(content, sizeof(content), fmt, args);
