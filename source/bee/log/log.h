@@ -1,10 +1,5 @@
 #pragma once
 
-namespace bee
-{
-    class logclient;
-}
-
 #ifndef __FILENAME__
 #define __FILENAME__ __FILE__
 #endif
