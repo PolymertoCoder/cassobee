@@ -16,7 +16,7 @@
 #include "threadpool.h"
 #include "timewheel.h"
 #include "systemtime.h"
-#include "log.h"
+#include "glog.h"
 #include "glog.h"
 #include "traits.h"
 #include "common.h"

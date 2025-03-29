@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_map>
 
-#include "log.h"
+#include "glog.h"
 #include "common.h"
 #include "log_event.h"
 

@@ -1,6 +1,5 @@
 #include <cerrno>
 #include <openssl/bio.h>
-#include <print>
 #include <unistd.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -11,6 +10,7 @@
 #include <openssl/err.h>
 
 #include "ioevent.h"
+#include "glog.h"
 #include "address.h"
 #include "event.h"
 #include "common.h"
@@ -43,18 +43,18 @@ size_t stdio_event::on_read()
         {
             _buffer.fast_resize(len);
             total_read += len;
-            std::println("stdio_event handle_event read %d bytes from stdin.", len);
+            local_log("stdio_event handle_event read %d bytes from stdin.", len);
         }
         else if(len == 0)
         {
-            std::println("stdio_event handle_event stdin closed.");
+            local_log("stdio_event handle_event stdin closed.");
             return false;
         }
         else
         {
             if(errno == EAGAIN || errno == EINTR)
             {
-                std::println("stdio_event handle_event temporary error (errno=%d: %s).", errno, strerror(errno));
+                local_log("stdio_event handle_event temporary error (errno=%d: %s).", errno, strerror(errno));
                 return true;
             }
             else
@@ -80,18 +80,18 @@ size_t stdio_event::on_write()
         if(len > 0)
         {
             total_write += len;
-            std::println("stdio_event handle_event write %d bytes to stdout.", len);
+            local_log("stdio_event handle_event write %d bytes to stdout.", len);
         }
         else if(len == 0)
         {
-            std::println("stdio_event handle_event stdout closed.");
+            local_log("stdio_event handle_event stdout closed.");
             return false;
         }
         else
         {
             if(errno == EAGAIN || errno == EINTR)
             {
-                std::println("stdio_event handle_event temporary error (errno=%d: %s).", errno, strerror(errno));
+                local_log("stdio_event handle_event temporary error (errno=%d: %s).", errno, strerror(errno));
                 return true;
             }
             else
@@ -210,7 +210,7 @@ passiveio_event::passiveio_event(session_manager* manager)
             return;
         }
         _fd = listenfd;
-        std::println("fd %d listen addr:%s.", listenfd, manager->get_addr()->to_string().data());
+        local_log("fd %d listen addr:%s.", listenfd, manager->get_addr()->to_string().data());
     }
     else if(socktype == SOCK_DGRAM)
     {
@@ -230,7 +230,7 @@ bool passiveio_event::handle_event(int active_events)
     {
         if (errno != EAGAIN && errno != EINTR)
         {
-            std::println("accept: %s", strerror(errno));
+            local_log("accept: %s", strerror(errno));
             return false;
         }
         return true;
@@ -254,7 +254,7 @@ bool passiveio_event::handle_event(int active_events)
 
     evt->set_events(EVENT_RECV | EVENT_SEND);
     _base->add_event(evt);
-    std::println("accept clientid=%d.", clientfd);
+    local_log("accept clientid=%d.", clientfd);
     return true;
 }
 
@@ -319,7 +319,7 @@ bool activeio_event::handle_event(int active_events)
     evt->set_events(EVENT_RECV | EVENT_SEND | EVENT_HUP);
     evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
-    std::println("activeio_event handle_event run fd=%d.", _fd);
+    local_log("activeio_event handle_event run fd=%d.", _fd);
     return true;
 }
 
@@ -348,7 +348,7 @@ streamio_event::streamio_event(int fd, session* ses)
         exit(-1);
     }
     ses->set_open();
-    //std::println("streamio_event constructor run");
+    //local_log("streamio_event constructor run");
 }
 
 bool streamio_event::handle_event(int active_events)
@@ -358,14 +358,14 @@ bool streamio_event::handle_event(int active_events)
         handle_recv();
         // _ses->permit_recv();
         // _ses->permit_send();
-        std::println("streamio_event handle_event EVENT_RECV fd=%d", _fd);
+        local_log("streamio_event handle_event EVENT_RECV fd=%d", _fd);
     }
     if(active_events & EVENT_SEND)
     {
         handle_send();
         // _ses->permit_recv();
         // _ses->permit_send();
-        std::println("streamio_event handle_event EVENT_SEND fd=%d", _fd);
+        local_log("streamio_event handle_event EVENT_SEND fd=%d", _fd);
     }
     return true;
 }
@@ -377,7 +377,7 @@ int streamio_event::handle_recv()
     if(free_space == 0)
     {
         _ses->on_recv(rbuffer.size());
-        std::println("recv[fd=%d]: session %llu buffer is fulled, no space to receive data", _ses->get_sid(), _fd);
+        local_log("recv[fd=%d]: session %llu buffer is fulled, no space to receive data", _ses->get_sid(), _fd);
     }
     
     int total_recv = 0;
@@ -386,7 +386,7 @@ int streamio_event::handle_recv()
         size_t free_space = rbuffer.free_space();
         if(free_space == 0)
         {
-            std::println("recv[fd=%d]: session %llu buffer is fulled on receiving", _ses->get_sid(), _fd);
+            local_log("recv[fd=%d]: session %llu buffer is fulled on receiving", _ses->get_sid(), _fd);
             break;
         }
 
@@ -396,12 +396,12 @@ int streamio_event::handle_recv()
         {
             rbuffer.fast_resize(len);
             total_recv += len;
-            std::println("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
+            local_log("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
                 _fd, len, rbuffer.size(), rbuffer.free_space());
         }
         else if(len == 0)
         {
-            std::println("recv[fd=%d]: connection closed by peer, buffer size=%zu",
+            local_log("recv[fd=%d]: connection closed by peer, buffer size=%zu",
                 _fd, rbuffer.size());
             close_socket();
             return -1;
@@ -411,14 +411,14 @@ int streamio_event::handle_recv()
             if(errno == EAGAIN || errno == EINTR)
             {
                 // 非阻塞模式下的正常情况，不需要额外处理
-                std::println("recv[fd=%d]: temporary error (errno=%d: %s), buffer size=%zu, free space=%zu",
+                local_log("recv[fd=%d]: temporary error (errno=%d: %s), buffer size=%zu, free space=%zu",
                     _fd, errno, strerror(errno), rbuffer.size(), rbuffer.free_space());
                 break;
             }
             else
             {
                 perror("recv");
-                std::println("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
+                local_log("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
                     _fd, errno, strerror(errno), rbuffer.size());
                 close_socket();
                 return -1;
@@ -449,7 +449,7 @@ int streamio_event::handle_send()
         int len = send(_fd, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset, 0);
         if(len > 0)
         {
-            //std::println("send data:%s", std::string(wbuffer.peek(0), len).data());
+            //local_log("send data:%s", std::string(wbuffer.peek(0), len).data());
             total_send += len;
             _ses->_write_offset += len;
         }
@@ -457,7 +457,7 @@ int streamio_event::handle_send()
         {
             if(_ses->_write_offset < wbuffer->size())
             {
-                std::println("Send returned 0: Connection might be closed by the peer.\n");
+                local_log("Send returned 0: Connection might be closed by the peer.\n");
                 bee::rwlock::wrscoped sesl(_ses->_locker);
                 _ses->permit_send(); // 写缓冲区的数据还有剩余，下次唤醒时再尝试
             }
@@ -514,7 +514,7 @@ bool sslio_event::do_handshake()
         {
             char errbuf[256];
             ERR_error_string_n(ERR_get_error(), errbuf, sizeof(errbuf));
-            std::println("SSL handshake failed: %s", errbuf);
+            local_log("SSL handshake failed: %s", errbuf);
             return false;
         }
     }
@@ -527,7 +527,7 @@ int sslio_event::handle_recv()
     if(free_space == 0)
     {
         _ses->on_recv(rbuffer.size());
-        std::println("recv[fd=%d]: session %llu buffer is fulled, no space to receive data", _ses->get_sid(), _fd);
+        local_log("recv[fd=%d]: session %llu buffer is fulled, no space to receive data", _ses->get_sid(), _fd);
     }
     
     int total_recv = 0;
@@ -536,7 +536,7 @@ int sslio_event::handle_recv()
         size_t free_space = rbuffer.free_space();
         if(free_space == 0)
         {
-            std::println("recv[fd=%d]: session %llu buffer is fulled on receiving", _ses->get_sid(), _fd);
+            local_log("recv[fd=%d]: session %llu buffer is fulled on receiving", _ses->get_sid(), _fd);
             break;
         }
 
@@ -546,7 +546,7 @@ int sslio_event::handle_recv()
         {
             rbuffer.fast_resize(len);
             total_recv += len;
-            std::println("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
+            local_log("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
                 _fd, len, rbuffer.size(), rbuffer.free_space());
         }
         else
@@ -589,7 +589,7 @@ int sslio_event::handle_send()
         int len = SSL_write(_ssl, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset);
         if(len > 0)
         {
-            //std::println("send data:%s", std::string(wbuffer.peek(0), len).data());
+            //local_log("send data:%s", std::string(wbuffer.peek(0), len).data());
             total_send += len;
             _ses->_write_offset += len;
         }

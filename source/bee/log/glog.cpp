@@ -2,7 +2,7 @@
 
 #include <cstdarg>
 #include <cstdio>
-#include "log.h"
+#include "glog.h"
 #include "log_appender.h"
 #include "logger.h"
 #include "config.h"

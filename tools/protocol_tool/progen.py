@@ -438,6 +438,7 @@ def main():
     cpp_dir = os.path.join(args.outpath, "source")
     state_dir = os.path.join(args.outpath, "state")
 
+    # 创建必要的文件夹
     create_directories(header_dir, cpp_dir, state_dir)
 
     # 是否需要重新生成

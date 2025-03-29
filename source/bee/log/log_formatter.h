@@ -3,7 +3,7 @@
 #include <iosfwd>
 #include <string>
 
-#include "log.h"
+#include "glog.h"
 
 namespace bee
 {

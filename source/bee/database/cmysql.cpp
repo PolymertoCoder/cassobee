@@ -1,9 +1,9 @@
 #include "cmysql.h"
+#include "glog.h"
 #include "config.h"
 #include "objectpool.h"
 #include "systemtime.h"
 #include <cppconn/connection.h>
-#include <print>
 
 namespace bee::mysql
 {
@@ -41,7 +41,7 @@ bool connection::connect(const std::string& ip, const std::string& user, const s
     catch (sql::SQLException& e)
     {
         // 处理连接错误
-        std::println("connect to mysql failed: %s", e.what());
+        local_log("connect to mysql failed: %s", e.what());
         return false;
     }
 }
@@ -131,7 +131,7 @@ void connection_pool::init()
     _maxsize = cfg->get<size_t>("mysql", "maxsize");
     _timeout =  cfg->get<TIMETYPE>("mysql", "timeout");
     _max_idle_time = cfg->get<TIMETYPE>("mysql", "max_idle_time");
-    std::println("mysql connection pool init: %s:%d %s %s %s %zu %zu %zu", _ip.data(), _port, _user.data(), _password.data(), _db.data(), _minsize, _maxsize, _timeout);
+    local_log("mysql connection pool init: %s:%d %s %s %s %zu %zu %zu", _ip.data(), _port, _user.data(), _password.data(), _db.data(), _minsize, _maxsize, _timeout);
 
     objectpool::init(_maxsize);
 
@@ -163,7 +163,7 @@ auto connection_pool::get_connection() -> connection*
     }
     else
     {
-        std::println("mysql connection pool exhausted.");
+        local_log("mysql connection pool exhausted.");
     }
     return conn;
 }
@@ -184,7 +184,7 @@ void connection_pool::release_connection(connection* conn)
 void connection_pool::clear()
 {
     objectpool::destroy();
-    std::println("mysql connection pool clear");
+    local_log("mysql connection pool clear");
 }
 
 } // namespace bee::mysql

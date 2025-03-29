@@ -4,8 +4,8 @@
 #include "session.h"
 #include "session_manager.h"
 #include "types.h"
+#include "glog.h"
 #include <cstdio>
-#include <print>
 
 namespace bee
 {
@@ -20,13 +20,13 @@ bool protocol::check_policy(PROTOCOLID type, size_t size, session_manager* manag
 {
     if(!size_policy(type, size))
     {
-        std::println("protocol %d check size policy failed, size:%zu.", type, size);
+        local_log("protocol %d check size policy failed, size:%zu.", type, size);
         assert(false);
         return false;
     }
     if(manager->check_protocol(type))
     {
-        std::println("protocol %d is forbidden by %s.", type, manager->identity());
+        local_log("protocol %d is forbidden by %s.", type, manager->identity());
         assert(false);
         return false;
     }
@@ -44,12 +44,12 @@ void protocol::encode(octetsstream& os) const
         size_t prev_size = os.size();
         pack(os);
         size = hostToNetwork(os.size() - prev_size);
-        //std::println("id:%d encode size:%zu", id, os.size() - prev_size);
+        //local_log("id:%d encode size:%zu", id, os.size() - prev_size);
         os.data().replace(size_begin_pos, (char*)(&size), sizeof(size));
     }
     catch(...)
     {
-        std::println("protocol decode failed, id=%d size=%zu.", id, size);
+        local_log("protocol decode failed, id=%d size=%zu.", id, size);
     }
 }
 
@@ -62,15 +62,15 @@ protocol* protocol::decode(octetsstream& os, session* ses)
         os >> octetsstream::BEGIN >> id >> size;
         if(!os.data_ready(size))
         {
-            std::println("protocol decode, data not enough, continue wait... id=%d size=%zu actual_size=%zu.", id, size, os.size());
+            local_log("protocol decode, data not enough, continue wait... id=%d size=%zu actual_size=%zu.", id, size, os.size());
             os >> octetsstream::ROLLBACK;
             return nullptr;
         }
-        //std::println("id:%d decode size:%zu", id, size);
+        //local_log("id:%d decode size:%zu", id, size);
 
         if(!check_policy(id, size, ses->get_manager()))
         {
-            std::println("protocol check_policy failed, id=%d size=%zu.", id, size);
+            local_log("protocol check_policy failed, id=%d size=%zu.", id, size);
             ASSERT(false);
         }
 
@@ -83,12 +83,12 @@ protocol* protocol::decode(octetsstream& os, session* ses)
     catch(octetsstream::exception& e)
     {
         ses->close();
-        std::println("protocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
+        local_log("protocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
     }
     catch(...)
     {
         ses->close();
-        std::println("protocol decode failed, id=%d size=%zu.", id, size);
+        local_log("protocol decode failed, id=%d size=%zu.", id, size);
     }
     os >> octetsstream::ROLLBACK;
     return nullptr;

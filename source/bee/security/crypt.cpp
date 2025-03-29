@@ -1,7 +1,10 @@
 #include "crypt.h"
 #include "modes.h"
 #include "filters.h"
-#include <print>
+#include "glog.h"
+
+namespace bee
+{
 
 using byte = unsigned char;
 
@@ -23,7 +26,7 @@ std::string AES_crypt::encrypt(const char* plaintext, size_t size)
     }
     catch(const CryptoPP::Exception& e)
     {
-        std::println("AES Encryption error: %s", e.what());
+        local_log("AES Encryption error: %s", e.what());
         throw;
     }
     return ciphertext;
@@ -47,7 +50,7 @@ std::string AES_crypt::decrypt(const char* ciphertext, size_t size)
     }
     catch (const CryptoPP::Exception& e)
     {
-        std::println("AES Decryption error: %s", e.what());
+        local_log("AES Decryption error: %s", e.what());
         throw;
     }
     return decryptedtext;
@@ -69,7 +72,7 @@ std::string RSA_crypt::encrypt(const char* plaintext, size_t size)
     }
     catch(const CryptoPP::Exception& e)
     {
-        std::println("RSA Encryption error: %s", e.what());
+        local_log("RSA Encryption error: %s", e.what());
         throw;
     }
     return ciphertext;
@@ -91,8 +94,10 @@ std::string RSA_crypt::decrypt(const char* ciphertext, size_t size)
     }
     catch(const CryptoPP::Exception& e)
     {
-        std::println("RSA Decryption error: %s", e.what());
+        local_log("RSA Decryption error: %s", e.what());
         throw;
     }
     return decryptedtext;
 }
+
+} // namespace bee

@@ -1,7 +1,7 @@
 #pragma once
-#include <print>
 #include <tuple>
 #include <utility>
+#include "glog.h"
 #include "stringfy.h"
 #include "traits.h"
 
@@ -60,7 +60,7 @@ protected:
         }
         else
         {
-            std::println("factory %s cannot find product %s constructor, params=%s.", std::string(factory_name).data(), std::string(product_wrapper<I>::value).data(), bee::to_string(std::make_tuple(std::forward<create_params>(params)...)).data());
+            local_log("factory %s cannot find product %s constructor, params=%s.", std::string(factory_name).data(), std::string(product_wrapper<I>::value).data(), bee::to_string(std::make_tuple(std::forward<create_params>(params)...)).data());
         }
         return nullptr;
     }

@@ -1,6 +1,7 @@
 #include "session_manager.h"
 
 #include "address.h"
+#include "glog.h"
 #include "ioevent.h"
 #include "lock.h"
 #include "marshal.h"
@@ -8,7 +9,6 @@
 #include "config.h"
 #include "protocol.h"
 #include "session.h"
-#include <print>
 
 namespace bee
 {
@@ -29,12 +29,12 @@ session_manager::~session_manager()
 
 void session_manager::on_add_session(SID sid)
 {
-    std::println("session_manager %s, on_add_session %lu. ", identity(), sid);
+    local_log("session_manager %s, on_add_session %lu. ", identity(), sid);
 }
 
 void session_manager::on_del_session(SID sid)
 {
-    std::println("session_manager %s, on_del_session %lu. ", identity(), sid);
+    local_log("session_manager %s, on_del_session %lu. ", identity(), sid);
 }
 
 void session_manager::reconnect()
@@ -42,7 +42,7 @@ void session_manager::reconnect()
     add_timer(2000, [this]()
     {
         client(this);
-        std::println("session_manager::reconnect run");
+        local_log("session_manager::reconnect run");
         return false;
     });
 }
@@ -70,7 +70,7 @@ void session_manager::init()
         int version = cfg->get<int>(identity(), "version");
         auto address = cfg->get(identity(), "address");
         int port = cfg->get<int>(identity(), "port");
-        std::println("version:%d address:%s port:%d.", version, address.data(), port);
+        local_log("version:%d address:%s port:%d.", version, address.data(), port);
         if(version == 4)
         {
             _family = AF_INET;
@@ -122,14 +122,14 @@ void session_manager::add_session_nolock(SID sid, session* ses)
     ASSERT(!_sessions.contains(sid) && ses);
     _sessions.emplace(sid, ses);
     on_add_session(sid);
-    std::println("session_manager add_session %lu.", sid);
+    local_log("session_manager add_session %lu.", sid);
 }
 
 void session_manager::del_session_nolock(SID sid)
 {
     _sessions.erase(sid);
     on_del_session(sid);
-    std::println("session_manager del_session %lu.", sid);
+    local_log("session_manager del_session %lu.", sid);
 }
 
 session* session_manager::find_session_nolock(SID sid)
@@ -150,7 +150,7 @@ void session_manager::send_protocol(SID sid, const protocol& prot)
         bee::rwlock::wrscoped sesl(ses->_locker);
         if(os.size() > ses->_writeos.data().free_space())
         {
-            std::println("session_manager %s, session %llu write buffer is fulled.", identity(), sid);
+            local_log("session_manager %s, session %llu write buffer is fulled.", identity(), sid);
             return;
         }
 
@@ -159,7 +159,7 @@ void session_manager::send_protocol(SID sid, const protocol& prot)
     }
     else
     {
-        std::println("session_manager %s cant find session %lu on sending protocol", identity(), sid);
+        local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
     }
 }
 
@@ -171,7 +171,7 @@ void session_manager::send_octets(SID sid, const octets& oct)
         bee::rwlock::wrscoped sesl(ses->_locker);
         if(oct.size() > ses->_writeos.data().free_space())
         {
-            std::println("session_manager %s, session %llu write buffer is fulled.", identity(), sid);
+            local_log("session_manager %s, session %llu write buffer is fulled.", identity(), sid);
             return;
         }
 
@@ -180,7 +180,7 @@ void session_manager::send_octets(SID sid, const octets& oct)
     }
     else
     {
-        std::println("session_manager %s cant find session %lu on sending protocol", identity(), sid);
+        local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
     }
 }
 

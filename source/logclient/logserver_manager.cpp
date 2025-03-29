@@ -1,6 +1,5 @@
 #include "logserver_manager.h"
-#include "address.h"
-#include "log.h"
+#include "glog.h"
 
 namespace bee
 {
@@ -8,13 +7,13 @@ namespace bee
 void logserver_manager::on_add_session(SID sid)
 {
     _localsid = sid;
-    std::println("logserver_manager on_add_session %lu %s.", sid, get_addr()->to_string().data());
+    local_log("logserver_manager on_add_session %lu %s.", sid, get_addr()->to_string().data());
 }
 
 void logserver_manager::on_del_session(SID sid)
 {
     _localsid = 0;
-    std::println("logserver_manager on_del_session %lu.", sid);
+    local_log("logserver_manager on_del_session %lu.", sid);
     reconnect();
 }
 

@@ -3,9 +3,9 @@
 #include "config.h"
 #include "session_manager.h"
 #include "systemtime.h"
+#include "glog.h"
 #include "httpprotocol.h"
 #include <openssl/err.h>
-#include <print>
 
 namespace bee
 {
@@ -44,11 +44,11 @@ void httpsession_manager::init()
         {
             throw std::runtime_error("Failed to initialize SSL context");
         }
-        std::println("SSL context initialized for %s", identity());
+        local_log("SSL context initialized for %s", identity());
     }
     else
     {
-        std::println("SSL is disabled for %s", identity());
+        local_log("SSL is disabled for %s", identity());
     }
 }
 

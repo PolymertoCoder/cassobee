@@ -1,6 +1,6 @@
 #include "httpprotocol.h"
 #include "config.h"
-#include <print>
+#include "glog.h"
 #include <sstream>
 
 namespace bee
@@ -70,7 +70,7 @@ octetsstream& httpprotocol::unpack(octetsstream& os)
     }
     catch (const std::exception& e)
     {
-        std::println("Error unpacking HTTP protocol: %s", e.what());
+        local_log("Error unpacking HTTP protocol: %s", e.what());
         throw;
     }
 

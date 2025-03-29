@@ -5,7 +5,7 @@
 #include <vector>
 #include <functional>
 #include <algorithm>
-#include "log.h"
+#include "glog.h"
 
 template<typename lock_type>
 class delegate_base;

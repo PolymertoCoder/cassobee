@@ -6,6 +6,9 @@
 #include "secblockfwd.h"
 #include "rsa.h"
 
+namespace bee
+{
+
 class crypt
 {
 public:
@@ -47,3 +50,5 @@ private:
     CryptoPP::RSA::PrivateKey _private_key;
     CryptoPP::RSA::PublicKey _public_key;
 };
+
+} // namespace bee

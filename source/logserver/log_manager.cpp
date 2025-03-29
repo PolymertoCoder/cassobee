@@ -3,7 +3,7 @@
 #include "logger.h"
 #include "config.h"
 #include "remotelog.h"
-#include "log.h"
+#include "glog.h"
 #include "glog.h"
 
 namespace bee

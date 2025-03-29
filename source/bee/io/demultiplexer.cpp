@@ -1,7 +1,7 @@
-#include <print>
 #include <sys/epoll.h>
 #include <cstdio>
 
+#include "glog.h"
 #include "demultiplexer.h"
 #include "event.h"
 #include "reactor.h"
@@ -41,7 +41,7 @@ int epoller::add_event(event* ev, int events)
     {
         event.events |= EPOLLIN;
         _listenfds.insert(ev->get_handle());
-        std::println("add accept event, listenfd is %d", ev->get_handle());
+        local_log("add accept event, listenfd is %d", ev->get_handle());
     }
     if(events & EVENT_RECV)
     {
@@ -70,7 +70,7 @@ int epoller::add_event(event* ev, int events)
         {
             _ctrl_event = dynamic_cast<control_event*>(ev);
             CHECK_BUG(_ctrl_event, );
-            std::println("add wakeup events");  
+            local_log("add wakeup events");  
         }
     }
     else if(ev->get_status() == EVENT_STATUS_ADD) // 已经加入过epoll
@@ -79,13 +79,13 @@ int epoller::add_event(event* ev, int events)
     }
     else
     {
-        std::println("add_event failed %d, epfd=%d", ev->get_handle(), _epfd);
+        local_log("add_event failed %d, epfd=%d", ev->get_handle(), _epfd);
         return -2;
     }
 
     if(int ret = epoll_ctl(_epfd, op, ev->get_handle(), &event))
     {
-        std::println("add_event failed %d, ret=%d epfd=%d", ev->get_handle(), ret, _epfd);
+        local_log("add_event failed %d, ret=%d epfd=%d", ev->get_handle(), ret, _epfd);
         return -3;
     }
     //printf("epoller::add_event success handle=%d events=%d\n", ev->get_handle(), events);
@@ -102,7 +102,7 @@ void epoller::del_event(event* ev)
 
     if(epoll_ctl(_epfd, EPOLL_CTL_DEL, ev->get_handle(), &event) < 0)
     {
-        std::println("del_event failed %d", ev->get_handle());
+        local_log("del_event failed %d", ev->get_handle());
         return;
     }
 }
@@ -129,7 +129,7 @@ void epoller::dispatch(reactor* base, int timeout)
 #else
     _wakeup = true;
 #endif
-    std::println("epoller wakeup... timeout=%d nready=%d", timeout, nready);
+    local_log("epoller wakeup... timeout=%d nready=%d", timeout, nready);
 
     for(int i = 0; i < nready; i++)
     {
@@ -159,7 +159,7 @@ void epoller::dispatch(reactor* base, int timeout)
 
 void epoller::wakeup()
 {
-    std::println("epoller::wakeup() begin _wakeup=%s", expr2boolstr(_wakeup));
+    local_log("epoller::wakeup() begin _wakeup=%s", expr2boolstr(_wakeup));
 #ifdef _REENTRANT
     if(_ctrl_event == nullptr || _wakeup.exchange(true)) return;
 #else
@@ -171,7 +171,7 @@ void epoller::wakeup()
     {
          perror("wakeup write failed");
     }
-    std::println("epoller::wakeup() run success");
+    local_log("epoller::wakeup() run success");
 }
 
 } // namespace bee

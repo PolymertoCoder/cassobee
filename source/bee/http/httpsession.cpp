@@ -1,10 +1,10 @@
 #include "httpsession.h"
 #include "address.h"
+#include "glog.h"
 #include "httpprotocol.h"
 #include "httpsession_manager.h"
 #include "session.h"
 #include <openssl/err.h>
-#include <print>
 
 namespace bee
 {
@@ -54,15 +54,15 @@ void httpsession::set_open()
         {
             int err = SSL_get_error(_ssl, ret);
             ERR_print_errors_fp(stderr);
-            std::println("SSL handshake failed for session %lu with error: %d", _sid, err);
+            local_log("SSL handshake failed for session %lu with error: %d", _sid, err);
             close();
             return;
         }
-        std::println("SSL handshake successful for session %lu", _sid);
+        local_log("SSL handshake successful for session %lu", _sid);
     }
     else
     {
-        std::println("Non-SSL session opened for session %lu", _sid);
+        local_log("Non-SSL session opened for session %lu", _sid);
     }
 }
 
@@ -96,7 +96,7 @@ void httpsession::on_recv(size_t len)
                 return;
             }
             ERR_print_errors_fp(stderr);
-            std::println("SSL_read failed for session %lu with error: %d", _sid, err);
+            local_log("SSL_read failed for session %lu with error: %d", _sid, err);
             close();
         }
     }
@@ -130,7 +130,7 @@ void httpsession::on_send(size_t len)
                     return;
                 }
                 ERR_print_errors_fp(stderr);
-                std::println("SSL_write failed for session %lu with error: %d", _sid, err);
+                local_log("SSL_write failed for session %lu with error: %d", _sid, err);
                 close();
                 return;
             }

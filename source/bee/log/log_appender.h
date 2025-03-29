@@ -7,7 +7,7 @@
 #include <string>
 #include <thread>
 
-#include "log.h"
+#include "glog.h"
 #include "ring_buffer.h"
 #include "types.h"
 
