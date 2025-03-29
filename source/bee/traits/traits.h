@@ -74,11 +74,9 @@ template<typename T>
 consteval auto short_type_name() -> std::string_view
 {
     constexpr auto& ref = type_name_holder<T>::value;
-    constexpr auto begin = ref.find('<'); // T是模板类
-    constexpr auto len = (begin != std::string_view::npos) ? begin : ref.size();
-    if constexpr(constexpr auto end = ref.find("::", 0, len); end != std::string_view::npos)
+    if constexpr(constexpr auto pos = ref.rfind("::"); pos != std::string_view::npos)
     {
-        constexpr auto diff = end + 2;
+        constexpr auto diff = pos + 2;
         return std::string_view(ref.data() + diff, ref.size() - diff);
     }
     else
@@ -120,5 +118,8 @@ struct string_literal
     }
     char data[N];
 };
+
+template<size_t N>
+string_literal(const char (&str)[N]) -> string_literal<N>;
 
 } // namespace bee

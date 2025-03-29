@@ -25,3 +25,7 @@
 [submodule "thirdparty/readline"]
 	path = thirdparty/readline
 	url = https://github.com/gnu-mirror-unofficial/readline.git
+
+[submodule "thirdparty/ClangBuildAnalyzer"]
+    path = thirdparty/ClangBuildAnalyzer
+    url = https://github.com/aras-p/ClangBuildAnalyzer.git

@@ -1,9 +1,16 @@
 cmake_minimum_required(VERSION 3.8)
+
+#set(CMAKE_C_COMPILER "/usr/bin/gcc")
+#set(CMAKE_CXX_COMPILER "/usr/bin/g++")
+set(CMAKE_C_COMPILER "/usr/bin/clang")
+set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
+
 project(cassobee LANGUAGES CXX)
 
 message("Use ${CMAKE_CXX_COMPILER_ID} compiler to build this project.")
 
 set(CASSOBEE_ROOT_PATH      ${CMAKE_CURRENT_SOURCE_DIR})
+set(BUILD_PATH             ${CMAKE_CURRENT_SOURCE_DIR}/build)
 set(CONFIG_PATH             ${CASSOBEE_ROOT_PATH}/config)
 set(SOURCE_PATH             ${CASSOBEE_ROOT_PATH}/source)
 set(THIRDPARTY_PATH         ${CASSOBEE_ROOT_PATH}/thirdparty)
@@ -11,6 +18,7 @@ set(EXECUTABLE_OUTPUT_PATH  ${CASSOBEE_ROOT_PATH}/debug)
 set(DEBUG_PATH              ${CASSOBEE_ROOT_PATH}/debug)
 set(THIRDLIB_OUTPUT_PATH    ${CASSOBEE_ROOT_PATH}/debug)
 set(LIBRARY_OUTPUT_PATH     ${CASSOBEE_ROOT_PATH}/debug/libs)
+set(REPORT_PATH             ${CASSOBEE_ROOT_PATH}/debug)
 set(BINARY_PATH             ${CASSOBEE_ROOT_PATH}/bin)
 set(TOOLS_PATH              ${CASSOBEE_ROOT_PATH}/tools)
 set(PROTOCOL_PATH           ${CASSOBEE_ROOT_PATH}/source/protocol)
@@ -21,17 +29,13 @@ option(CASSOBEE_IWYU_ENABLE "enable include-what-you-use" OFF)
 option(CASSOBEE_SENITIZE_ENABLE "enable google sanitizer" ON)
 option(CASSOBEE_CCACHE_ENABLE "enable ccache" ON)
 option(CASSOBEE_CLANG_TIDY_ENABLE "enable clang-tidy" OFF)
+option(CASSOBEE_COMPILE_TIME_REPORT_ENABLE "enable compile time report" OFF)
 
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
 #set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
-#set(CMAKE_C_COMPILER "/usr/local/bin/gcc")
-#set(CMAKE_CXX_COMPILER "/usr/local/bin/g++")
-#set(CMAKE_C_COMPILER "/usr/local/bin/clang")
-#set(CMAKE_CXX_COMPILER "/usr/local/bin/clang++")
-
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -std=c++23 -Wall -Wno-deprecated -Wno-unused-function -Wno-interference-size")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -std=c++23 -Wall -Wno-deprecated -Wno-unused-function")
 
 # debug or release
 if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
@@ -46,7 +50,15 @@ add_compile_options(-DCMAKE_CROSSCOMPILING=true)
 if(${CASSOBEE_IWYU_ENABLE})
     find_program(IWYU_BIN_PATH "include-what-you-use")
     if(IWYU_BIN_PATH)
-        set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE '${IWYU_BIN_PATH};-Xiwyu;--transitive_includes_only;')
+        set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE "${IWYU_BIN_PATH}"
+                                            "-Xiwyu" "--verbose=3"  # 详细输出
+                                            "-Xiwyu" "--no_comments"  # 移除注释
+                                            "-Xiwyu" "--transitive_includes_only"
+                                            "-Xiwyu" "--error"  # 将警告提升为错误
+                                            "-Xiwyu" "--output=${REPORT_PATH}/iwyu_report.json"  # 输出文件名
+                                            "-Xiwyu" "--format=json"  # JSON 格式
+        )
+        set(CMAKE_CXX_CLANG_TIDY_OUTPUT_DIRECTORY ${IWYU_REPORT_DIR}) # 设置全局输出重定向
     else()
         message(FATAL_ERROR "Cound not found include-what-you-use.")
     endif()
@@ -64,10 +76,21 @@ if(${CASSOBEE_CCACHE_ENABLE})
     endif()
 endif()
 
+# enable compile time report
+if(${CASSOBEE_COMPILE_TIME_REPORT_ENABLE})
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options(-ftime-trace)
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        add_compile_options(/Bt)
+    else()
+        message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER_ID} is not support compile time trace.")
+    endif()
+endif()
+
 # enable clang-tidy
 # Clang-tidy custom targets for running and checking results
 add_custom_target(run_clang_tidy
-    COMMAND clang-tidy -p ${CMAKE_BINARY_DIR} --warnings-as-errors=* ${ALL_CPP_FILES} || ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/clang_tidy_failed
+    COMMAND clang-tidy -p ${BUILD_PATH} --warnings-as-errors=* || ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/clang_tidy_failed
     COMMENT "Running clang-tidy"
     VERBATIM
 )
@@ -94,7 +117,12 @@ if(${CASSOBEE_CLANG_TIDY_ENABLE})
     find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
     if(CLANG_TIDY_EXE)
         message("Find clang-tidy exe: ${CLANG_TIDY_EXE}")
-        set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXE})
+        set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXE}
+                                 "--format=sarif"  # SARIF 格式
+                                 "--export-fixes=${REPORT_PATH}/clang-tidy-fixes.yaml" # 自动修复建议
+                                 "-p=${BUILD_PATH}" # 指定编译数据库路径
+        )
+        set(CMAKE_CXX_CLANG_TIDY_OUTPUT_DIRECTORY ${REPORT_PATH})
     else()
         message(FATAL_ERROR "Could not find the clang-tidy exe")
     endif()

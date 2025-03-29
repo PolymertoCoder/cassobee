@@ -1,117 +1,35 @@
 #include "glog.h"
-
-#include <cstdarg>
-#include <cstdio>
-#include "log.h"
-#include "log_appender.h"
 #include "logger.h"
-#include "logserver_manager.h"
-#include "config.h"
-#include "log_event.h"
-#include "systemtime.h"
-
 #include "remotelog.h"
+#include "logserver_manager.h"
 
 namespace bee
 {
+
 thread_local bee::remotelog g_remotelog;
-thread_local bee::log_event g_logevent;
-thread_local bee::ostringstream g_logstream;
-
-void logclient::init()
-{
-    auto cfg = config::get_instance();
-    _loglevel = cfg->get<LOG_LEVEL>("log", "loglevel", LOG_LEVEL::TRACE);
-    _console_logger = new logger(_loglevel, new console_appender());
-    g_logstream.reserve(LOG_BUFFER_SIZE);
-}
-
-void logclient::glog(LOG_LEVEL level, const char* filename, int line, std::string content)
-{
-    g_remotelog.loglevel = level;
-    g_remotelog.logevent.set_process_name(_process_name);
-    g_remotelog.logevent.set_filename(filename);
-    g_remotelog.logevent.set_line(line);
-    g_remotelog.logevent.set_timestamp(systemtime::get_time());
-    g_remotelog.logevent.set_threadid(gettid());
-    g_remotelog.logevent.set_fiberid(0);
-    g_remotelog.logevent.set_elapse(std::to_string(get_process_elapse()));
-    g_remotelog.logevent.set_content(std::move(content));
-    send(g_remotelog);
-}
-
-void logclient::console_log(LOG_LEVEL level, const char* filename, int line, std::string content)
-{
-    g_logevent.set_process_name(_process_name);
-    g_logevent.set_filename(filename);
-    g_logevent.set_line(line);
-    g_logevent.set_timestamp(systemtime::get_time());
-    g_logevent.set_threadid(gettid());
-    g_logevent.set_fiberid(0);
-    g_logevent.set_elapse(std::to_string(get_process_elapse()));
-    g_logevent.set_content(content);
-    
-    _console_logger->log(level, g_logevent);
-}
-
-void logclient::set_process_name(const std::string& process_name)
-{
-    if(process_name == std::string("logserver"))
-    {
-        _is_logserver = true;
-        printf("i am logserver!!!\n");
-    }
-    _process_name = process_name;
-}
 
 void logclient::set_logserver(logserver_manager* logserver)
 {
     _logserver = logserver;
 }
 
-void logclient::send(remotelog& remotelog)
+void logclient::commit_log(LOG_LEVEL level, const log_event& event)
 {
+    g_remotelog.loglevel = level;
+    g_remotelog.logevent = event;
     if(_is_logserver)
     {
-        remotelog.run();
+        g_remotelog.run();
         return;
     }
     if(_logserver && _logserver->is_connect())
     {
-        _logserver->send(remotelog);
+        _logserver->send(g_remotelog);
     }
     else
     {
-        _console_logger->log((LOG_LEVEL)remotelog.loglevel, remotelog.logevent);
+        _console_logger->log(level, event);
     }
-}
-
-logclient::impl::impl(LOG_LEVEL level, const char* filename, int line)
-    : _loglevel(level), _line(line), _filename(filename) {}
-
-logclient::impl::~impl()
-{
-    if(!g_logstream.empty())
-    {
-        g_logstream.truncate(LOG_BUFFER_SIZE);
-        logclient::get_instance()->glog(_loglevel, _filename, _line, g_logstream.str());
-        g_logstream.clear();
-    }
-}
-
-void logclient::impl::operator()(std::string content)
-{
-    logclient::get_instance()->glog(_loglevel, _filename, _line, std::move(content));
-}
-
-void logclient::impl::operator()(const char* fmt, ...)
-{
-    thread_local char content[LOG_BUFFER_SIZE];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(content, sizeof(content), fmt, args);
-    va_end(args);
-    logclient::get_instance()->glog(_loglevel, _filename, _line, std::string(content));
 }
 
 } // namespace bee

@@ -1,0 +1,6 @@
+#!bin/bash
+
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
+buildpath=$rootpath/build/
+
+ClangBuildAnalyzer --all $buildpath compile_trace.json

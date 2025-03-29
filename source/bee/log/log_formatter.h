@@ -9,6 +9,7 @@ namespace bee
 {
 class log_event;
 
+// 日志格式化器
 class log_formatter
 {
 public:
