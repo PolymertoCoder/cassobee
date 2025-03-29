@@ -382,16 +382,18 @@ class XMLProcessor:
     def _generate_state_files(self, state_dir):
         """生成状态文件"""
         for state_name, protocols in self.state_cache.items():
-            content = ["#include \"protocol.h\"\n"]
+            content = []
             register_lines = []
             
             for proto_name in protocols:
                 content.append(f"#include \"{proto_name}.h\"\n")
                 register_lines.append(
-                    f"static bee::{proto_name} __register_{proto_name}({self.protocol_cache[proto_name].type});\n"
+                    f"static {proto_name} __register_{proto_name}({self.protocol_cache[proto_name].type});\n"
                 )
-            
+
+            content.append("\nnamespace bee\n{\n\n")
             content.extend(register_lines)
+            content.append("\n} // namespace bee")
             state_path = os.path.join(state_dir, f"state_{state_name}.cpp")
             self._write_file(state_path, content)
 
@@ -403,7 +405,7 @@ class XMLProcessor:
         lines = [
             "#pragma once\n",
             "#include \"types.h\"\n\n",
-            "namespace bee {\n\n",
+            "namespace bee\n{\n\n",
             f"static constexpr PROTOCOLID MAXPROTOCOLID = {list(self.protocol_enum_entries.keys())[-1]};\n\n",
             "enum PROTOCOL_TYPE\n{\n"
         ]
