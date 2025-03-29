@@ -3,9 +3,7 @@
 import xml.etree.ElementTree as ET
 import os
 import argparse
-from collections import OrderedDict
-
-protocol_enum_entries = dict()
+from collections import OrderedDict, defaultdict
 
 modified_xml_files = []
 
@@ -66,418 +64,11 @@ def clean_old_files(xmlpath, header_output_directory, cpp_output_directory, forc
             if os.path.isfile(file_path):
                 os.unlink(file_path)
 
-# def generate_header_content(protocol):
-#     """Generate the content of the header file for the class."""
-#     header_content = []
-
-#     header_content.append(f"#pragma once\n")
-#     header_content.append(f'#include "{protocol.base_class}.h"\n\n')
-
-#     included_headers = generate_included_headers(protocol)
-#     header_content.extend(included_headers)
-
-#     header_content.append("\nnamespace bee\n{\n\n")
-#     header_content.append(f"class {protocol.name} : public {protocol.base_class}\n{{\npublic:\n")
-
-#     if protocol.base_class == "protocol":
-#         header_content.append(f"    static constexpr PROTOCOLID TYPE = {type};\n")
-
-#     if protocol.codefield:
-#         header_content.append(generate_enum_fields(protocol))
-
-#     if protocol.fields:
-#         header_content.append(generate_constructors(protocol))
-#         header_content.append(generate_operator_overloads(protocol))
-#     else:
-#         header_content.append(f"    {protocol.name}() = default;\n")
-
-#     header_content.append(f"    virtual ~{protocol.name}() override = default;\n")
-
-#     if protocol.maxsize:
-#         header_content.append(generate_virtual_methods(protocol))
-
-#     if protocol.codefield:
-#         header_content.append(generate_codefield_methods(protocol))
-
-#     header_content.append(generate_pack_unpack_methods(protocol.name))
-#     header_content.append(generate_public_fields(protocol))
-
-#     header_content.append("\n}; // namespace bee\n")
-
-#     return header_content
-
-# def generate_included_headers(protocol):
-#     """Generate necessary include headers."""
-#     included_headers = set()
-#     for _, field_type, _ in protocol.fields:
-#         if "std::vector" in field_type:
-#             included_headers.add("#include <vector>\n")
-#         if "std::map" in field_type:
-#             included_headers.add("#include <map>\n")
-#         if "std::set" in field_type:
-#             included_headers.add("#include <set>\n")
-#         if "std::string" in field_type:
-#             included_headers.add("#include <string>\n")
-#         if "std::pair" in field_type:
-#             included_headers.add("#include <utility>\n")
-#         if "std::unordered_set" in field_type:
-#             included_headers.add("#include <unordered_set>\n")
-#         if "std::unordered_map" in field_type:
-#             included_headers.add("#include <unordered_map>\n")
-#         if field_type not in basic_types and not any(stl in field_type for stl in stl_types):
-#             included_headers.add(f'#include "{field_type}.h"\n')
-
-#     for include in protocol.includes:
-#         included_headers.add(f"include {include}\n")
-
-#     return included_headers
-
-# def generate_enum_fields(protocol):
-#     """Generate enum fields for codefield."""
-#     enum_content = "    enum FIELDS\n    {\n"
-#     for idx, (field_name, _, _) in enumerate(protocol.fields):
-#         enum_content += f"        FIELDS_{field_name.upper()} = 1 << {idx},\n"
-#     enum_content += f"        ALLFIELDS = (1 << {len(protocol.fields)}) - 1\n    }};\n\n"
-#     return enum_content
-
-# def generate_constructors(protocol):
-#     """Generate constructors for the class."""
-#     constructor_content = ""
-#     constructor_content += generate_default_constructor_params(protocol)
-#     constructor_content += generate_non_basic_type_constructors(protocol)
-
-#     constructor_content += f"    {protocol.name}(const {protocol.name}& rhs) = default;\n"
-#     constructor_content += f"    {protocol.name}({protocol.name}&& rhs) = default;\n\n"
-#     constructor_content += f"    {protocol.name}& operator=(const {protocol.name}& rhs) = default;\n"
-
-#     return constructor_content
-
-# def generate_default_constructor_params(protocol):
-#     """Generate default constructor parameters."""
-#     constructor_content = ""
-#     constructor_content += f"    {protocol.name}() = default;\n"
-#     if protocol.base_class == "protocol":
-#         constructor_content += f"    {protocol.name}(PROTOCOLID type) : protocol(type)\n    {{}}\n"
-#     return constructor_content
-
-# def generate_non_basic_type_constructors(protocol):
-#     """Generate constructors with const& and && parameters for non-basic types."""
-#     constructor_content = ""
-#     non_basic_fields = [(field_name, field_type) for field_name, field_type, _ in protocol.fields if field_type not in basic_types]
-
-#     # Generate constructors with const& parameters
-#     params = ", ".join([f"const {field_type}& _{field_name}" if field_type not in basic_types else f"{field_type} _{field_name}" for field_name, field_type, _ in protocol.fields])
-#     initializers = ", ".join([f"{field_name}(_{field_name})" for field_name, _, _ in protocol.fields])
-#     constructor_content += f"    {protocol.name}({params}) : "
-#     if protocol.codefield:
-#         constructor_content += f"code({protocol.default_code}), "
-#     constructor_content += f"{initializers}\n    {{}}\n"
-
-#     # Generate constructors with && parameters
-#     if non_basic_fields:
-#         params = ", ".join([f"{field_type}&& _{field_name}" if field_type not in basic_types else f"{field_type} _{field_name}" for field_name, field_type, _ in protocol.fields])
-#         initializers = ", ".join([f"{field_name}(std::move(_{field_name}))" if field_type not in basic_types else f"{field_name}(_{field_name})" for field_name, field_type, _ in protocol.fields])
-#         constructor_content += f"    {protocol.name}({params}) : "
-#         if protocol.codefield:
-#             constructor_content += f"code({protocol.default_code}), "
-#         constructor_content += f"{initializers}\n    {{}}\n"
-
-#     return constructor_content
-
-# def generate_operator_overloads(protocol):
-#     """Generate operator overloads for the class."""
-#     operator_content = f"    bool operator==(const {protocol.name}& rhs) const\n    {{\n        return "
-#     if protocol.codefield:
-#         operator_content += "code == rhs.code"
-#         if len(protocol.fields):
-#             operator_content += " && "
-#         else:
-#             operator_content += "\n"
-#     operator_content += " && ".join([f"{field_name} == rhs.{field_name}" for field_name, _, _ in protocol.fields])
-#     operator_content += ";\n    }\n"
-#     operator_content += f"    bool operator!=(const {protocol.name}& rhs) const {{ return !(*this == rhs); }}\n"
-#     return operator_content
-
-# def generate_virtual_methods(protocol):
-#     """Generate virtual methods for the class."""
-#     virtual_methods = f"    virtual PROTOCOLID get_type() const override {{ return TYPE; }}\n"
-#     virtual_methods += f"    virtual size_t maxsize() const override {{ return {protocol.maxsize}; }}\n"
-#     virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
-#     if protocol.base_class == "protocol":
-#         virtual_methods += "    virtual void run() override;\n\n"
-#     return virtual_methods
-
-# def generate_codefield_methods(protocol):
-#     """Generate methods to handle codefield."""
-#     codefield_methods = ""
-#     for field_name, field_type, default_value in protocol.fields:
-#         codefield_methods += f"    void set_{field_name}()\n    {{\n        code |= FIELDS_{field_name.upper()};\n    }}\n"
-#         codefield_methods += f"    void set_{field_name}(const {field_type}& value)\n    {{\n        code |= FIELDS_{field_name.upper()};\n        {field_name} = value;\n    }}\n"
-#     codefield_methods += "    void set_all_fields() { code = ALLFIELDS; }\n"
-#     codefield_methods += "    void clean_default()\n    {\n"
-#     for field_name, field_type, default_value in protocol.fields:
-#         if default_value == "{}":
-#             codefield_methods += f"        if ({field_name} == {field_type}()) code &= ~FIELDS_{field_name.upper()};\n"
-#         else:
-#             codefield_methods += f"        if ({field_name} == {default_value}) code &= ~FIELDS_{field_name.upper()};\n"
-#     codefield_methods += "    }\n"
-#     return codefield_methods
-
-# def generate_pack_unpack_methods(protocol):
-#     """Generate pack and unpack methods for the class."""
-#     pack_unpack_methods = f"    octetsstream& pack(octetsstream& os) const override;\n"
-#     pack_unpack_methods += "    octetsstream& unpack(octetsstream& os) override;\n\n"
-#     return pack_unpack_methods
-
-# def generate_public_fields(protocol):
-#     """Generate public fields for the class."""
-#     public_fields = "public:\n"
-#     if protocol.codefield:
-#         public_fields += f"    {protocol.codefield} code = 0;\n"
-#     for field_name, field_type, default_value in protocol.fields:
-#         if default_value == "{}":
-#             public_fields += f"    {field_type} {field_name};\n"
-#         else:
-#             public_fields += f"    {field_type} {field_name} = {default_value};\n"
-#     public_fields += "};\n"
-#     return public_fields
-
-# def generate_cpp_content(protocol):
-#     """Generate the content of the cpp file for the class."""
-#     cpp_content = []
-
-#     cpp_content.append(f'#include "{protocol.name}.h"\n\n')
-#     cpp_content.append("namespace bee\n{\n\n")
-#     cpp_content.append(generate_pack_method(protocol))
-#     cpp_content.append(generate_unpack_method(protocol))
-#     if protocol.base_class == "protocol":
-#         cpp_content.append(f"\n__attribute__((weak)) void {protocol.name}::run() {{}}\n")
-#     cpp_content.append("\n} // namespace bee")
-
-#     return cpp_content
-
-# def generate_pack_method(protocol):
-#     """Generate the pack method for the class."""
-#     pack_method = f"octetsstream& {protocol.name}::pack(octetsstream& os) const\n{{\n"
-#     if protocol.codefield:
-#         pack_method += f"    os << code;\n"
-#         for idx, (field_name, _, _) in enumerate(protocol.fields):
-#             pack_method += f"    if (code & FIELDS_{field_name.upper()}) os << {field_name};\n"
-#     else:
-#         for field_name, _, _ in protocol.fields:
-#             pack_method += f"    os << {field_name};\n"
-#     pack_method += "    return os;\n}\n\n"
-#     return pack_method
-
-# def generate_unpack_method(protocol):
-#     """Generate the unpack method for the class."""
-#     unpack_method = f"octetsstream& {protocol.name}::unpack(octetsstream& os)\n{{\n"
-#     if protocol.codefield:
-#         unpack_method += f"    os >> code;\n"
-#         for idx, (field_name, _, _) in enumerate(protocol.fields):
-#             unpack_method += f"    if (code & FIELDS_{field_name.upper()}) os >> {field_name};\n"
-#     else:
-#         for field_name, _, _ in protocol.fields:
-#             unpack_method += f"    os >> {field_name};\n"
-#     unpack_method += "    return os;\n}\n"
-#     return unpack_method
-
-# def parse_element(element, header_output_directory, cpp_output_directory, type=None, codefield=None, default_code=None):
-#     """Parse protocol or rpcdata element and generate corresponding header and cpp files."""
-#     global protocol_enum_entries
-
-#     info = ProtocolInfo()
-#     info.name = element.get('name')
-#     info.base_class = element.tag
-
-#     # 解析公共属性
-#     if info.base_class == "protocol":
-#         info.type = element.get('type')
-#         info.maxsize = element.get('maxsize')
-#         if not info.type or not info.maxsize:
-#             raise ValueError(f"Protocol {info.name} missing type/maxsize")
-        
-#         # 记录protocol类型映射
-#         # self.protocol_enum_entries[info.type] = f"PROTOCOL_TYPE_{info.name.upper()}"
-
-#     if info.base_class == "protocol":
-#         if type is None:
-#             raise ValueError(f"Protocol '{name}' must define 'type' attribute")
-#         if maxsize is None:
-#             raise ValueError(f"Protocol '{name}' must define 'maxsize' attribute")
-
-#     fields = parse_fields(element, base_class, name)
-#     includes = parse_includes(element)
-#     header_filename = os.path.join(header_output_directory, f"{name}.h")
-#     cpp_filename = os.path.join(cpp_output_directory, f"{name}.cpp")
-
-#     print(f"Generating {base_class} header and cpp files: {name}...")
-
-#     header_content = generate_header_content(protocol)
-#     cpp_content = generate_cpp_content(protocol)
-
-#     write_file(header_filename, header_content)
-#     write_file(cpp_filename, cpp_content)
-
-#     if base_class == "protocol":
-#         if protocol_enum_entries.get(type) != None:
-#             raise ValueError(f"Protocol '{name}' has duplicate type: {type}")
-#         protocol_enum_entries[type] = f"PROTOCOL_TYPE_{name.upper()}"
-
-# def parse_fields(element, base_class, name):
-#     """Parse fields from XML element."""
-#     fields = []
-#     for field in element.findall('field'):
-#         field_name = field.get('name')
-#         field_type = field.get('type')
-#         default_value = field.get('default')
-
-#         if default_value is None:
-#             raise ValueError(f"{base_class} '{name}' field '{field_name}' has no default value")
-
-#         fields.append((field_name, field_type, default_value))
-#     return fields
-
-# def parse_includes(element):
-#     """Parse include header from XML element."""
-#     includes = []
-#     for field in element.findall('include'):
-#         field_name = field.get('name')
-#         includes.append(field_name)
-#     return includes
-
-# def write_file(filename, content):
-#     """Write content to file."""
-#     try:
-#         with open(filename, 'w') as file:
-#             file.writelines(content)
-#     except IOError as e:
-#         print(f"Error writing to file {filename}: {e}")
-
-# def parse_xml_files(xmlpath, header_output_directory, cpp_output_directory, force):
-#     """Parse XML files and generate code."""
-#     xml_files = [file for file in os.listdir(xmlpath) if file.endswith('.xml')]
-#     xml_files.remove("protocol.xml")
-
-#     for xml_file in xml_files:
-#         xml_path = os.path.join(xmlpath, xml_file)
-#         try:
-#             tree = ET.parse(xml_path)
-#         except ET.ParseError as e:
-#             print(f"Error parsing XML file {xml_path}: {e}")
-#             continue
-#         root = tree.getroot()
-
-#         for element in root:
-#             parse_element(element, header_output_directory, cpp_output_directory, element.get('type'), element.get('codefield'), element.get('default_code', '0'))
-
-# def generate_protocol_definitions(outpath):
-#     """Generate protocol type definition file."""
-#     if not protocol_enum_entries:
-#         print("No protocol enum entries to generate.")
-#         return
-
-#     sorted_protocol_enum_entries = sorted(protocol_enum_entries.items())
-#     define_filename = os.path.join(outpath, "prot_define.h")
-#     try:
-#         with open(define_filename, 'w') as define_file:
-#             define_file.write("#pragma once\n")
-#             define_file.write("#include \"types.h\"\n\n")
-#             define_file.write("namespace bee\n")
-#             define_file.write("{\n\n")
-#             lasttype, lastenum = sorted_protocol_enum_entries[-1]
-#             define_file.write(f"static constexpr PROTOCOLID MAXPROTOCOLID = {lasttype};\n\n")
-#             define_file.write("enum PROTOCOL_TYPE\n")
-#             define_file.write("{\n")
-#             for type, enum in sorted_protocol_enum_entries:
-#                 define_file.write(f"    {enum} = {type},\n")
-#             define_file.write("};\n\n")
-#             define_file.write("} // namespace bee\n")
-#     except IOError as e:
-#         print(f"Error writing to file {define_filename}: {e}")
-
-# def parse_state(xmlpath, state_output_directory, force):
-#     """Parse XML files and generate corresponding header and cpp files."""
-#     xml_file = "protocol.xml"
-#     if xml_file.endswith('.xml'):
-#         xml_path = os.path.join(xmlpath, xml_file)
-#         tree = ET.parse(xml_path)
-#         root = tree.getroot()
-
-#         for element in root:
-#             if element.tag == "state":
-#                 """Parse state element and generate corresponding state_xxx.cpp file."""
-#                 state_name = element.get('name')
-#                 if state_name is None:
-#                     raise ValueError("State must define 'name' attribute")
-
-#                 state_filename = os.path.join(state_output_directory, f"state_{state_name}.cpp")
-#                 state_headers_content = "#include \"protocol.h\"\n"
-#                 register_content = ""
-
-#                 enum2type = {}
-#                 for protocol_type, protocol_enum in protocol_enum_entries.items():
-#                     if protocol_enum not in enum2type:
-#                         enum2type[protocol_enum] = protocol_type
-#                     else:
-#                         raise ValueError(f"Protocol name'{protocol_enum}' duplicated")
-
-#                 for protocol in element.findall('protocol'):
-#                     protocol_name = str(protocol.get('name'))
-#                     protocol_enum = f"PROTOCOL_TYPE_{protocol_name.upper()}"
-#                     if protocol_enum not in enum2type.keys():
-#                         raise ValueError(f"Protocol '{protocol_name}' not defined")
-#                     protocol_type = enum2type[protocol_enum]
-#                     state_headers_content += f"#include \"{protocol_name}.h\"\n"
-#                     register_content += f"static bee::{protocol_name} __register_{protocol_name}_{protocol_type}({protocol_type});\n"
-
-#                 state_content = f"{state_headers_content}\n{register_content}"
-#                 write_file(state_filename, state_content)
-#             else:
-#                 raise ValueError(f"protocol.xml element.tag {element.tag} must be state")
-
-# def main():
-#     """Main function, parses command line arguments and generates code."""
-#     parser = argparse.ArgumentParser(description="Generate C++ protocol and RPC data classes from XML definitions.")
-#     parser.add_argument('--xmlpath', required=True, help='Directory containing XML files')
-#     parser.add_argument('--outpath', required=True, help='Root directory for protocol definitions')
-#     parser.add_argument('--force', action='store_true', help='Force regeneration of all files')
-
-#     args = parser.parse_args()
-
-#     header_output_directory = os.path.join(args.outpath, "include")
-#     cpp_output_directory = os.path.join(args.outpath, "source")
-#     state_output_directory = os.path.join(args.outpath, "state")
-
-#     create_directories(header_output_directory, cpp_output_directory, state_output_directory)
-#     clean_old_files(args.xmlpath, header_output_directory, cpp_output_directory, args.force)
-#     parse_xml_files(args.xmlpath, header_output_directory, cpp_output_directory, args.force)
-#     generate_protocol_definitions(args.outpath)
-#     parse_state(args.xmlpath, state_output_directory, args.force)
-#     print("Protocol definitions generated successfully.")
-
-# if __name__ == "__main__":
-#     main()
-
-#!/usr/bin/python3
-
-import xml.etree.ElementTree as ET
-import os
-import argparse
-from collections import OrderedDict, defaultdict
-
-
-
 class XMLProcessor:
     def __init__(self):
         self.protocol_cache = OrderedDict()  # 有序字典保证生成顺序
-        self.state_cache = defaultdict(list)  # 状态缓存
-        self.protocol_enum_entries = OrderedDict()
-        self.basic_types = ["bool", "char", "int8_t", "uint8_t", "short", "int16_t", 
-                          "uint16_t", "int", "int32_t", "uint32_t", "float", "double", 
-                          "long", "long long", "int64_t", "uint64_t"]
-        self.stl_types = ["std::vector", "std::map", "std::set", "std::string",
-                        "std::pair", "std::unordered_set", "std::unordered_map"]
+        self.state_cache = defaultdict(list)  # state缓存
+        self.protocol_enum_entries = OrderedDict() # 协议号枚举
 
     def preprocess_xml(self, xmlpath):
         """预处理阶段：解析所有XML文件并缓存数据"""
@@ -513,13 +104,13 @@ class XMLProcessor:
         
         for element in root:
             info = ProtocolInfo()
-            info.name = element.get('name')
+            info.name = element.get('name') # type: ignore
             info.base_class = element.tag
             
             # 解析公共属性
             if info.base_class == "protocol":
-                info.type = element.get('type')
-                info.maxsize = element.get('maxsize')
+                info.type = element.get('type') # type: ignore
+                info.maxsize = element.get('maxsize') # type: ignore
                 if not info.type or not info.maxsize:
                     raise ValueError(f"Protocol {info.name} missing type/maxsize")
                 
@@ -531,7 +122,7 @@ class XMLProcessor:
             info.includes = self._parse_includes(element)
             
             # 解析codefield相关属性
-            info.codefield = element.get('codefield')
+            info.codefield = element.get('codefield') # type: ignore
             info.default_code = element.get('default_code', '0')
             
             # 缓存协议信息
@@ -773,7 +364,7 @@ class XMLProcessor:
         """获取需要的STL头文件"""
         headers = set()
         for _, field_type, _ in protocol.fields:
-            for stl in self.stl_types:
+            for stl in stl_types:
                 if stl in field_type:
                     headers.add(f"#include <{stl.split('::')[-1]}>\n")
         return sorted(headers)
@@ -850,7 +441,7 @@ def main():
     create_directories(header_dir, cpp_dir, state_dir)
 
     # 是否需要重新生成
-    # clean_old_files(args.xmlpath, header_dir, cpp_dir, args.force)
+    clean_old_files(args.xmlpath, header_dir, cpp_dir, args.force)
 
     processor = XMLProcessor()
     
