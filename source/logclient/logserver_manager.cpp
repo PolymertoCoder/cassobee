@@ -1,4 +1,5 @@
 #include "logserver_manager.h"
+#include "address.h"
 #include "glog.h"
 
 namespace bee

@@ -1,8 +1,6 @@
 #include "httpsession_manager.h"
-#include "reactor.h"
 #include "config.h"
 #include "session_manager.h"
-#include "systemtime.h"
 #include "glog.h"
 #include "httpprotocol.h"
 #include <openssl/err.h>
@@ -18,7 +16,7 @@ httpsession_manager::httpsession_manager()
     
 httpsession_manager::~httpsession_manager()
 {
-    if (_ssl_ctx)
+    if(_ssl_ctx)
     {
         SSL_CTX_free(_ssl_ctx);
     }
@@ -29,7 +27,7 @@ void httpsession_manager::init()
     session_manager::init();
 
     auto cfg = config::get_instance();
-    if (cfg->get<bool>(identity(), "ssl_enabled", false))
+    if(cfg->get<bool>(identity(), "ssl_enabled", false))
     {
         _cert_path = cfg->get(identity(), "cert_file");
         _key_path = cfg->get(identity(), "key_file");
@@ -73,7 +71,7 @@ httpsession* httpsession_manager::create_session()
     auto ses = new httpsession(this);
     ses->set_sid(session_manager::get_next_sessionid());
 
-    if (_ssl_ctx)
+    if(_ssl_ctx)
     {
         ses->_ssl = SSL_new(_ssl_ctx);
         if (!ses->_ssl)
@@ -95,7 +93,7 @@ httpsession* httpsession_manager::find_session(SID sid)
 SSL_CTX* httpsession_manager::create_ssl_context(const std::string& cert_path, const std::string& key_path)
 {
     SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
-    if (!ctx)
+    if(!ctx)
     {
         ERR_print_errors_fp(stderr);
         return nullptr;
@@ -109,21 +107,21 @@ SSL_CTX* httpsession_manager::create_ssl_context(const std::string& cert_path, c
 
     SSL_CTX_set_tlsext_status_cb(ctx, ocsp_callback); // OCSP Stapling
 
-    if (SSL_CTX_use_certificate_file(ctx, cert_path.c_str(), SSL_FILETYPE_PEM) <= 0)
+    if(SSL_CTX_use_certificate_file(ctx, cert_path.c_str(), SSL_FILETYPE_PEM) <= 0)
     {
         ERR_print_errors_fp(stderr);
         SSL_CTX_free(ctx);
         return nullptr;
     }
 
-    if (SSL_CTX_use_PrivateKey_file(ctx, key_path.c_str(), SSL_FILETYPE_PEM) <= 0)
+    if(SSL_CTX_use_PrivateKey_file(ctx, key_path.c_str(), SSL_FILETYPE_PEM) <= 0)
     {
         ERR_print_errors_fp(stderr);
         SSL_CTX_free(ctx);
         return nullptr;
     }
 
-    if (!SSL_CTX_check_private_key(ctx))
+    if(!SSL_CTX_check_private_key(ctx))
     {
         fprintf(stderr, "Private key does not match the public certificate\n");
         SSL_CTX_free(ctx);

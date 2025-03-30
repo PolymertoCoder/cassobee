@@ -1,12 +1,15 @@
 #pragma once
 #include "protocol.h"
-#include "types.h"
+#include "http.h"
 #include <string>
 #include <unordered_map>
 #include <functional>
 
 namespace bee
 {
+
+constexpr PROTOCOLID PROTOCOL_TYPE_HTTPREQUEST  = 200001;
+constexpr PROTOCOLID PROTOCOL_TYPE_HTTPRESPONCE = 200002;
 
 class httpresponse;
 
@@ -17,8 +20,13 @@ public:
     httpprotocol(PROTOCOLID type) : protocol(type) {}
     virtual ~httpprotocol() = default;
 
+    static bool getline(octetsstream& os, std::string& str, char declm = '\n');
+
     virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;
+
+    virtual void encode(octetsstream& os) const override;
+    static httpprotocol* decode(octetsstream& os, session* ses);
 
     void set_body(const std::string& body);
     void set_header(const std::string& key, const std::string& value);
@@ -38,7 +46,7 @@ protected:
 class httprequest : public httpprotocol
 {
 public:
-    static constexpr PROTOCOLID TYPE = HTTPREQUEST_TYPE;
+    static constexpr PROTOCOLID TYPE = PROTOCOL_TYPE_HTTPREQUEST;
     httprequest() = default;
     httprequest(PROTOCOLID type) : httpprotocol(type) {}
     virtual ~httprequest() = default;
@@ -68,12 +76,12 @@ private:
 class httpresponse : public httpprotocol
 {
 public:
-    static constexpr PROTOCOLID TYPE = HTTPRESPONCE_TYPE;
+    static constexpr PROTOCOLID TYPE = PROTOCOL_TYPE_HTTPRESPONCE;
     httpresponse() = default;
     httpresponse(PROTOCOLID type) : httpprotocol(type) {}
     virtual ~httpresponse() = default;
 
-    virtual PROTOCOLID get_type() const override { return HTTPRESPONCE_TYPE; }
+    virtual PROTOCOLID get_type() const override { return TYPE; }
     virtual size_t maxsize() const override;
     virtual protocol* dup() const override { return new httpresponse(*this); }
     virtual void run() override;
@@ -88,8 +96,7 @@ private:
     int _status = HTTP_STATUS_OK;
 };
 
-} // namespace bee
+static httprequest __register_httprequest(httprequest::TYPE);
+static httprequest __register_httpresponse(httpresponse::TYPE);
 
-// register httprequest and httpresponse
-static bee::httprequest __register_httprequest(bee::httprequest::TYPE);
-static bee::httprequest __register_httpresponse(bee::httpresponse::TYPE);
+} // namespace bee

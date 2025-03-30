@@ -6,7 +6,6 @@
 #include "reactor.h"
 #include "threadpool.h"
 #include "systemtime.h"
-#include <print>
 
 namespace bee
 {
@@ -88,6 +87,7 @@ void session::close()
 
 void session::on_recv(size_t len)
 {
+    activate();
     local_log("session::on_recv len=%zu, _readbuf size:%zu _reados size:%zu.", len, _readbuf.size(), _reados.size());
     set_state(SESSION_STATE_RECVING);
 
@@ -98,11 +98,15 @@ void session::on_recv(size_t len)
 
     while(protocol* prot = protocol::decode(_reados, this))
     {
+    #ifdef _REENTRANT
         threadpool::get_instance()->add_task(prot->thread_group_idx(), [prot]()
         {
             prot->run();
             delete prot;
         });
+    #else
+        prot->run();
+    #endif
     }
     _reados.try_shrink();
 }

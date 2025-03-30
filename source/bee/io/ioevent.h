@@ -85,11 +85,11 @@ struct sslio_event : streamio_event
     virtual int handle_send() override;
 
     SSL* _ssl = nullptr;
-    enum class SSLState {
+    enum class SSL_STATE {
         HANDSHAKE,
         STREAMING,
         ERROR
-    } _ssl_state = SSLState::HANDSHAKE;
+    } _ssl_state = SSL_STATE::HANDSHAKE;
 };
 
 } // namespace bee

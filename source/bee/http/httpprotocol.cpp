@@ -1,12 +1,37 @@
 #include "httpprotocol.h"
 #include "config.h"
 #include "glog.h"
+#include "marshal.h"
 #include <sstream>
 
 namespace bee
 {
 
 // httpprotocol implementation
+
+bool httpprotocol::getline(octetsstream& os, std::string& str, char declm)
+{
+    os >> octetsstream::BEGIN;
+    octets& buf = os.data();
+    size_t  pos = os.get_pos(), len = 0;
+    while(pos < buf.size() && buf[pos] != declm)
+    {
+        ++pos; ++len;
+    }
+
+    if(buf[pos] == declm)
+    {
+        os.advance(len);
+        str = std::string(buf[pos - len], len);
+        os >> octetsstream::COMMIT;
+        return true;
+    }
+    else // pos >= buf.size()
+    {
+        os >> octetsstream::ROLLBACK;
+        return false;
+    }
+}
 
 void httpprotocol::set_body(const std::string& body)
 {
@@ -44,13 +69,11 @@ octetsstream& httpprotocol::pack(octetsstream& os) const
 
 octetsstream& httpprotocol::unpack(octetsstream& os)
 {
-    std::string data(os.data().data(), os.size());
-    std::istringstream ss(std::move(data));
     std::string line;
 
     try
     {
-        while (std::getline(ss, line) && line != "\r")
+        while(getline(os, line) && line != "\r")
         {
             size_t colon = line.find(':');
             if (colon != std::string::npos)
@@ -61,12 +84,14 @@ octetsstream& httpprotocol::unpack(octetsstream& os)
             }
         }
 
-        if (ss.eof())
+        if(!os.data_ready(1))
         {
             throw std::runtime_error("Malformed HTTP headers");
         }
 
-        _body = std::string(std::istreambuf_iterator<char>(ss), {});
+        size_t pos = os.get_pos();
+        int len = os.size() - pos;
+        _body = std::string(os.data()[pos], len);
     }
     catch (const std::exception& e)
     {
@@ -75,6 +100,16 @@ octetsstream& httpprotocol::unpack(octetsstream& os)
     }
 
     return os;
+}
+
+void httpprotocol::encode(octetsstream& os) const
+{
+
+}
+
+httpprotocol* httpprotocol::decode(octetsstream& os, session* ses)
+{
+
 }
 
 // httprequest implementation
@@ -110,18 +145,18 @@ void httprequest::set_callback(std::function<void(httpresponse*)> callback)
 
 octetsstream& httprequest::pack(octetsstream& os) const
 {
-    std::ostringstream ss;
-    ss << _method << " " << _url << " HTTP/1.1\r\n";
+    thread_local bee::ostringstream oss;
+    oss.clear();
+    oss << _method << " " << _url << " HTTP/1.1\r\n";
+    os.data().append(oss.c_str());
     httpprotocol::pack(os);
     return os;
 }
 
 octetsstream& httprequest::unpack(octetsstream& os)
 {
-    std::string data(os.data().data(), os.size());
-    std::istringstream ss(data);
     std::string line;
-    std::getline(ss, line);
+    getline(os, line);
     size_t method_end = line.find(' ');
     size_t url_end = line.find(' ', method_end + 1);
     _method = line.substr(0, method_end);

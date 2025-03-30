@@ -4,9 +4,9 @@
 #include <memory>
 
 #define REGISTER_COMPONENT(entity, T) entity->add_component<T>()
-#define GET_COMPONENT(entity, T) entity->get_component<T>()
-#define HAS_COMPONENT(entity, T) entity->has_component<T>()
-#define SCOPED_ENTITY_LOCK(entity) bee::scoped l((entity)->_locker)
+#define GET_COMPONENT(entity, T)      entity->get_component<T>()
+#define HAS_COMPONENT(entity, T)      entity->has_component<T>()
+#define SCOPED_ENTITY_LOCK(entity)    bee::mutex::scoped l((entity)->_locker)
 
 namespace bee
 {

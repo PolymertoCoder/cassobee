@@ -32,6 +32,36 @@ public:
     };
 };
 
+template<typename rwlock_type>
+class rwlock_support
+{
+public:
+    struct rdscoped
+    {
+        explicit rdscoped(rwlock_type& locker) noexcept : _locker(locker)
+        {
+            _locker.rdlock();
+        }
+        ~rdscoped() noexcept
+        {
+            _locker.unlock();
+        }
+        rwlock_type& _locker;
+    };
+    struct wrscoped
+    {
+        explicit wrscoped(rwlock_type& locker) noexcept : _locker(locker)
+        {
+            _locker.wrlock();
+        }
+        ~wrscoped() noexcept
+        {
+            _locker.unlock();
+        }
+        rwlock_type& _locker;
+    };
+};
+
 class empty_lock : public lock_support<empty_lock>
 {
 public:
@@ -129,34 +159,9 @@ private:
     std::mutex _locker;
 };
 
-class rwlock
+class rwlock : public rwlock_support<rwlock>
 {
 public:
-    struct rdscoped
-    {
-        explicit rdscoped(rwlock& locker) noexcept : _locker(locker)
-        {
-            _locker.rdlock();
-        }
-        ~rdscoped() noexcept
-        {
-            _locker.unlock();
-        }
-        rwlock& _locker;
-    };
-    struct wrscoped
-    {
-        explicit wrscoped(rwlock& locker) noexcept : _locker(locker)
-        {
-            _locker.wrlock();
-        }
-        ~wrscoped() noexcept
-        {
-            _locker.unlock();
-        }
-        rwlock& _locker;
-    };
-
     rwlock()
     {
         if(pthread_rwlock_init(&_locker, NULL) != 0)

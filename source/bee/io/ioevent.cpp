@@ -242,8 +242,8 @@ bool passiveio_event::handle_event(int active_events)
     }
 
     streamio_event* evt = nullptr;
-
-    if(_ses->get_manager()->is_httpsession_manager())
+    auto* manager = _ses->get_manager();
+    if(manager->is_httpsession_manager() && ((httpsession_manager*)manager)->ssl_enabled())
     {
         evt = new sslio_event(clientfd, ((bee::httpsession*)_ses)->dup());
     }
@@ -303,10 +303,16 @@ bool activeio_event::handle_event(int active_events)
     }
 
     streamio_event* evt = nullptr;
-
-    if(_ses->get_manager()->is_httpsession_manager())
+    if(auto* manager = _ses->get_manager(); manager->is_httpsession_manager())
     {
-        evt = new sslio_event(_fd, (bee::httpsession*)_ses);
+        if(((httpsession_manager*)manager)->ssl_enabled())
+        {
+            evt = new sslio_event(_fd, (bee::httpsession*)_ses);
+        }
+        else
+        {
+            evt = new streamio_event(_fd, (bee::httpsession*)_ses);
+        }
     }
     else
     {
@@ -377,7 +383,7 @@ int streamio_event::handle_recv()
     if(free_space == 0)
     {
         _ses->on_recv(rbuffer.size());
-        local_log("recv[fd=%d]: session %llu buffer is fulled, no space to receive data", _ses->get_sid(), _fd);
+        local_log("recv[fd=%d]: session %lu buffer is fulled, no space to receive data", _fd, _ses->get_sid());
     }
     
     int total_recv = 0;
@@ -386,7 +392,7 @@ int streamio_event::handle_recv()
         size_t free_space = rbuffer.free_space();
         if(free_space == 0)
         {
-            local_log("recv[fd=%d]: session %llu buffer is fulled on receiving", _ses->get_sid(), _fd);
+            local_log("recv[fd=%d]: session %lu buffer is fulled on receiving", _fd, _ses->get_sid());
             break;
         }
 
@@ -490,12 +496,19 @@ int streamio_event::handle_send()
 }
 
 sslio_event::sslio_event(int fd, httpsession* ses)
-    : streamio_event(fd, ses), _ssl(ses->get_ssl()) {}
+    : streamio_event(fd, ses), _ssl(ses->get_ssl())
+{
+    _ssl_state = SSL_STATE::HANDSHAKE;
+}
 
 bool sslio_event::do_handshake()
 {
     int ret = SSL_do_handshake(_ssl);
-    if (ret == 1) return true;
+    if(ret == 1)
+    {
+        _ssl_state = SSL_STATE::STREAMING;
+        return true;
+    }
 
     int err = SSL_get_error(_ssl, ret);
     switch(err)
@@ -503,31 +516,36 @@ bool sslio_event::do_handshake()
         case SSL_ERROR_WANT_READ:
         {
             _ses->permit_recv();
-            return true;
         }
         case SSL_ERROR_WANT_WRITE:
         {
             _ses->permit_send();
-            return true;
         }
         default:
         {
             char errbuf[256];
             ERR_error_string_n(ERR_get_error(), errbuf, sizeof(errbuf));
             local_log("SSL handshake failed: %s", errbuf);
-            return false;
+            _ssl_state = SSL_STATE::ERROR;
+            close_socket();
         }
     }
+    return false;
 }
 
 int sslio_event::handle_recv()
 {
+    if(_ssl_state == SSL_STATE::HANDSHAKE)
+    {
+        if(!do_handshake()) return 0;
+    }
+
     octets& rbuffer = _ses->rbuffer();
     size_t free_space = rbuffer.free_space();
     if(free_space == 0)
     {
         _ses->on_recv(rbuffer.size());
-        local_log("recv[fd=%d]: session %llu buffer is fulled, no space to receive data", _ses->get_sid(), _fd);
+        local_log("recv[fd=%d]: session %lu buffer is fulled, no space to receive data", _fd, _ses->get_sid());
     }
     
     int total_recv = 0;
@@ -536,7 +554,7 @@ int sslio_event::handle_recv()
         size_t free_space = rbuffer.free_space();
         if(free_space == 0)
         {
-            local_log("recv[fd=%d]: session %llu buffer is fulled on receiving", _ses->get_sid(), _fd);
+            local_log("recv[fd=%d]: session %lu buffer is fulled on receiving", _fd, _ses->get_sid());
             break;
         }
 
@@ -552,8 +570,8 @@ int sslio_event::handle_recv()
         else
         {
             int err = SSL_get_error(_ssl, len);
-            if (err == SSL_ERROR_WANT_READ) break;
-            if (err == SSL_ERROR_WANT_WRITE)
+            if(err == SSL_ERROR_WANT_READ) break;
+            if(err == SSL_ERROR_WANT_WRITE)
             {
                 _ses->permit_send();
                 break;
@@ -597,6 +615,11 @@ int sslio_event::handle_send()
         {
             int err = SSL_get_error(_ssl, len);
             if(err == SSL_ERROR_WANT_WRITE) break;
+            if(err == SSL_ERROR_WANT_READ)
+            {
+                _ses->permit_recv();
+                break;
+            }
             close_socket();
             return -1;
         }

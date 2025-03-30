@@ -1,7 +1,6 @@
 #pragma once
 
 #include <exception>
-#include <type_traits>
 #include "concept.h"
 #include "octets.h"
 #include "types.h"
@@ -34,7 +33,7 @@ public:
         std::string _msg; 
     };
 
-    enum Transaction
+    enum Transaction : uint8_t
     {
         BEGIN,
         ROLLBACK,
@@ -66,7 +65,7 @@ public:
     }
     FORCE_INLINE void reserve(size_t cap) { _data.reserve(cap); }
     FORCE_INLINE octets& data() { return _data; }
-    FORCE_INLINE void reset_pos() { _pos = 0; }
+    FORCE_INLINE void advance(size_t len) { _pos += len; }
     FORCE_INLINE void clear() { _data.clear(); _pos = 0; _transpos = 0; }
     FORCE_INLINE bool data_ready(size_t len) const { return (_data.size() - _pos) >= len; }
     FORCE_INLINE size_t get_pos() const { return _pos; }
@@ -76,14 +75,14 @@ public:
 
 public:
     // 标准布局类型 push & pop
-    template<typename T> requires std::is_trivially_copyable_v<T> octetsstream& push(const T& val)
+    template<bee::trivially_copyable T> octetsstream& push(const T& val)
     {
         T temp = hostToNetwork(val);
         _data.append((char*)&temp, sizeof(T));
         return *this;
     }
 
-    template<typename T> requires std::is_trivially_copyable_v<T> octetsstream& pop(T& val)
+    template<bee::trivially_copyable T> octetsstream& pop(T& val)
     {
         size_t len = sizeof(val);
         if(_pos + len > _data.size())
@@ -164,7 +163,7 @@ public:
         return *this;
     }
 
-    template<typename T> requires std::same_as<T, char> octetsstream& push(const std::basic_string<T>& val)
+    template<std::same_as<char> T> octetsstream& push(const std::basic_string<T>& val)
     {
         push(val.size());
         _data.append(val.data(), val.size());
@@ -172,7 +171,7 @@ public:
         return *this;
     }
 
-    template<typename T> requires std::same_as<T, char> octetsstream& pop(std::basic_string<T>& val)
+    template<std::same_as<char> T> octetsstream& pop(std::basic_string<T>& val)
     {
         size_t size = 0;
         pop(size);

@@ -2,6 +2,7 @@
 #include "address.h"
 #include "glog.h"
 #include "httpprotocol.h"
+#include "threadpool.h"
 #include "httpsession_manager.h"
 #include "session.h"
 #include <openssl/err.h>
@@ -10,14 +11,21 @@ namespace bee
 {
 
 httpsession::httpsession(httpsession_manager* manager)
-    : session(manager) {}
+    : session(manager)
+{
+    if(manager->ssl_enabled())
+    {
+        _ssl = SSL_new(((httpsession_manager*)_manager)->get_ssl_ctx());
+    }
+}
 
 httpsession::~httpsession()
 {
-    if (_ssl)
+    if(_ssl)
     {
         SSL_shutdown(_ssl);
         SSL_free(_ssl);
+        _ssl = nullptr;
     }
 }
 
@@ -45,7 +53,7 @@ httpsession* httpsession::dup()
 void httpsession::set_open()
 {
     session::set_open();
-    if (_ssl)
+    if(_ssl)
     {
         SSL_set_fd(_ssl, _sockfd);
         SSL_set_mode(_ssl, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
@@ -68,7 +76,7 @@ void httpsession::set_open()
 
 void httpsession::set_close()
 {
-    if (_ssl)
+    if(_ssl)
     {
         SSL_shutdown(_ssl);
     }
@@ -79,38 +87,34 @@ void httpsession::on_recv(size_t len)
 {
     activate();
 
-    if (_ssl)
+    local_log("httpsession::on_recv len=%zu, _readbuf size:%zu _reados size:%zu.", len, _readbuf.size(), _reados.size());
+    set_state(SESSION_STATE_RECVING);
+
+    size_t append_length = std::min(_readbuf.size(), _reados.data().free_space());
+    _reados.data().append(_readbuf, append_length);
+    _readbuf.erase(0, append_length);
+    local_log("on_recv append size:%zu, _readbuf size:%zu _reados size:%zu.", append_length, _readbuf.size(), _reados.size());
+
+    while(httpprotocol* prot = httpprotocol::decode(_reados, this))
     {
-        char buffer[4096];
-        int ret = SSL_read(_ssl, buffer, sizeof(buffer));
-        if (ret > 0)
+    #ifdef _REENTRANT
+        threadpool::get_instance()->add_task(prot->thread_group_idx(), [prot]()
         {
-            _readbuf.append(buffer, ret);
-            session::on_recv(ret);
-        }
-        else
-        {
-            int err = SSL_get_error(_ssl, ret);
-            if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE)
-            {
-                return;
-            }
-            ERR_print_errors_fp(stderr);
-            local_log("SSL_read failed for session %lu with error: %d", _sid, err);
-            close();
-        }
+            prot->run();
+            delete prot;
+        });
+    #else
+        prot->run();
+    #endif
     }
-    else
-    {
-        session::on_recv(len);
-    }
+    _reados.try_shrink();
 }
 
 void httpsession::on_send(size_t len)
 {
     activate();
 
-    if (_ssl)
+    if(_ssl)
     {
         const char* data = _writebuf.data();
         size_t remaining = _writebuf.size();

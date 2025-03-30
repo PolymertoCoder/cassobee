@@ -14,7 +14,7 @@ class session_manager;
 class protocol : public marshal
 {
 public:
-    protocol() {}
+    protocol() = default;
     protocol(PROTOCOLID type) : _type(type) { register_protocol(type, this); }
     protocol(const protocol&) = default;
     virtual ~protocol() = default;
@@ -27,7 +27,7 @@ public:
     static bool size_policy(PROTOCOLID type, size_t size);
     static bool check_policy(PROTOCOLID type, size_t size, session_manager* manager);
 
-    void encode(octetsstream& os) const;
+    virtual void encode(octetsstream& os) const;
     static protocol* decode(octetsstream& os, session* ses);
 
     FORCE_INLINE virtual size_t thread_group_idx() const { return 0; }
