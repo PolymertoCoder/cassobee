@@ -82,6 +82,7 @@ protected:
 
 protected:
     std::atomic_bool _running = false;
+    int _check_rotate_timerid = -1;
     rotate_log_support* _rotater; 
 
     std::string  _filedir;

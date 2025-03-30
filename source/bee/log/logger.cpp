@@ -18,8 +18,12 @@ logger::~logger()
 
 void logger::log(LOG_LEVEL level, const log_event& event)
 {
-    //if(level >= _loglevel) return;
+    if(level < _loglevel) return;
     _root_appender->log(level, event);
+    for(const auto& [_, appender] : _appenders)
+    {
+        appender->log(level, event);
+    }
 }
 
 log_appender* logger::get_appender(const std::string& name)

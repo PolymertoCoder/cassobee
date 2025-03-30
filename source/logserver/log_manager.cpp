@@ -27,14 +27,18 @@ void log_manager::init()
     }
 }
 
-void log_manager::log(LOG_LEVEL level, const log_event& evt)
+void log_manager::log(LOG_LEVEL level, const log_event& event)
 {
     if(PREDICT_FALSE(!_file_logger))
     {
-        logclient::get_instance()->get_console_logger()->log(level, evt);
+        logclient::get_instance()->get_console_logger()->log(level, event);
         return;
     }
-    _file_logger->log(level, evt);
+    _file_logger->log(level, event);
+    for(const auto& [_, logger] : _loggers)
+    {
+        logger->log(level, event);
+    }
 }
 
 logger* log_manager::get_logger(std::string name)

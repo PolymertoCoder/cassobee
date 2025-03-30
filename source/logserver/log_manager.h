@@ -13,7 +13,7 @@ class log_manager : public singleton_support<log_manager>
 {
 public:
     void init();
-    void log(LOG_LEVEL level, const log_event& evt);
+    void log(LOG_LEVEL level, const log_event& event);
 
     logger* get_logger(std::string name);
     bool add_logger(std::string name, logger* logger);

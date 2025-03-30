@@ -13,6 +13,7 @@
 #include "reactor.h"
 #include "systemtime.h"
 #include "common.h"
+#include "timewheel.h"
 
 namespace bee
 {
@@ -89,12 +90,17 @@ file_appender::file_appender(std::string filedir, std::string filename)
     }
     reopen();
     _running = true;
-
-    add_timer(10*1000, [this](){ if(_rotater->is_rotate()) reopen(); return true; });
+    _check_rotate_timerid = add_timer(10*1000, [this](){ if(_rotater->is_rotate()) reopen(); return true; });
 }
 
 file_appender::~file_appender()
 {
+    if(_check_rotate_timerid >= 0)
+    {
+        bool ret = timewheel::get_instance()->del_timer(_check_rotate_timerid);
+        CHECK_BUG(ret, printf("remove invalid check rotate timer %d ???", _check_rotate_timerid));
+        _check_rotate_timerid = -1;
+    }
     if(_filestream.is_open())
     {
         _filestream.close();

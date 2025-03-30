@@ -22,8 +22,8 @@ enum LOG_LEVEL : unsigned char
     FATAL,
 };
 
-#define local_log(fmt, ...)  GLOG(LOG_OUTPUT::CONSOLE, LOG_LEVEL::TRACE, __FILENAME__, __LINE__)
-#define local_log_f(fmt, ...) GLOGF(LOG_OUTPUT::CONSOLE, LOG_LEVEL::TRACE, __FILENAME__, __LINE__)
+#define local_log  GLOG(LOG_OUTPUT::CONSOLE, LOG_LEVEL::TRACE, __FILENAME__, __LINE__)
+#define local_log_f(fmt, ...) GLOGF(LOG_OUTPUT::CONSOLE, LOG_LEVEL::TRACE, __FILENAME__, __LINE__, fmt, ##__VA_ARGS__)
 
 #define TRACELOG GLOG(LOG_OUTPUT::LOGFILE, LOG_LEVEL::TRACE, __FILENAME__, __LINE__)
 #define DEBUGLOG GLOG(LOG_OUTPUT::LOGFILE, LOG_LEVEL::DEBUG, __FILENAME__, __LINE__)
