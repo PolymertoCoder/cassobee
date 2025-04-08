@@ -1,10 +1,15 @@
 #pragma once
+#include "httpprotocol.h"
 #include "httpsession.h"
 #include "session_manager.h"
 #include "types.h"
+#include <deque>
 
 namespace bee
 {
+
+class httprequest;
+class httpresponse;
 
 class httpsession_manager : public session_manager
 {
@@ -28,11 +33,21 @@ public:
     bool check_headers(const httpprotocol* req);
     static void ocsp_callback(SSL* ssl, void* arg);
 
+    void send_request(SID sid, const httprequest& req, httprequest::callback cbk);
+    void send_response(SID sid, const httpresponse& rsp);
+
 protected:
     SSL_CTX* _ssl_ctx = nullptr;
-
     std::string _cert_path;
     std::string _key_path;
+
+    struct pending_request
+    {
+        httprequest* req;
+        httprequest::callback cbk;
+        TIMETYPE timeout;
+    };
+    std::deque<pending_request> _pending_requests;
 };
 
 } // namespace bee

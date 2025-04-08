@@ -3,6 +3,7 @@
 #include "session_manager.h"
 #include "glog.h"
 #include "httpprotocol.h"
+#include "systemtime.h"
 #include <openssl/err.h>
 
 namespace bee
@@ -170,6 +171,38 @@ bool httpsession_manager::check_headers(const httpprotocol* req)
 void httpsession_manager::ocsp_callback(SSL* ssl, void* arg)
 {
 
+}
+
+void httpsession_manager::send_request(SID sid, const httprequest& req, httprequest::callback cbk)
+{
+    bee::rwlock::rdscoped l(_locker);
+    if(session* ses = find_session_nolock(sid))
+    {
+        thread_local octetsstream os;
+        os.clear();
+        req.encode(os);
+
+        bee::rwlock::wrscoped sesl(ses->_locker);
+        if(os.size() > ses->_writeos.data().free_space())
+        {
+            local_log("session_manager %s, session %lu write buffer is fulled.", identity(), sid);
+            return;
+        }
+
+        ses->_writeos.data().append(os.data(), os.size());
+        ses->permit_send();
+
+        _pending_requests.emplace_back(pending_request{req.dup(), cbk, systemtime::get_time()});
+    }
+    else
+    {
+        local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
+    }    
+}
+
+void httpsession_manager::send_response(SID sid, const httpresponse& rsp)
+{
+    
 }
 
 } // namespace bee

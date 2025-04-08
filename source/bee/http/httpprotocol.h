@@ -26,7 +26,7 @@ public:
     virtual octetsstream& unpack(octetsstream& os) override;
 
     virtual void encode(octetsstream& os) const override;
-    static httpprotocol* decode(octetsstream& os, session* ses);
+    static httpprotocol* decode(octetsstream& os, session* ses); 
 
     void set_body(const std::string& body);
     void set_header(const std::string& key, const std::string& value);
@@ -47,13 +47,15 @@ class httprequest : public httpprotocol
 {
 public:
     static constexpr PROTOCOLID TYPE = PROTOCOL_TYPE_HTTPREQUEST;
+    using callback = std::function<void(httpresponse*)>;
+
     httprequest() = default;
     httprequest(PROTOCOLID type) : httpprotocol(type) {}
     virtual ~httprequest() = default;
 
     virtual PROTOCOLID get_type() const override { return TYPE; }
     virtual size_t maxsize() const override;
-    virtual protocol* dup() const override { return new httprequest(*this); }
+    virtual httprequest* dup() const override { return new httprequest(*this); }
     virtual void run() override;
 
     virtual octetsstream& pack(octetsstream& os) const override;
@@ -83,7 +85,7 @@ public:
 
     virtual PROTOCOLID get_type() const override { return TYPE; }
     virtual size_t maxsize() const override;
-    virtual protocol* dup() const override { return new httpresponse(*this); }
+    virtual httpresponse* dup() const override { return new httpresponse(*this); }
     virtual void run() override;
 
     virtual octetsstream& pack(octetsstream& os) const override;

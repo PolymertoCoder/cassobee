@@ -2,6 +2,7 @@
 #include "config.h"
 #include "glog.h"
 #include "marshal.h"
+#include "session.h"
 #include <sstream>
 
 namespace bee
@@ -56,14 +57,15 @@ const std::string& httpprotocol::get_header(const std::string& key) const
 
 octetsstream& httpprotocol::pack(octetsstream& os) const
 {
-    std::ostringstream ss;
+    thread_local bee::ostringstream oss;
+    oss.clear();
     for (const auto& [key, value] : _headers)
     {
-        ss << key << ": " << value << "\r\n";
+        oss << key << ": " << value << "\r\n";
     }
-    ss << "Content-Length: " << _body.size() << "\r\n\r\n";
-    ss << _body;
-    os << ss.str();
+    oss << "Content-Length: " << _body.size() << "\r\n\r\n";
+    oss << _body;
+    os << oss.str();
     return os;
 }
 
@@ -109,7 +111,23 @@ void httpprotocol::encode(octetsstream& os) const
 
 httpprotocol* httpprotocol::decode(octetsstream& os, session* ses)
 {
-
+    // if(!os.data_ready(1)) return nullptr;
+    // try
+    // {
+    //     unpack(os);
+    // }
+    // catch(octetsstream::exception& e)
+    // {
+    //     ses->close();
+    //     local_log("protocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
+    // }
+    // catch(...)
+    // {
+    //     ses->close();
+    //     local_log("protocol decode failed, id=%d size=%zu.", id, size);
+    // }
+    // os >> octetsstream::ROLLBACK;
+    return nullptr;
 }
 
 // httprequest implementation
@@ -155,6 +173,7 @@ octetsstream& httprequest::pack(octetsstream& os) const
 
 octetsstream& httprequest::unpack(octetsstream& os)
 {
+    // 解析请求行
     std::string line;
     getline(os, line);
     size_t method_end = line.find(' ');
@@ -192,10 +211,9 @@ octetsstream& httpresponse::pack(octetsstream& os) const
 
 octetsstream& httpresponse::unpack(octetsstream& os)
 {
-    std::string data(os.data().data(), os.size());
-    std::istringstream ss(data);
+    // 解析状态行
     std::string line;
-    std::getline(ss, line);
+    getline(os, line);
     _status = std::stoi(line.substr(9, 3));
     httpprotocol::unpack(os);
     return os;

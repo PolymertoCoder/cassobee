@@ -1,6 +1,5 @@
 #pragma once
 #include "octets.h"
-#include "concept.h"
 #include "stringfy.h"
 #include "formatter.h"
 
