@@ -1,6 +1,7 @@
 #include "httpprotocol.h"
 #include "config.h"
 #include "glog.h"
+#include "http.h"
 #include "marshal.h"
 #include "session.h"
 #include <sstream>
@@ -106,7 +107,7 @@ octetsstream& httpprotocol::unpack(octetsstream& os)
 
 void httpprotocol::encode(octetsstream& os) const
 {
-
+    
 }
 
 httpprotocol* httpprotocol::decode(octetsstream& os, session* ses)
@@ -146,16 +147,6 @@ void httprequest::run()
     }
 }
 
-void httprequest::set_method(const std::string& method)
-{
-    _method = method;
-}
-
-void httprequest::set_url(const std::string& url)
-{
-    _url = url;
-}
-
 void httprequest::set_callback(std::function<void(httpresponse*)> callback)
 {
     _callback = std::move(callback);
@@ -178,18 +169,14 @@ octetsstream& httprequest::unpack(octetsstream& os)
     getline(os, line);
     size_t method_end = line.find(' ');
     size_t url_end = line.find(' ', method_end + 1);
-    _method = line.substr(0, method_end);
+    _version = string_to_http_version(line.substr(url_end + 1));
+    _method = string_to_http_method(line.substr(0, method_end));
     _url = line.substr(method_end + 1, url_end - method_end - 1);
     httpprotocol::unpack(os);
     return os;
 }
 
 // httpresponse implementation
-
-void httpresponse::set_status(int code)
-{
-    _status = code;
-}
 
 size_t httpresponse::maxsize() const
 {
@@ -204,7 +191,7 @@ void httpresponse::run()
 octetsstream& httpresponse::pack(octetsstream& os) const
 {
     std::ostringstream ss;
-    ss << "HTTP/1.1 " << _status << " OK\r\n";
+    ss << "HTTP/1.1 " << _status << " " << http_status_to_string(_status) << "\r\n";
     httpprotocol::pack(os);
     return os;
 }
@@ -214,7 +201,15 @@ octetsstream& httpresponse::unpack(octetsstream& os)
     // 解析状态行
     std::string line;
     getline(os, line);
-    _status = std::stoi(line.substr(9, 3));
+    if(line.substr(0, 5) != "HTTP/")
+    {
+        throw std::runtime_error("Invalid HTTP response line");
+    }
+    if(line.size() < 9)
+    {
+        throw std::runtime_error("Invalid HTTP response line");
+    }
+    _status = string_to_http_status(line.substr(9, 3));
     httpprotocol::unpack(os);
     return os;
 }

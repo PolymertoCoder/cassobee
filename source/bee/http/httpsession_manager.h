@@ -37,10 +37,13 @@ public:
     void send_response(SID sid, const httpresponse& rsp);
 
 protected:
+    // ssl
     SSL_CTX* _ssl_ctx = nullptr;
     std::string _cert_path;
     std::string _key_path;
 
+    int _max_requests = 0;
+    int _request_timeout = 0;
     struct pending_request
     {
         httprequest* req;

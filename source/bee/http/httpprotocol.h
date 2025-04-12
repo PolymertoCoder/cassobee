@@ -39,7 +39,8 @@ public:
 
 protected:
     friend class httpsession;
-    std::string _body;
+    HTTP_VERSION _version;
+    std::string  _body;
     std::unordered_map<std::string, std::string> _headers;
 };
 
@@ -61,17 +62,17 @@ public:
     virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;
 
-    void set_method(const std::string& method);
-    void set_url(const std::string& url);
+    void set_method(HTTP_METHOD method) { _method = method; }
+    void set_url(const std::string& url) { _url = url; }
 
-    const std::string& get_method() const { return _method; }
+    HTTP_METHOD get_method() const { return _method; }
     const std::string& get_url() const { return _url; }
 
     void set_callback(std::function<void(httpresponse*)> callback);
 
 private:
-    std::string _method;
-    std::string _url;
+    HTTP_METHOD  _method;
+    std::string  _url;
     std::function<void(httpresponse*)> _callback;
 };
 
@@ -91,11 +92,11 @@ public:
     virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;
 
-    void set_status(int code);
-    int get_status() const { return _status; }
+    void set_status(HTTP_STATUS code) { _status = code; }
+    HTTP_STATUS get_status() const { return _status; }
 
 private:
-    int _status = HTTP_STATUS_OK;
+    HTTP_STATUS _status = HTTP_STATUS_OK;
 };
 
 static httprequest __register_httprequest(httprequest::TYPE);

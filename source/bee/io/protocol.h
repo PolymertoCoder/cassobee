@@ -15,7 +15,7 @@ class protocol : public marshal
 {
 public:
     protocol() = default;
-    protocol(PROTOCOLID type) : _type(type) { register_protocol(type, this); }
+    protocol(PROTOCOLID type) : _type(type) { assert(register_protocol(type, this)); }
     protocol(const protocol&) = default;
     virtual ~protocol() = default;
 

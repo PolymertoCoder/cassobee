@@ -149,7 +149,7 @@ int reactor::add_event_inner(event* ev)
         if(auto iter = _io_events.find(handle); iter != _io_events.end() && iter->second != ev)
         {
             delete iter->second;
-            local_log("new event {} substitute old event {}", (void*)ev, (void*)iter->second);
+            local_log("new event %p substitute old event %p", (void*)ev, (void*)iter->second);
         }
         _io_events[handle] = ev;
         if(int ret = _dispatcher->add_event(ev, events))

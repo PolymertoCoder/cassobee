@@ -33,13 +33,13 @@ void httpsession_manager::init()
         _cert_path = cfg->get(identity(), "cert_file");
         _key_path = cfg->get(identity(), "key_file");
 
-        if (_cert_path.empty() || _key_path.empty())
+        if(_cert_path.empty() || _key_path.empty())
         {
             throw std::runtime_error("SSL enabled but cert/key not configured");
         }
 
         _ssl_ctx = create_ssl_context(_cert_path, _key_path);
-        if (!_ssl_ctx)
+        if(!_ssl_ctx)
         {
             throw std::runtime_error("Failed to initialize SSL context");
         }
@@ -49,6 +49,9 @@ void httpsession_manager::init()
     {
         local_log("SSL is disabled for %s", identity());
     }
+
+    _max_requests = cfg->get<int>(identity(), "max_requests");
+    _request_timeout = cfg->get<int>(identity(), "request_timeout");
 }
 
 void httpsession_manager::on_add_session(SID sid)
@@ -136,17 +139,17 @@ SSL_CTX* httpsession_manager::create_ssl_context(const std::string& cert_path, c
 bool httpsession_manager::check_headers(const httpprotocol* req)
 {
     constexpr size_t MAX_BODY_SIZE = 1024 * 1024; // 1MB
-    if (req->get_header("Content-Length").size() > MAX_BODY_SIZE) return false;
+    if(req->get_header("Content-Length").size() > MAX_BODY_SIZE) return false;
 
     // 检查Host头
-    if (!req->has_header("Host")) return false;
+    if(!req->has_header("Host")) return false;
 
     // 限制头数量
     constexpr size_t MAX_HEADERS = 64;
-    if (req->header_count() > MAX_HEADERS) return false;
+    if(req->header_count() > MAX_HEADERS) return false;
 
     // 防御请求走私攻击
-    if (req->has_header("Transfer-Encoding") && 
+    if(req->has_header("Transfer-Encoding") && 
         req->has_header("Content-Length")) return false;
 
     // 检查头字段合法性
@@ -155,7 +158,7 @@ bool httpsession_manager::check_headers(const httpprotocol* req)
         "Content-Type", "Connection"
     };
 
-    for (const auto& [k, v] : req->headers())
+    for(const auto& [k, v] : req->headers())
     {
         // 检查字段名合法性
         if (k.find_first_not_of("abcdefghijklmnopqrstuvwxyz-") != std::string::npos)
@@ -192,7 +195,7 @@ void httpsession_manager::send_request(SID sid, const httprequest& req, httprequ
         ses->_writeos.data().append(os.data(), os.size());
         ses->permit_send();
 
-        _pending_requests.emplace_back(pending_request{req.dup(), cbk, systemtime::get_time()});
+        _pending_requests.emplace_back(req.dup(), cbk, systemtime::get_time() + _request_timeout);
     }
     else
     {
@@ -202,7 +205,27 @@ void httpsession_manager::send_request(SID sid, const httprequest& req, httprequ
 
 void httpsession_manager::send_response(SID sid, const httpresponse& rsp)
 {
-    
+    bee::rwlock::rdscoped l(_locker);
+    if(session* ses = find_session_nolock(sid))
+    {
+        thread_local octetsstream os;
+        os.clear();
+        rsp.encode(os);
+
+        bee::rwlock::wrscoped sesl(ses->_locker);
+        if(os.size() > ses->_writeos.data().free_space())
+        {
+            local_log("session_manager %s, session %lu write buffer is fulled.", identity(), sid);
+            return;
+        }
+
+        ses->_writeos.data().append(os.data(), os.size());
+        ses->permit_send();
+    }
+    else
+    {
+        local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
+    }   
 }
 
 } // namespace bee
