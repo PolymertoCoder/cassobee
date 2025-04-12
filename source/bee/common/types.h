@@ -58,4 +58,23 @@ do { \
 
 #define UNUSE(x) ((void)(x))
 
+template<typename T>
+class singleton_support
+{
+public:
+   static T* get_instance()
+   {
+       static T _instance;
+       return &_instance;
+   }
+
+protected:
+    singleton_support() = default;
+    ~singleton_support() = default;
+    singleton_support(const singleton_support&) = delete;
+    singleton_support(const singleton_support&&) = delete;
+    singleton_support& operator=(const singleton_support&) = delete;
+    singleton_support& operator=(const singleton_support&&) = delete;
+};
+
 } // namespace bee

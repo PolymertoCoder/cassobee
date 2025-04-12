@@ -16,6 +16,8 @@ class httpresponse;
 class httpprotocol : public protocol
 {
 public:
+    using MAP_TYPE = std::unordered_map<std::string, std::string>;
+
     httpprotocol() = default;
     httpprotocol(PROTOCOLID type) : protocol(type) {}
     virtual ~httpprotocol() = default;
@@ -39,9 +41,12 @@ public:
 
 protected:
     friend class httpsession;
+    bool _is_websocket = false;
+    bool _is_keepalive = false;
     HTTP_VERSION _version;
     std::string  _body;
-    std::unordered_map<std::string, std::string> _headers;
+    MAP_TYPE _headers;
+    MAP_TYPE _cookies;
 };
 
 class httprequest : public httpprotocol

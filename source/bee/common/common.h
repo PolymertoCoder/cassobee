@@ -20,25 +20,6 @@ struct timeval endtime; \
 gettimeofday(&endtime, NULL); \
 printf("used time: %ld.\n", (endtime.tv_sec*1000 + endtime.tv_usec/1000) - (begintime.tv_sec*1000 + begintime.tv_usec/1000));
 
-template<typename T>
-class singleton_support
-{
-public:
-   static T* get_instance()
-   {
-       static T _instance;
-       return &_instance;
-   }
-
-protected:
-    singleton_support() = default;
-    ~singleton_support() = default;
-    singleton_support(const singleton_support&) = delete;
-    singleton_support(const singleton_support&&) = delete;
-    singleton_support& operator=(const singleton_support&) = delete;
-    singleton_support& operator=(const singleton_support&&) = delete;
-};
-
 template<typename lock_type>
 struct light_object_base
 {
@@ -70,6 +51,7 @@ int rand(int min, int max);
 void set_process_affinity(int num);
 std::string format_string(const char* fmt, ...) FORMAT_PRINT_CHECK(1, 2);
 
+// string op
 std::string ltrim(const std::string& str, const char c = ' ');
 std::string rtrim(const std::string& str, const char c = ' ');
 std::string trim(const std::string_view& str, const char c = ' ');
