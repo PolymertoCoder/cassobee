@@ -1,4 +1,5 @@
 #include "http.h"
+#include "format.h"
 #include <cstring>
 
 namespace bee
@@ -65,6 +66,24 @@ HTTP_VERSION string_to_http_version(const std::string& version)
     HTTP_VERSION_MAP
 #undef X
     return HTTP_VERSION::HTTP_VERSION_UNKNOWN;
+}
+
+ostringstream& operator<<(ostringstream& oss, HTTP_METHOD method)
+{
+    oss << http_method_to_string(method);
+    return oss;
+}
+
+ostringstream& operator<<(ostringstream& oss, HTTP_STATUS status)
+{
+    oss << http_status_to_string(status);
+    return oss;
+}
+
+ostringstream& operator<<(ostringstream& oss, HTTP_VERSION version)
+{
+    oss << http_version_to_string(version);
+    return oss;
 }
 
 } // namespace bee

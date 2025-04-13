@@ -10,6 +10,14 @@
 namespace bee
 {
 
+void protocol::dump(ostringstream& out) const
+{
+    out << "type: " << _type << "\n";
+    out << "maxsize: " << maxsize() << "\n";
+    out << "sid: " << _sid << "\n";
+    out << "priority: " << _priority << "\n";
+}
+
 bool protocol::size_policy(PROTOCOLID type, size_t size)
 {
     auto iter = get_map().find(type);
@@ -92,6 +100,12 @@ protocol* protocol::decode(octetsstream& os, session* ses)
     }
     os >> octetsstream::ROLLBACK;
     return nullptr;
+}
+
+ostringstream& operator<<(ostringstream& oss, const protocol& prot)
+{
+    prot.dump(oss);
+    return oss;
 }
 
 } // namespace bee

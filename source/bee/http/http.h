@@ -4,6 +4,8 @@
 namespace bee
 {
 
+class ostringstream;
+
 #define HTTP_METHOD_MAP \
     X(0, UNKNOWN, "Unknown") \
     X(1, GET, "GET") \
@@ -123,5 +125,9 @@ HTTP_STATUS string_to_http_status(const std::string& status);
 
 std::string http_version_to_string(HTTP_VERSION version);
 HTTP_VERSION string_to_http_version(const std::string& version);
+
+ostringstream& operator<<(ostringstream& oss, HTTP_METHOD method);
+ostringstream& operator<<(ostringstream& oss, HTTP_STATUS status);
+ostringstream& operator<<(ostringstream& oss, HTTP_VERSION version);
 
 } // namespace bee

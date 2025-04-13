@@ -235,6 +235,7 @@ class XMLProcessor:
         virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
         if protocol.base_class == "protocol":
             virtual_methods += "    virtual void run() override;\n\n"
+        virtual_methods += f"virtual void dump(ostringstream& out) const override;\n"
         return virtual_methods
 
     def _generate_codefield_methods(self, protocol):
@@ -294,8 +295,18 @@ class XMLProcessor:
         else:
             for field_name, _, _ in protocol.fields:
                 unpack_method += f"    os >> {field_name};\n"
-        unpack_method += "    return os;\n}\n"
+        unpack_method += "    return os;\n}\n\n"
         return unpack_method
+
+    def _generate_dump_method(self, protocol):
+        """Generate the dump method for the class."""
+        dump_method = f"void {protocol.name}::dump(ostringstream& out) const\n{{\n"
+        if protocol.codefield:
+            dump_method += f"    out << \"code: \" << code;\n"
+        for field_name, _, _ in protocol.fields:
+            dump_method += f"    out << \"{field_name}: \" << {field_name};\n"
+        dump_method += "}\n\n"
+        return dump_method
 
     def _generate_header_content(self, protocol):
         """生成头文件内容"""
@@ -352,6 +363,9 @@ class XMLProcessor:
         # 打包/解包方法
         lines.append(self._generate_pack_method(protocol))
         lines.append(self._generate_unpack_method(protocol))
+
+        # dump方法
+        # lines.append(self._generate_dump_method(protocol))
         
         if protocol.base_class == "protocol":
             lines.append(f"__attribute__((weak)) void {protocol.name}::run() {{}}\n")
@@ -376,8 +390,6 @@ class XMLProcessor:
             lines.append(f"        FIELDS_{field_name.upper()} = 1 << {idx},\n")
         lines.append(f"        ALLFIELDS = (1 << {len(protocol.fields)}) - 1\n    }};\n\n")
         return "".join(lines)
-
-    # 其他生成方法（constructors、operator overloads等）保持类似结构...
 
     def _generate_state_files(self, state_dir):
         """生成状态文件"""
