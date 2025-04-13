@@ -2,6 +2,19 @@
 #include "rpcdata.h"
 #include <string>
 
+/* generate by progen.py
+<rpcdata name="log_event" codefield="short">
+    <field name="process_name" type="std::string" default="std::string()"/>
+    <field name="filename" type="std::string" default="std::string()"/>
+    <field name="line" type="uint16_t" default="0"/>
+    <field name="timestamp" type="uint64_t" default="0"/>
+    <field name="threadid" type="uint32_t" default="0"/>
+    <field name="fiberid" type="uint32_t" default="0"/>
+    <field name="elapse" type="std::string" default="std::string()"/>
+    <field name="content" type="std::string" default="std::string()"/>
+</rpcdata>
+*/
+
 namespace bee
 {
 
@@ -22,9 +35,9 @@ public:
     };
 
     log_event() = default;
-    log_event(const std::string& _process_name, const std::string& _filename, uint16_t _line, uint32_t _timestamp, uint32_t _threadid, uint32_t _fiberid, const std::string& _elapse, const std::string& _content) : code(0), process_name(_process_name), filename(_filename), line(_line), timestamp(_timestamp), threadid(_threadid), fiberid(_fiberid), elapse(_elapse), content(_content)
+    log_event(const std::string& _process_name, const std::string& _filename, uint16_t _line, uint64_t _timestamp, uint32_t _threadid, uint32_t _fiberid, const std::string& _elapse, const std::string& _content) : code(0), process_name(_process_name), filename(_filename), line(_line), timestamp(_timestamp), threadid(_threadid), fiberid(_fiberid), elapse(_elapse), content(_content)
     {}
-    log_event(std::string&& _process_name, std::string&& _filename, uint16_t _line, uint32_t _timestamp, uint32_t _threadid, uint32_t _fiberid, std::string&& _elapse, std::string&& _content) : code(0), process_name(std::move(_process_name)), filename(std::move(_filename)), line(_line), timestamp(_timestamp), threadid(_threadid), fiberid(_fiberid), elapse(std::move(_elapse)), content(std::move(_content))
+    log_event(std::string&& _process_name, std::string&& _filename, uint16_t _line, uint64_t _timestamp, uint32_t _threadid, uint32_t _fiberid, std::string&& _elapse, std::string&& _content) : code(0), process_name(std::move(_process_name)), filename(std::move(_filename)), line(_line), timestamp(_timestamp), threadid(_threadid), fiberid(_fiberid), elapse(std::move(_elapse)), content(std::move(_content))
     {}
     log_event(const log_event& rhs) = default;
     log_event(log_event&& rhs) = default;
@@ -35,6 +48,13 @@ public:
         return code == rhs.code && process_name == rhs.process_name && filename == rhs.filename && line == rhs.line && timestamp == rhs.timestamp && threadid == rhs.threadid && fiberid == rhs.fiberid && elapse == rhs.elapse && content == rhs.content;
     }
     bool operator!=(const log_event& rhs) const { return !(*this == rhs); }
+    virtual ~log_event() override = default;
+    octetsstream& pack(octetsstream& os) const override;
+    octetsstream& unpack(octetsstream& os) override;
+
+    virtual void dump(ostringstream& out) const override;
+
+public:
     void set_process_name()
     {
         code |= FIELDS_PROCESS_NAME;
@@ -66,7 +86,7 @@ public:
     {
         code |= FIELDS_TIMESTAMP;
     }
-    void set_timestamp(const uint32_t& value)
+    void set_timestamp(const uint64_t& value)
     {
         code |= FIELDS_TIMESTAMP;
         timestamp = value;
@@ -119,19 +139,17 @@ public:
         if (elapse == std::string()) code &= ~FIELDS_ELAPSE;
         if (content == std::string()) code &= ~FIELDS_CONTENT;
     }
-    octetsstream& pack(octetsstream& os) const override;
-    octetsstream& unpack(octetsstream& os) override;
 
 public:
     short code = 0;
-    std::string process_name;
-    std::string filename;
+    std::string process_name = std::string();
+    std::string filename = std::string();
     uint16_t line = 0;
-    uint32_t timestamp = 0;
+    uint64_t timestamp = 0;
     uint32_t threadid = 0;
     uint32_t fiberid = 0;
-    std::string elapse;
-    std::string content;
+    std::string elapse = std::string();
+    std::string content = std::string();
 };
 
 } // namespace bee

@@ -6,8 +6,9 @@ namespace bee
 {
 class ostringstream;
 
-struct rpcdata : public marshal
+class rpcdata : public marshal
 {
+public:
     rpcdata() = default;
     virtual ~rpcdata() = default;
     virtual void dump(ostringstream& out) const;

@@ -190,8 +190,8 @@ void httpresponse::run()
 
 octetsstream& httpresponse::pack(octetsstream& os) const
 {
-    std::ostringstream ss;
-    ss << "HTTP/1.1 " << _status << " " << http_status_to_string(_status) << "\r\n";
+    ostringstream ss;
+    ss << _version << " " << _status << " " << http_status_to_string(_status) << "\r\n";
     httpprotocol::pack(os);
     return os;
 }

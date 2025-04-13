@@ -230,17 +230,18 @@ class XMLProcessor:
 
     def _generate_virtual_methods(self, protocol):
         """Generate virtual methods for the class."""
-        virtual_methods = f"    virtual PROTOCOLID get_type() const override {{ return TYPE; }}\n"
-        virtual_methods += f"    virtual size_t maxsize() const override {{ return {protocol.maxsize}; }}\n"
-        virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
+        virtual_methods = ""
         if protocol.base_class == "protocol":
-            virtual_methods += "    virtual void run() override;\n\n"
-        virtual_methods += f"virtual void dump(ostringstream& out) const override;\n"
+            virtual_methods = f"    virtual PROTOCOLID get_type() const override {{ return TYPE; }}\n"
+            virtual_methods += f"    virtual size_t maxsize() const override {{ return {protocol.maxsize}; }}\n"
+            virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
+            virtual_methods += "    virtual void run() override;\n"
+        virtual_methods += f"    virtual void dump(ostringstream& out) const override;\n\n"
         return virtual_methods
 
     def _generate_codefield_methods(self, protocol):
         """Generate methods to handle codefield."""
-        codefield_methods = ""
+        codefield_methods = "public:\n"
         for field_name, field_type, default_value in protocol.fields:
             codefield_methods += f"    void set_{field_name}()\n    {{\n        code |= FIELDS_{field_name.upper()};\n    }}\n"
             codefield_methods += f"    void set_{field_name}(const {field_type}& value)\n    {{\n        code |= FIELDS_{field_name.upper()};\n        {field_name} = value;\n    }}\n"
@@ -251,7 +252,7 @@ class XMLProcessor:
                 codefield_methods += f"        if ({field_name} == {field_type}()) code &= ~FIELDS_{field_name.upper()};\n"
             else:
                 codefield_methods += f"        if ({field_name} == {default_value}) code &= ~FIELDS_{field_name.upper()};\n"
-        codefield_methods += "    }\n"
+        codefield_methods += "    }\n\n"
         return codefield_methods
 
     def _generate_pack_unpack_methods(self, protocol):
@@ -305,7 +306,7 @@ class XMLProcessor:
             dump_method += f"    out << \"code: \" << code;\n"
         for field_name, _, _ in protocol.fields:
             dump_method += f"    out << \"{field_name}: \" << {field_name};\n"
-        dump_method += "}\n\n"
+        dump_method += "}\n"
         return dump_method
 
     def _generate_header_content(self, protocol):
@@ -331,12 +332,6 @@ class XMLProcessor:
         if protocol.base_class == "protocol":
             lines.append(f"    static constexpr PROTOCOLID TYPE = {protocol.type};\n")
 
-        if protocol.base_class == "protocol":
-            lines.append(self._generate_virtual_methods(protocol))
-        
-        if protocol.codefield:
-            lines.append(self._generate_codefield_methods(protocol))
-
         if protocol.codefield:
             lines.append(self._generate_enum_fields(protocol))
 
@@ -349,6 +344,11 @@ class XMLProcessor:
         lines.append(f"    virtual ~{protocol.name}() override = default;\n")
         
         lines.append(self._generate_pack_unpack_methods(protocol))
+        lines.append(self._generate_virtual_methods(protocol))
+
+        if protocol.codefield:
+            lines.append(self._generate_codefield_methods(protocol))
+
         lines.append(self._generate_public_fields(protocol))
         
         lines.append("};\n\n} // namespace bee")
@@ -365,10 +365,10 @@ class XMLProcessor:
         lines.append(self._generate_unpack_method(protocol))
 
         # dump方法
-        # lines.append(self._generate_dump_method(protocol))
+        lines.append(self._generate_dump_method(protocol))
         
         if protocol.base_class == "protocol":
-            lines.append(f"__attribute__((weak)) void {protocol.name}::run() {{}}\n")
+            lines.append(f"\n__attribute__((weak)) void {protocol.name}::run() {{}}\n")
         
         lines.append("\n} // namespace bee")
         return "".join(lines)

@@ -2,6 +2,7 @@
 #include "octets.h"
 #include "stringfy.h"
 #include "formatter.h"
+#include "rpcdata.h"
 
 namespace bee
 {
@@ -28,7 +29,7 @@ public:
     ostringstream(const std::string& str) : _buf(str) {}
     ostringstream(ostringstream&& other) noexcept = default;
 
-    template<typename T> ostringstream& operator<<(const T& value)
+    template<can_to_string T> ostringstream& operator<<(const T& value)
     {
         *this << bee::to_string(value);
         return *this;

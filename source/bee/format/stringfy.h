@@ -71,4 +71,7 @@ std::string to_string(const std::tuple<Args...>& val)
     return str.append("}");
 }
 
+template<typename T>
+concept can_to_string = requires(T t) { { bee::to_string(t) } -> std::convertible_to<std::string>; };
+
 } // namespace bee

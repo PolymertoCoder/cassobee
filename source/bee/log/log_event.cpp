@@ -31,4 +31,17 @@ octetsstream& log_event::unpack(octetsstream& os)
     return os;
 }
 
+void log_event::dump(ostringstream& out) const
+{
+    out << "code: " << code;
+    out << "process_name: " << process_name;
+    out << "filename: " << filename;
+    out << "line: " << line;
+    out << "timestamp: " << timestamp;
+    out << "threadid: " << threadid;
+    out << "fiberid: " << fiberid;
+    out << "elapse: " << elapse;
+    out << "content: " << content;
+}
+
 } // namespace bee

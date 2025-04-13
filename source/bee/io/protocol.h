@@ -4,6 +4,7 @@
 
 #include "marshal.h"
 #include "types.h"
+#include "format.h"
 
 namespace bee
 {
