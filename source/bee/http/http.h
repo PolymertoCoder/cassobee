@@ -86,15 +86,15 @@ class ostringstream;
 
 /*
 UNKNOWN = 0, // 未知方法
-GET,         // 请求服务器发送某个资源
-POST,        // 用来传输实体的主体
-PUT,         // 用来传输文件
-DELETE,      // 获取报文首部，用于确认URI的有效性及资源更新的日期时间等
-HEAD,        // 删除文件
-OPTIONS,     // 查询针对请求URI指定的资源支持的方法
+GET,         // 请求指定的页面信息，并返回实体主体
+POST,        // 向指定资源提交数据进行处理请求（例如提交表单或者上传文件）。数据被包含在请求体中。POST请求可能会导致新的资源的建立和/或已有资源的修改。
+PUT,         // 从客户端向服务器传送的数据取代指定的文档的内容。
+DELETE,      // 请求服务器删除指定的页面。
+HEAD,        // 类似于get请求，只不过返回的响应中没有具体的内容，用于获取报头
+OPTIONS,     // 允许客户端查看服务器的性能。
 PATCH,       // 
-TRACE,       // 用于追踪路径
-CONNECT,     // 要求与代理服务器通信时建立隧道，实现用隧道协议进行TCP通信
+TRACE,       // 回显服务器收到的请求，主要用于测试或诊断。
+CONNECT,     // HTTP/1.1协议中预留给能够将连接改为管道方式的代理服务器。
 */
 enum HTTP_METHOD
 {
@@ -125,9 +125,5 @@ HTTP_STATUS string_to_http_status(const std::string& status);
 
 std::string http_version_to_string(HTTP_VERSION version);
 HTTP_VERSION string_to_http_version(const std::string& version);
-
-ostringstream& operator<<(ostringstream& oss, HTTP_METHOD method);
-ostringstream& operator<<(ostringstream& oss, HTTP_STATUS status);
-ostringstream& operator<<(ostringstream& oss, HTTP_VERSION version);
 
 } // namespace bee

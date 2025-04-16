@@ -11,6 +11,7 @@ namespace bee
 constexpr PROTOCOLID PROTOCOL_TYPE_HTTPREQUEST  = 200001;
 constexpr PROTOCOLID PROTOCOL_TYPE_HTTPRESPONCE = 200002;
 
+class httprequest;
 class httpresponse;
 
 class httpprotocol : public protocol
@@ -29,6 +30,9 @@ public:
 
     virtual void encode(octetsstream& os) const override;
     static httpprotocol* decode(octetsstream& os, session* ses); 
+
+    static httprequest*  get_request();
+    static httpresponse* get_response();
 
     void set_body(const std::string& body);
     void set_header(const std::string& key, const std::string& value);
