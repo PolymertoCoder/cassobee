@@ -146,7 +146,7 @@ bool httpsession_manager::check_headers(const httpprotocol* req)
 
     // 限制头数量
     constexpr size_t MAX_HEADERS = 64;
-    if(req->header_count() > MAX_HEADERS) return false;
+    if(req->get_header_count() > MAX_HEADERS) return false;
 
     // 防御请求走私攻击
     if(req->has_header("Transfer-Encoding") && 
@@ -158,7 +158,7 @@ bool httpsession_manager::check_headers(const httpprotocol* req)
         "Content-Type", "Connection"
     };
 
-    for(const auto& [k, v] : req->headers())
+    for(const auto& [k, v] : req->get_headers())
     {
         // 检查字段名合法性
         if (k.find_first_not_of("abcdefghijklmnopqrstuvwxyz-") != std::string::npos)

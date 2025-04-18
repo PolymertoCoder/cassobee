@@ -181,17 +181,7 @@ size_t httprequest::maxsize() const
 
 void httprequest::run()
 {
-    if (_callback)
-    {
-        auto response = new httpresponse();
-        _callback(response);
-        delete response;
-    }
-}
-
-void httprequest::set_callback(std::function<void(httpresponse*)> callback)
-{
-    _callback = std::move(callback);
+    
 }
 
 octetsstream& httprequest::pack(octetsstream& os) const
