@@ -13,7 +13,6 @@ class session_manager;
 
 struct io_event : event
 {
-    io_event() {}
     virtual int get_handle() const override { return _fd; }
     int _fd = -1;
 };
@@ -73,23 +72,8 @@ struct streamio_event : netio_event
 {
     streamio_event(int fd, session* ses);
     virtual bool handle_event(int active_events) override;
-    virtual int handle_recv();
-    virtual int handle_send();
-};
-
-struct sslio_event : streamio_event
-{
-    sslio_event(int fd, httpsession* ses);
-    bool do_handshake();
-    virtual int handle_recv() override;
-    virtual int handle_send() override;
-
-    SSL* _ssl = nullptr;
-    enum class SSL_STATE {
-        HANDSHAKE,
-        STREAMING,
-        ERROR
-    } _ssl_state = SSL_STATE::HANDSHAKE;
+    int handle_recv();
+    int handle_send();
 };
 
 } // namespace bee

@@ -26,22 +26,12 @@ public:
     virtual httpsession* create_session() override;
     virtual httpsession* find_session(SID sid) override;
 
-    FORCE_INLINE bool ssl_enabled() const { return _ssl_ctx != nullptr; }
-    FORCE_INLINE SSL_CTX* get_ssl_ctx() const { return _ssl_ctx; }
-
-    static SSL_CTX* create_ssl_context(const std::string& cert_path, const std::string& key_path);
     bool check_headers(const httpprotocol* req);
-    static void ocsp_callback(SSL* ssl, void* arg);
 
     void send_request(SID sid, const httprequest& req, httprequest::callback cbk);
     void send_response(SID sid, const httpresponse& rsp);
 
 protected:
-    // ssl
-    SSL_CTX* _ssl_ctx = nullptr;
-    std::string _cert_path;
-    std::string _key_path;
-
     int _max_requests = 0;
     int _request_timeout = 0;
     struct pending_request

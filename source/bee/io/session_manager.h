@@ -2,8 +2,8 @@
 #include <stddef.h>
 #include <bitset>
 #include <unordered_map>
+#include <openssl/types.h>
 
-#include "common.h"
 #include "lock.h"
 #include "types.h"
 #include "prot_define.h"
@@ -20,6 +20,7 @@ enum SESSION_TYPE
 {
     SESSION_TYPE_NORMAL,
     SESSION_TYPE_HTTP,
+    SESSION_TYPE_HTTPS,
 };
 
 class session_manager
@@ -52,6 +53,11 @@ public:
     void send_protocol(SID sid, const protocol& prot);
     void send_octets(SID sid, const octets& oct);
 
+    // ssl
+    bool init_ssl(bool is_server);
+    FORCE_INLINE bool ssl_enabled() const { return _ssl_ctx != nullptr; }
+    FORCE_INLINE SSL_CTX* get_ssl_ctx() const { return _ssl_ctx; }
+
     FORCE_INLINE bool is_httpsession_manager() const { return _session_type == SESSION_TYPE_HTTP; }
 
 protected:
@@ -68,11 +74,15 @@ protected:
     address* _addr = nullptr;
     size_t _read_buffer_size = 0;
     size_t _write_buffer_size = 0;
-
     size_t _keepalive_timeout = 0; // 会话保活超时时间
 
     bee::rwlock _locker;
     std::unordered_map<SID, session*> _sessions;
+
+    // ssl
+    SSL_CTX* _ssl_ctx = nullptr;
+    std::string _cert_path;
+    std::string _key_path;
 };
 
 

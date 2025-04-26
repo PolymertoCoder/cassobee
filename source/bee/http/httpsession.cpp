@@ -13,20 +13,10 @@ namespace bee
 httpsession::httpsession(httpsession_manager* manager)
     : session(manager)
 {
-    if(manager->ssl_enabled())
-    {
-        _ssl = SSL_new(((httpsession_manager*)_manager)->get_ssl_ctx());
-    }
 }
 
 httpsession::~httpsession()
 {
-    if(_ssl)
-    {
-        SSL_shutdown(_ssl);
-        SSL_free(_ssl);
-        _ssl = nullptr;
-    }
 }
 
 httpsession* httpsession::dup()
@@ -42,44 +32,16 @@ httpsession* httpsession::dup()
     ses->_writebuf.clear();
     ses->_reados.clear();
     ses->_writeos.clear();
-
-    if(_ssl)
-    {
-        ses->_ssl = SSL_new(((httpsession_manager*)_manager)->get_ssl_ctx());
-    }
     return ses;
 }
 
 void httpsession::set_open()
 {
     session::set_open();
-    if(_ssl)
-    {
-        SSL_set_fd(_ssl, _sockfd);
-        SSL_set_mode(_ssl, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
-        int ret = SSL_accept(_ssl);
-        if (ret <= 0)
-        {
-            int err = SSL_get_error(_ssl, ret);
-            ERR_print_errors_fp(stderr);
-            local_log("SSL handshake failed for session %lu with error: %d", _sid, err);
-            close();
-            return;
-        }
-        local_log("SSL handshake successful for session %lu", _sid);
-    }
-    else
-    {
-        local_log("Non-SSL session opened for session %lu", _sid);
-    }
 }
 
 void httpsession::set_close()
 {
-    if(_ssl)
-    {
-        SSL_shutdown(_ssl);
-    }
     session::set_close();
 }
 
@@ -113,38 +75,7 @@ void httpsession::on_recv(size_t len)
 void httpsession::on_send(size_t len)
 {
     activate();
-
-    if(_ssl)
-    {
-        const char* data = _writebuf.data();
-        size_t remaining = _writebuf.size();
-        while (remaining > 0)
-        {
-            int ret = SSL_write(_ssl, data, remaining);
-            if (ret > 0)
-            {
-                data += ret;
-                remaining -= ret;
-            }
-            else
-            {
-                int err = SSL_get_error(_ssl, ret);
-                if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE)
-                {
-                    return;
-                }
-                ERR_print_errors_fp(stderr);
-                local_log("SSL_write failed for session %lu with error: %d", _sid, err);
-                close();
-                return;
-            }
-        }
-        _writebuf.clear();
-    }
-    else
-    {
-        session::on_send(len);
-    }
+    session::on_send(len);
 }
 
 } // namespace bee

@@ -1,10 +1,11 @@
+#include <openssl/ssl.h>
 #include "httpsession_manager.h"
+#include "httpsession.h"
 #include "config.h"
 #include "session_manager.h"
 #include "glog.h"
 #include "httpprotocol.h"
 #include "systemtime.h"
-#include <openssl/err.h>
 
 namespace bee
 {
@@ -26,30 +27,7 @@ httpsession_manager::~httpsession_manager()
 void httpsession_manager::init()
 {
     session_manager::init();
-
     auto cfg = config::get_instance();
-    if(cfg->get<bool>(identity(), "ssl_enabled", false))
-    {
-        _cert_path = cfg->get(identity(), "cert_file");
-        _key_path = cfg->get(identity(), "key_file");
-
-        if(_cert_path.empty() || _key_path.empty())
-        {
-            throw std::runtime_error("SSL enabled but cert/key not configured");
-        }
-
-        _ssl_ctx = create_ssl_context(_cert_path, _key_path);
-        if(!_ssl_ctx)
-        {
-            throw std::runtime_error("Failed to initialize SSL context");
-        }
-        local_log("SSL context initialized for %s", identity());
-    }
-    else
-    {
-        local_log("SSL is disabled for %s", identity());
-    }
-
     _max_requests = cfg->get<int>(identity(), "max_requests");
     _request_timeout = cfg->get<int>(identity(), "request_timeout");
 }
@@ -74,16 +52,6 @@ httpsession* httpsession_manager::create_session()
 {
     auto ses = new httpsession(this);
     ses->set_sid(session_manager::get_next_sessionid());
-
-    if(_ssl_ctx)
-    {
-        ses->_ssl = SSL_new(_ssl_ctx);
-        if (!ses->_ssl)
-        {
-            delete ses;
-            throw std::runtime_error("Failed to create SSL object");
-        }
-    }
     return ses;
 }
 
@@ -92,47 +60,6 @@ httpsession* httpsession_manager::find_session(SID sid)
     bee::rwlock::rdscoped l(_locker);
     auto iter = _sessions.find(sid);
     return iter != _sessions.end() ? dynamic_cast<httpsession*>(iter->second) : nullptr;
-}
-
-SSL_CTX* httpsession_manager::create_ssl_context(const std::string& cert_path, const std::string& key_path)
-{
-    SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
-    if(!ctx)
-    {
-        ERR_print_errors_fp(stderr);
-        return nullptr;
-    }
-
-    SSL_CTX_set_ciphersuites(ctx, 
-        "TLS_AES_256_GCM_SHA384:"
-        "TLS_CHACHA20_POLY1305_SHA256");
-
-    SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TICKET | SSL_OP_NO_COMPRESSION);
-
-    SSL_CTX_set_tlsext_status_cb(ctx, ocsp_callback); // OCSP Stapling
-
-    if(SSL_CTX_use_certificate_file(ctx, cert_path.c_str(), SSL_FILETYPE_PEM) <= 0)
-    {
-        ERR_print_errors_fp(stderr);
-        SSL_CTX_free(ctx);
-        return nullptr;
-    }
-
-    if(SSL_CTX_use_PrivateKey_file(ctx, key_path.c_str(), SSL_FILETYPE_PEM) <= 0)
-    {
-        ERR_print_errors_fp(stderr);
-        SSL_CTX_free(ctx);
-        return nullptr;
-    }
-
-    if(!SSL_CTX_check_private_key(ctx))
-    {
-        fprintf(stderr, "Private key does not match the public certificate\n");
-        SSL_CTX_free(ctx);
-        return nullptr;
-    }
-
-    return ctx;
 }
 
 // 请求头安全检查
@@ -168,12 +95,6 @@ bool httpsession_manager::check_headers(const httpprotocol* req)
         if (!ALLOWED_HEADERS.contains(k)) return false;
     }
     return true;
-}
-
-
-void httpsession_manager::ocsp_callback(SSL* ssl, void* arg)
-{
-
 }
 
 void httpsession_manager::send_request(SID sid, const httprequest& req, httprequest::callback cbk)

@@ -11,7 +11,6 @@ namespace bee
 {
 
 class address;
-class session_manager;
 struct event;
 
 enum SESSION_STATE

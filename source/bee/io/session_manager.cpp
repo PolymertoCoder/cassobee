@@ -1,5 +1,5 @@
+#include <openssl/ssl.h>
 #include "session_manager.h"
-
 #include "address.h"
 #include "glog.h"
 #include "ioevent.h"
@@ -95,8 +95,17 @@ void session_manager::init()
 
     _read_buffer_size  = cfg->get<size_t>(identity(), "read_buffer_size");
     _write_buffer_size = cfg->get<size_t>(identity(), "write_buffer_size");
-
     _keepalive_timeout = cfg->get<TIMETYPE>(identity(), "keepalive_timeout", 30000);
+
+    // ssl
+    if(cfg->get<bool>(identity(), "ssl_enabled", false))
+    {
+        assert(init_ssl(cfg->get<bool>(identity(), "ssl_server", false)));
+    }
+    else
+    {
+        local_log("SSL is disabled for %s", identity());
+    }
 }
 
 void session_manager::add_session(SID sid, session* ses)
@@ -182,6 +191,51 @@ void session_manager::send_octets(SID sid, const octets& oct)
     {
         local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
     }
+}
+
+bool session_manager::init_ssl(bool is_server)
+{
+    auto cfg = config::get_instance();
+    if(is_server)
+    {
+        _cert_path = cfg->get(identity(), "cert_file");
+        _key_path  = cfg->get(identity(), "key_file");
+
+        if(_cert_path.empty() || _key_path.empty())
+        {
+            return false;
+        }
+
+        _ssl_ctx = SSL_CTX_new(TLS_server_method());
+        if(!_ssl_ctx)
+        {
+            return false;
+        }
+
+        SSL_CTX_set_options(_ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
+
+        if(SSL_CTX_use_certificate_file(_ssl_ctx, _cert_path.data(), SSL_FILETYPE_PEM) <= 0)
+        {
+            local_log("session_manager %s load certificate failed.", identity());
+            return false;
+        }
+        
+        if(SSL_CTX_use_PrivateKey_file(_ssl_ctx, _key_path.data(), SSL_FILETYPE_PEM) <= 0)
+        {
+            local_log("session_manager %s load private key failed.", identity());
+            return false;
+        }
+
+        local_log("server SSL context initialized for %s", identity());
+    }
+    else // client
+    {
+        _ssl_ctx = SSL_CTX_new(TLS_client_method());
+        SSL_CTX_set_verify(_ssl_ctx, SSL_VERIFY_PEER, nullptr);
+        SSL_CTX_load_verify_locations(_ssl_ctx, "ca.crt", nullptr);
+        local_log("client SSL context initialized for %s", identity());
+    }
+    return true;
 }
 
 void client(session_manager* manager)

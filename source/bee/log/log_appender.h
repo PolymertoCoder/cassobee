@@ -65,7 +65,6 @@ public:
 
 private:
     ROTATE_TYPE _rotate_type;
-    TIMETYPE    _last_check_time = 0;
     TIMETYPE    _next_rotate_time = 0; // 下一次分割日志的时间
 };
 

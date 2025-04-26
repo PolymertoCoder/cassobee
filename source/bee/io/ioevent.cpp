@@ -16,8 +16,6 @@
 #include "common.h"
 #include "reactor.h"
 #include "session.h"
-#include "httpsession.h"
-#include "httpsession_manager.h"
 
 namespace bee
 {
@@ -241,17 +239,7 @@ bool passiveio_event::handle_event(int active_events)
         return false;
     }
 
-    streamio_event* evt = nullptr;
-    auto* manager = _ses->get_manager();
-    if(manager->is_httpsession_manager() && ((httpsession_manager*)manager)->ssl_enabled())
-    {
-        evt = new sslio_event(clientfd, ((bee::httpsession*)_ses)->dup());
-    }
-    else
-    {
-        evt = new streamio_event(clientfd, _ses->dup());
-    }
-
+    streamio_event* evt = new streamio_event(clientfd, _ses->dup());
     evt->set_events(EVENT_RECV | EVENT_SEND);
     _base->add_event(evt);
     local_log("accept clientid=%d.", clientfd);
@@ -302,29 +290,13 @@ bool activeio_event::handle_event(int active_events)
         return false;
     }
 
-    streamio_event* evt = nullptr;
-    if(auto* manager = _ses->get_manager(); manager->is_httpsession_manager())
-    {
-        if(((httpsession_manager*)manager)->ssl_enabled())
-        {
-            evt = new sslio_event(_fd, (bee::httpsession*)_ses);
-        }
-        else
-        {
-            evt = new streamio_event(_fd, (bee::httpsession*)_ses);
-        }
-    }
-    else
-    {
-        evt = new streamio_event(_fd, _ses);
-    }
-
     // 所有权转移给新的streamio_event
-    _fd = -1;
-    _ses = nullptr; 
+    streamio_event* evt = new streamio_event(_fd, _ses);
     evt->set_events(EVENT_RECV | EVENT_SEND | EVENT_HUP);
     evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
+    _fd = -1;
+    _ses = nullptr;
     local_log("activeio_event handle_event run fd=%d.", _fd);
     return true;
 }
@@ -362,15 +334,11 @@ bool streamio_event::handle_event(int active_events)
     if(active_events & EVENT_RECV)
     {
         handle_recv();
-        // _ses->permit_recv();
-        // _ses->permit_send();
         local_log("streamio_event handle_event EVENT_RECV fd=%d", _fd);
     }
     if(active_events & EVENT_SEND)
     {
         handle_send();
-        // _ses->permit_recv();
-        // _ses->permit_send();
         local_log("streamio_event handle_event EVENT_SEND fd=%d", _fd);
     }
     return true;
@@ -439,19 +407,22 @@ int streamio_event::handle_recv()
 int streamio_event::handle_send()
 {
     octets* wbuffer = nullptr;
-    {
-        bee::rwlock::wrscoped sesl(_ses->_locker);
-        wbuffer = &_ses->wbuffer();
-        if(wbuffer->size() == _ses->_write_offset)
-        {
-            _ses->forbid_send();
-            return 0;
-        }
-    }
-
     int total_send = 0;
+
     while(true)
     {
+        if(_ses->_write_offset == wbuffer->size())
+        {
+            _ses->clear_wbuffer();
+            bee::rwlock::wrscoped sesl(_ses->_locker);
+            wbuffer = &_ses->wbuffer();
+            if(wbuffer->size() == _ses->_write_offset)
+            {
+                _ses->forbid_send();
+                return 0;
+            }
+        }
+
         int len = send(_fd, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset, 0);
         if(len > 0)
         {
@@ -475,163 +446,6 @@ int streamio_event::handle_send()
             {
                 perror("send");
                 // close_socket();
-                break;
-            }
-        }
-        if(_ses->_write_offset == wbuffer->size())
-        {
-            _ses->clear_wbuffer();
-            bee::rwlock::wrscoped sesl(_ses->_locker);
-            wbuffer = &_ses->wbuffer();
-            if(wbuffer->size() == 0)
-            {
-                _ses->forbid_send();
-                break;
-            }
-        }
-    }
-
-    _ses->on_send(total_send);
-    return total_send;
-}
-
-sslio_event::sslio_event(int fd, httpsession* ses)
-    : streamio_event(fd, ses), _ssl(ses->get_ssl())
-{
-    _ssl_state = SSL_STATE::HANDSHAKE;
-}
-
-bool sslio_event::do_handshake()
-{
-    int ret = SSL_do_handshake(_ssl);
-    if(ret == 1)
-    {
-        _ssl_state = SSL_STATE::STREAMING;
-        return true;
-    }
-
-    int err = SSL_get_error(_ssl, ret);
-    switch(err)
-    {
-        case SSL_ERROR_WANT_READ:
-        {
-            _ses->permit_recv();
-        }
-        case SSL_ERROR_WANT_WRITE:
-        {
-            _ses->permit_send();
-        }
-        default:
-        {
-            char errbuf[256];
-            ERR_error_string_n(ERR_get_error(), errbuf, sizeof(errbuf));
-            local_log("SSL handshake failed: %s", errbuf);
-            _ssl_state = SSL_STATE::ERROR;
-            close_socket();
-        }
-    }
-    return false;
-}
-
-int sslio_event::handle_recv()
-{
-    if(_ssl_state == SSL_STATE::HANDSHAKE)
-    {
-        if(!do_handshake()) return 0;
-    }
-
-    octets& rbuffer = _ses->rbuffer();
-    size_t free_space = rbuffer.free_space();
-    if(free_space == 0)
-    {
-        _ses->on_recv(rbuffer.size());
-        local_log("recv[fd=%d]: session %lu buffer is fulled, no space to receive data", _fd, _ses->get_sid());
-    }
-    
-    int total_recv = 0;
-    while(true)
-    {
-        size_t free_space = rbuffer.free_space();
-        if(free_space == 0)
-        {
-            local_log("recv[fd=%d]: session %lu buffer is fulled on receiving", _fd, _ses->get_sid());
-            break;
-        }
-
-        char* recv_ptr = rbuffer.end();
-        int len = SSL_read(_ssl, recv_ptr, free_space);
-        if(len > 0)
-        {
-            rbuffer.fast_resize(len);
-            total_recv += len;
-            local_log("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
-                _fd, len, rbuffer.size(), rbuffer.free_space());
-        }
-        else
-        {
-            int err = SSL_get_error(_ssl, len);
-            if(err == SSL_ERROR_WANT_READ) break;
-            if(err == SSL_ERROR_WANT_WRITE)
-            {
-                _ses->permit_send();
-                break;
-            }
-            close_socket();
-            return -1;
-        }
-    }
-    
-    _ses->on_recv(total_recv);
-    return total_recv;
-}
-
-// #include "traffic_shaper.h"
-
-// 优化SSL写操作（减少内存拷贝）
-int sslio_event::handle_send()
-{
-    octets* wbuffer = nullptr;
-    {
-        bee::rwlock::wrscoped sesl(_ses->_locker);
-        wbuffer = &_ses->wbuffer();
-        if(wbuffer->size() == _ses->_write_offset)
-        {
-            _ses->forbid_send();
-            return 0;
-        }
-    }
-
-    int total_send = 0;
-    while(true)
-    {
-        int len = SSL_write(_ssl, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset);
-        if(len > 0)
-        {
-            //local_log("send data:%s", std::string(wbuffer.peek(0), len).data());
-            total_send += len;
-            _ses->_write_offset += len;
-        }
-        else // len < 0
-        {
-            int err = SSL_get_error(_ssl, len);
-            if(err == SSL_ERROR_WANT_WRITE) break;
-            if(err == SSL_ERROR_WANT_READ)
-            {
-                _ses->permit_recv();
-                break;
-            }
-            close_socket();
-            return -1;
-        }
-
-        if(_ses->_write_offset == wbuffer->size())
-        {
-            _ses->clear_wbuffer();
-            bee::rwlock::wrscoped sesl(_ses->_locker);
-            wbuffer = &_ses->wbuffer();
-            if(wbuffer->size() == 0)
-            {
-                _ses->forbid_send();
                 break;
             }
         }
