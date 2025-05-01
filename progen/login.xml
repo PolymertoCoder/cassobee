@@ -23,12 +23,6 @@
         <field name="fieldB" type="std::map&lt;int, std::string&gt;" default="std::map&lt;int, std::string&gt;()"/>
     </rpcdata>
 
-    <protocol name="EmptyProtocol" type="20000" maxsize="1024">
-    </protocol>
-
-    <protocol name="EmptyProtocol2" type="20001" maxsize="1024" codefield="uint32_t">
-    </protocol>
-
     <rpcdata name="EmptyRpcData">
     </rpcdata>
 

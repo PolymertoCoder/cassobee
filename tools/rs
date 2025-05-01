@@ -5,29 +5,28 @@ rootpath=$(cd $(dirname $0) && cd ..; pwd)
 cd $rootpath/bin
 
 if [ -z "$1" ]; then
-    rs cassobee
-    rs logserver
-else
-    process_name=$1
-
-    ks $process_name
-
-    echo start $process_name...
-
-    case process_name in
-        link)
-            command ...
-            ;;
-        *)
-            command bash "run_$1.sh"
-            ;;
-    esac
+    echo "Usage: rs <process_name>"
+    echo "Available process names:"
+    ls -1 | grep -E '^(run_)' | awk '{
+        name = substr($0, 5, length($0) - 7)
+        printf "\t%s\n", name
+    }'
+    exit 1
 fi
 
+process_name=$1
 
+ks $process_name
 
+echo start $process_name...
 
+case process_name in
+    link)
+        command ...
+        ;;
+    *)
+        command bash "run_$1.sh"
+        ;;
+esac
 
-
-
-psall
+echo start $process_name success.

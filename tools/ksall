@@ -1,0 +1,26 @@
+#!/bin/bash
+
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
+procpath=$rootpath/debug/
+
+pgrep -af $procpath | grep -v pgrep | grep -v gdb | awk '{print $1}' | xargs -I {} kill -SIGUSR1 {}
+
+echo "wait all process exit..."
+
+waiting_counter=0
+while true; do
+    running=$(pgrep -af $procpath | grep -v pgrep | grep -v gdb)
+
+    if [ -z "$running" ]; then
+        echo "all process have exited."
+        break
+    fi
+
+    waiting_counter=$((waiting_counter+1))
+    if [ $waiting_counter -gt 10 ]; then
+        echo "waiting for processes to exit timeout."
+        break
+    fi
+
+    sleep 1
+done
