@@ -1,11 +1,10 @@
 #include <sys/epoll.h>
-#include <cstdio>
+#include <sys/eventfd.h>
 
 #include "glog.h"
 #include "demultiplexer.h"
 #include "event.h"
 #include "reactor.h"
-#include "types.h"
 
 namespace bee
 {
@@ -58,7 +57,6 @@ int epoller::add_event(event* ev, int events)
     if(events & EVENT_WAKEUP)
     {
         event.events |= EPOLLIN;
-        // event.events |= (EPOLLET | EPOLLOUT);
     }
 
     int op;
@@ -68,9 +66,8 @@ int epoller::add_event(event* ev, int events)
         ev->set_status(EVENT_STATUS_ADD);
         if(events & EVENT_WAKEUP)
         {
-            _ctrl_event = dynamic_cast<control_event*>(ev);
-            CHECK_BUG(_ctrl_event, );
-            local_log("add wakeup events");  
+            _wakeup_fd = ev->get_handle();
+            local_log("set wakeupfd:%d.", _wakeup_fd);  
         }
     }
     else if(ev->get_status() == EVENT_STATUS_ADD) // 已经加入过epoll
@@ -112,7 +109,7 @@ void epoller::del_event(event* ev)
 void epoller::dispatch(reactor* base, int timeout)
 {
 #ifdef _REENTRANT
-    _wakeup.store(false);
+    _wakeup.store(false, std::memory_order_release);
 #else
     _wakeup = false;
 #endif
@@ -124,11 +121,6 @@ void epoller::dispatch(reactor* base, int timeout)
         perror("epoll_wait");
         return;
     }
-#ifdef _REENTRANT
-    _wakeup.store(true);
-#else
-    _wakeup = true;
-#endif
     local_log("epoller wakeup... timeout=%d nready=%d", timeout, nready);
 
     for(int i = 0; i < nready; i++)
@@ -159,19 +151,20 @@ void epoller::dispatch(reactor* base, int timeout)
 
 void epoller::wakeup()
 {
-    local_log("epoller::wakeup() begin _wakeup=%s", expr2boolstr(_wakeup));
+    if(_wakeup_fd < 0) return;
+    // local_log("epoller::wakeup() begin _wakeup=%s", expr2boolstr(_wakeup));
 #ifdef _REENTRANT
-    if(_ctrl_event == nullptr || _wakeup.exchange(true)) return;
+    if(_wakeup.exchange(true, std::memory_order_acq_rel)) return;
 #else
-    if(_ctrl_event == nullptr || !_wakeup) return;
+    if(_wakeup) return;
+    _wakeup = true;
 #endif
-    // this->add_event(_ctrl_event, EVENT_WAKEUP);
-    char dummy = 0;
-    if(write(_ctrl_event->_control_pipe[1], &dummy, sizeof(dummy)) < 0)
+    static constexpr eventfd_t value = 1;
+    if(write(_wakeup_fd, &value, sizeof(value)) < 0)
     {
-         perror("wakeup write failed");
+        if (errno != EAGAIN) perror("wakeupfd write failed");
     }
-    local_log("epoller::wakeup() run success");
+    // local_log("epoller::wakeup() run success");
 }
 
 } // namespace bee

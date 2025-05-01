@@ -129,7 +129,6 @@ int main(int argc, char* argv[])
     add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
     add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
 
-    /*
     std::thread testlog_thread([]()
     {
         while(true)
@@ -143,7 +142,6 @@ int main(int argc, char* argv[])
         }
     });
     testlog_thread.detach();
-    */
 
     // stress_test();
 

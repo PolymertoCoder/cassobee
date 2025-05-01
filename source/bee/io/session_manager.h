@@ -80,6 +80,7 @@ protected:
     std::unordered_map<SID, session*> _sessions;
 
     // ssl
+    bool _ssl_server = false;
     SSL_CTX* _ssl_ctx = nullptr;
     std::string _cert_path;
     std::string _key_path;

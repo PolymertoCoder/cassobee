@@ -1,8 +1,8 @@
 #pragma once
-#include "common.h"
 #include "types.h"
 #include "format.h"
 #include "log.h"
+#include "logger.h"
 
 namespace bee
 {
@@ -45,8 +45,8 @@ public:
 
     FORCE_INLINE logger* get_console_logger() { return _console_logger; }
     void set_process_name(const std::string& process_name);
-    void set_logserver(logserver_manager* logserver) ATTR_WEAK;
-    void commit_log(LOG_LEVEL level, const log_event& event) ATTR_WEAK;
+    void set_logserver(logserver_manager* logserver);
+    void commit_log(LOG_LEVEL level, const log_event& event);
 
 private:
     bool _is_logserver = false;

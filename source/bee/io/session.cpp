@@ -4,8 +4,10 @@
 #include "ioevent.h"
 #include "protocol.h"
 #include "reactor.h"
-#include "threadpool.h"
 #include "systemtime.h"
+#ifdef _REENTRANT   
+#include "threadpool.h"
+#endif
 
 namespace bee
 {
@@ -88,13 +90,13 @@ void session::close()
 void session::on_recv(size_t len)
 {
     activate();
-    local_log("session::on_recv len=%zu, _readbuf size:%zu _reados size:%zu.", len, _readbuf.size(), _reados.size());
+    // local_log("session::on_recv len=%zu, _readbuf size:%zu _reados size:%zu.", len, _readbuf.size(), _reados.size());
     set_state(SESSION_STATE_RECVING);
 
     size_t append_length = std::min(_readbuf.size(), _reados.data().free_space());
     _reados.data().append(_readbuf, append_length);
     _readbuf.erase(0, append_length);
-    local_log("on_recv append size:%zu, _readbuf size:%zu _reados size:%zu.", append_length, _readbuf.size(), _reados.size());
+    // local_log("on_recv append size:%zu, _readbuf size:%zu _reados size:%zu.", append_length, _readbuf.size(), _reados.size());
 
     while(protocol* prot = protocol::decode(_reados, this))
     {
@@ -106,6 +108,7 @@ void session::on_recv(size_t len)
         });
     #else
         prot->run();
+        delete prot;
     #endif
     }
     _reados.try_shrink();

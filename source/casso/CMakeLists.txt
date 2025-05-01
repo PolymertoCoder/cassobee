@@ -9,9 +9,9 @@ target_include_directories(cassobee
                            ${SOURCE_PATH}/casso/network
 )
 
-target_compile_definitions(bee_r PRIVATE -D_REENTRANT)
+target_compile_definitions(cassobee PRIVATE -D_REENTRANT)
 
-target_link_libraries(cassobee pthread bee_r logclient prot)
+target_link_libraries(cassobee pthread bee_r logclient_r prot)
 
 add_common_flags(cassobee)
 

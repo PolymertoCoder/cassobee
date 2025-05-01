@@ -42,10 +42,10 @@ set(BEE_LINK_LIBS ${CLI_LINK_LIB}
                   ${CMYSQL_LINK_LIB}
 )
 
-target_include_directories(bee PUBLIC ${BEE_PUBLIC_INCLUDES} PRIVATE ${BEE_PRIVATE_INCLUDES})
+target_include_directories(bee   PUBLIC ${BEE_PUBLIC_INCLUDES} PRIVATE ${BEE_PRIVATE_INCLUDES})
 target_include_directories(bee_r PUBLIC ${BEE_PUBLIC_INCLUDES} PRIVATE ${BEE_PRIVATE_INCLUDES})
 
-target_link_libraries(bee ${BEE_LINK_LIBS})
+target_link_libraries(bee   ${BEE_LINK_LIBS})
 target_link_libraries(bee_r ${BEE_LINK_LIBS} atomic)
 
 target_compile_definitions(bee_r PRIVATE -D_REENTRANT)

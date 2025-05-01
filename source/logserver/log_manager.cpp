@@ -14,8 +14,9 @@ void log_manager::init()
     auto cfg = config::get_instance();
     std::string logdir   = cfg->get("log", "dir");
     std::string filename = cfg->get("log", "filename");
+    assert(logdir.size() && filename.size());
 
-    bool asynclog = cfg->get<bool>("log", "asynclog");
+    bool asynclog = cfg->get<bool>("log", "asynclog", false);
     auto loglevel = cfg->get<int>("log", "loglevel", LOG_LEVEL::TRACE);
     if(asynclog)
     {

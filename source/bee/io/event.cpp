@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <unistd.h>
-#include <sys/socket.h>
+#include <sys/eventfd.h>
 #include "glog.h"
 #include "demultiplexer.h"
 #include "reactor.h"
@@ -13,29 +13,34 @@ namespace bee
 control_event::control_event()
 {
     set_events(EVENT_WAKEUP);
-    if(pipe(_control_pipe) == -1)
+    _efd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if(_efd == -1)
     {
-        perror("pipe");
+        perror("eventfd");
         return;
     }
-    set_nonblocking(_control_pipe[0]);
-    set_nonblocking(_control_pipe[1]);
 }
 
 control_event::~control_event()
 {
-    close(_control_pipe[0]);
-    close(_control_pipe[1]);
+    if(_efd >= 0)
+    {
+        close(_efd);
+        _efd = -1;
+    }
 }
 
 bool control_event::handle_event(int active_events)
 {
-    char data;
-    if(int n = read(_control_pipe[0], &data, sizeof(data)); n > 0)
+    static eventfd_t value = 0;
+    if(read(_efd, &value, sizeof(value)) < 0)
     {
-        CHECK_BUG(data == 0, return false);
+        if(errno != EAGAIN)
+        {
+            perror("wakupfd read failed");
+            return false;
+        }
     }
-    local_log("control_event wakeup...");
     return true;
 }
 

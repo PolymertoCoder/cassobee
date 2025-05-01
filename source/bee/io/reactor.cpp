@@ -120,7 +120,6 @@ auto& reactor::get_wakeup()
 
 void reactor::load_event()
 {
-    get_wakeup() = true;
     using changelist_type = decltype(_changelist)::list_type;
     _changelist.read([this](changelist_type& list)
     {
@@ -244,6 +243,11 @@ std::thread start_threadpool_and_timer()
 int add_timer(TIMETYPE timeout, std::function<bool()> handler)
 {
     return add_timer(true, timeout, -1, [handler](void*){ return handler(); }, nullptr);
+}
+
+int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool()> handler)
+{
+    return add_timer(delay, timeout, repeats, [handler](void*){ return handler(); }, nullptr);
 }
 
 int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool(void*)> handler, void* param)

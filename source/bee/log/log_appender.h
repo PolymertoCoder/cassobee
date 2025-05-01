@@ -37,52 +37,41 @@ public:
     virtual void log(LOG_LEVEL level, const log_event& event) override;
 };
 
-// 负责日志的流转功能
-class rotate_log_support
+// 支持日志流转功能的appender
+class rotatable_log_appender : public log_appender
 {
 public:
-    virtual ~rotate_log_support() = default;
-    virtual bool is_rotate() = 0;
-    FORCE_INLINE const char* get_suffix() { return _suffix.c_str(); }
+    class log_rotater;
+    class time_log_rotater;
 
-protected:
-    std::string _suffix;
-};
-
-// 根据时间流转日志
-class time_rotater : public rotate_log_support
-{
 public:
-    enum ROTATE_TYPE
-    {
-        ROTATE_TYPE_HOUR,
-        ROTATE_TYPE_DAY,
-    };
-    time_rotater(ROTATE_TYPE rotate_type);
-    virtual ~time_rotater() = default;
-    bool update(TIMETYPE curtime);
-    virtual bool is_rotate() override;
+    rotatable_log_appender(log_rotater* rotater);
+    virtual ~rotatable_log_appender();
+    virtual bool rotate() = 0;
+    std::string get_suffix();
 
 private:
-    ROTATE_TYPE _rotate_type;
-    TIMETYPE    _next_rotate_time = 0; // 下一次分割日志的时间
+    log_rotater* _rotater; 
 };
 
 // 日志输出到文件
-class file_appender : public log_appender
+class file_appender : public rotatable_log_appender
 {
 public:
     file_appender(std::string logdir, std::string filename);
     ~file_appender();
+    virtual bool rotate() override;
     virtual void log(LOG_LEVEL level, const log_event& event) override;
 
 protected:
     bool reopen();
 
 protected:
+#ifdef _REENTRANT
     std::atomic_bool _running = false;
-    int _check_rotate_timerid = -1;
-    rotate_log_support* _rotater; 
+#else
+    bool _running = false;
+#endif
 
     std::string  _filedir;
     std::string  _filename;

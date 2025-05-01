@@ -100,7 +100,8 @@ void session_manager::init()
     // ssl
     if(cfg->get<bool>(identity(), "ssl_enabled", false))
     {
-        assert(init_ssl(cfg->get<bool>(identity(), "ssl_server", false)));
+        _ssl_server = cfg->get<bool>(identity(), "ssl_server", false);
+        assert(init_ssl(_ssl_server));
     }
     else
     {

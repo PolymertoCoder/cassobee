@@ -12,7 +12,7 @@ class reactor;
 class demultiplexer
 {
 public:
-    virtual ~demultiplexer() { delete _ctrl_event; }
+    virtual ~demultiplexer() = default;
     virtual bool init() = 0;
     virtual int  add_event(event* ev, int events) = 0;
     virtual void del_event(event* ev) = 0;
@@ -27,7 +27,7 @@ protected:
 #else
     bool _wakeup = false;
 #endif
-    control_event* _ctrl_event = nullptr;
+    int _wakeup_fd = -1;
 };
 
 class epoller : public demultiplexer

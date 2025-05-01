@@ -295,9 +295,9 @@ bool activeio_event::handle_event(int active_events)
     evt->set_events(EVENT_RECV | EVENT_SEND | EVENT_HUP);
     evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
+    local_log("activeio_event handle_event run fd=%d.", _fd);
     _fd = -1;
     _ses = nullptr;
-    local_log("activeio_event handle_event run fd=%d.", _fd);
     return true;
 }
 
@@ -385,8 +385,8 @@ int streamio_event::handle_recv()
             if(errno == EAGAIN || errno == EINTR)
             {
                 // 非阻塞模式下的正常情况，不需要额外处理
-                local_log("recv[fd=%d]: temporary error (errno=%d: %s), buffer size=%zu, free space=%zu",
-                    _fd, errno, strerror(errno), rbuffer.size(), rbuffer.free_space());
+                // local_log("recv[fd=%d]: temporary error (errno=%d: %s), buffer size=%zu, free space=%zu",
+                //     _fd, errno, strerror(errno), rbuffer.size(), rbuffer.free_space());
                 break;
             }
             else
@@ -407,22 +407,19 @@ int streamio_event::handle_recv()
 int streamio_event::handle_send()
 {
     octets* wbuffer = nullptr;
-    int total_send = 0;
+    {
+        bee::rwlock::wrscoped sesl(_ses->_locker);
+        wbuffer = &_ses->wbuffer();
+        if(wbuffer->size() == 0)
+        {
+            _ses->forbid_send();
+            return 0;
+        }
+    }
 
+    int total_send = 0;
     while(true)
     {
-        if(_ses->_write_offset == wbuffer->size())
-        {
-            _ses->clear_wbuffer();
-            bee::rwlock::wrscoped sesl(_ses->_locker);
-            wbuffer = &_ses->wbuffer();
-            if(wbuffer->size() == _ses->_write_offset)
-            {
-                _ses->forbid_send();
-                return 0;
-            }
-        }
-
         int len = send(_fd, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset, 0);
         if(len > 0)
         {
@@ -446,6 +443,18 @@ int streamio_event::handle_send()
             {
                 perror("send");
                 // close_socket();
+                break;
+            }
+        }
+
+        if(_ses->_write_offset == wbuffer->size())
+        {
+            _ses->clear_wbuffer();
+            bee::rwlock::wrscoped sesl(_ses->_locker);
+            wbuffer = &_ses->wbuffer();
+            if(wbuffer->size() == _ses->_write_offset)
+            {
+                _ses->forbid_send();
                 break;
             }
         }

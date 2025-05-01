@@ -24,28 +24,26 @@ void logclient::init()
 
 void logclient::glog(LOG_LEVEL level, const char* filename, int line, std::string content)
 {
-    g_logevent.process_name = _process_name;
-    g_logevent.filename = filename;
-    g_logevent.line = line;
-    g_logevent.timestamp = systemtime::get_time();
-    g_logevent.threadid = gettid();
-    g_logevent.fiberid = 0;
-    g_logevent.elapse = std::to_string(get_process_elapse());
-    g_logevent.content = std::move(content);
+    g_logevent.set_process_name(_process_name);
+    g_logevent.set_filename(filename);
+    g_logevent.set_line(line);
+    g_logevent.set_timestamp(systemtime::get_time());
+    g_logevent.set_threadid(gettid());
+    g_logevent.set_elapse(std::to_string(get_process_elapse()));
+    g_logevent.set_content(std::move(content));
 
     commit_log(level, g_logevent);
 }
 
 void logclient::console_log(LOG_LEVEL level, const char* filename, int line, std::string content)
 {
-    g_logevent.process_name = _process_name;
-    g_logevent.filename = filename;
-    g_logevent.line = line;
-    g_logevent.timestamp = systemtime::get_time();
-    g_logevent.threadid = gettid();
-    g_logevent.fiberid = 0;
-    g_logevent.elapse = std::to_string(get_process_elapse());
-    g_logevent.content = std::move(content);
+    g_logevent.set_process_name(_process_name);
+    g_logevent.set_filename(filename);
+    g_logevent.set_line(line);
+    g_logevent.set_timestamp(systemtime::get_time());
+    g_logevent.set_threadid(gettid());
+    g_logevent.set_elapse(std::to_string(get_process_elapse()));
+    g_logevent.set_content(std::move(content));
 
     _console_logger->log(level, g_logevent);
 }
@@ -100,11 +98,11 @@ void logclient::set_process_name(const std::string& process_name)
     _process_name = process_name;
 }
 
-void logclient::set_logserver(logserver_manager* logserver)
+ATTR_WEAK void logclient::set_logserver(logserver_manager* logserver)
 {
 }
 
-void logclient::commit_log(LOG_LEVEL level, const log_event& event)
+ATTR_WEAK void logclient::commit_log(LOG_LEVEL level, const log_event& event)
 {
     _console_logger->log(level, event);
 }

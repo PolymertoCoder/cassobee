@@ -125,9 +125,9 @@ bool ssl_activeio_event::handle_event(int active_events)
     evt->set_events(EVENT_RECV | EVENT_SEND | EVENT_HUP);
     evt->set_status(EVENT_STATUS_ADD);
     _base->add_event(evt);
+    local_log("ssl_activeio_event handle_event run fd=%d.", _fd);
     _fd = -1;
     _ses = nullptr;
-    local_log("ssl_activeio_event handle_event run fd=%d.", _fd);
     return true;
 }
 
@@ -267,22 +267,19 @@ int sslio_event::handle_recv()
 int sslio_event::handle_send()
 {
     octets* wbuffer = nullptr;
-    int total_send = 0;
+    {
+        bee::rwlock::wrscoped sesl(_ses->_locker);
+        wbuffer = &_ses->wbuffer();
+        if(wbuffer->size() == 0)
+        {
+            _ses->forbid_send();
+            return 0;
+        }
+    }
 
+    int total_send = 0;
     while(true)
     {
-        if(_ses->_write_offset == wbuffer->size())
-        {
-            _ses->clear_wbuffer();
-            bee::rwlock::wrscoped sesl(_ses->_locker);
-            wbuffer = &_ses->wbuffer();
-            if(wbuffer->size() == _ses->_write_offset)
-            {
-                _ses->forbid_send();
-                return 0;
-            }
-        }
-
         int len = SSL_write(_ssl, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset);
         if(len > 0)
         {
@@ -313,6 +310,18 @@ int sslio_event::handle_send()
             close_socket();
             local_log("sslio_event handle_send error fd=%d", _fd);
             return -1;
+        }
+
+        if(_ses->_write_offset == wbuffer->size())
+        {
+            _ses->clear_wbuffer();
+            bee::rwlock::wrscoped sesl(_ses->_locker);
+            wbuffer = &_ses->wbuffer();
+            if(wbuffer->size() == _ses->_write_offset)
+            {
+                _ses->forbid_send();
+                break;
+            }
         }
     }
 
