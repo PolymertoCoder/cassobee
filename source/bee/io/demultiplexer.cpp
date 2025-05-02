@@ -121,7 +121,7 @@ void epoller::dispatch(reactor* base, int timeout)
         perror("epoll_wait");
         return;
     }
-    local_log("epoller wakeup... timeout=%d nready=%d", timeout, nready);
+    // local_log("epoller wakeup... timeout=%d nready=%d", timeout, nready);
 
     for(int i = 0; i < nready; i++)
     {
@@ -154,7 +154,7 @@ void epoller::wakeup()
     if(_wakeup_fd < 0) return;
     // local_log("epoller::wakeup() begin _wakeup=%s", expr2boolstr(_wakeup));
 #ifdef _REENTRANT
-    if(_wakeup.exchange(true, std::memory_order_acq_rel)) return;
+    if(_wakeup.exchange(true, std::memory_order_release)) return;
 #else
     if(_wakeup) return;
     _wakeup = true;

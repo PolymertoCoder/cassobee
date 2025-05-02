@@ -2,10 +2,12 @@
 #include <stddef.h>
 #include <condition_variable>
 #include <fstream>
-#include <atomic>
 #include <mutex>
 #include <string>
 #include <thread>
+#ifdef _REENTRANT
+#include <atomic>
+#endif
 
 #include "glog.h"
 #include "ring_buffer.h"
@@ -67,12 +69,6 @@ protected:
     bool reopen();
 
 protected:
-#ifdef _REENTRANT
-    std::atomic_bool _running = false;
-#else
-    bool _running = false;
-#endif
-
     std::string  _filedir;
     std::string  _filename;
     std::string  _filepath;
@@ -91,12 +87,17 @@ public:
     void stop();
 
 private:
-    template<size_t N> using buffer_type = bee::ring_buffer<N>;
+    using buffer_type = bee::ring_buffer<4096*128>;
     TIMETYPE _timeout = 0; // ms
     size_t   _threshold = 0;
+#ifdef _REENTRANT
+    std::atomic_bool _running = false;
+#else
+    bool _running = false;
+#endif
     std::condition_variable _cond;
     std::thread* _thread = nullptr;
-    buffer_type<4096*128> _buf;
+    buffer_type _buf;
 };
 
 }

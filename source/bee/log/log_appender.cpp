@@ -1,8 +1,10 @@
+#include <atomic>
 #include <filesystem>
 #include <errno.h>
 #include <stdint.h>
 #include <cstdio>
 #include <string>
+#include <system_error>
 
 #include "log_appender.h"
 #include "config.h"
@@ -27,8 +29,8 @@ void console_appender::log(LOG_LEVEL level, const log_event& event)
 #ifdef _REENTRANT
     std::unique_lock<std::mutex> lock(_locker);
 #endif
-    printf("%s", msg.data());
-    fflush(stdout);
+    std::fwrite(msg.data(), 1, msg.size(), stdout);
+    std::fflush(stdout);
 }
 
 ///////////////////////////////// log_rotater begin ///////////////////////////////
@@ -91,26 +93,24 @@ public:
     bool update(TIMETYPE curtime)
     {
         tm tm_val = systemtime::get_local_time();
+        char suffix[16];
         switch(_rotate_type)
         {
             case ROTATE_TYPE_HOUR:
             {
                 // 按小时分割日志并命名 yyyymmddhh
-                uint64_t suffix = static_cast<uint64_t>(tm_val.tm_year + 1900) * 1000000 +
-                                  static_cast<uint64_t>(tm_val.tm_mon + 1) * 10000 +
-                                  static_cast<uint64_t>(tm_val.tm_mday) * 100 +
-                                  static_cast<uint64_t>(tm_val.tm_hour);
-                _suffix = std::to_string(suffix);
+                std::snprintf(suffix, sizeof(suffix), "%04d%02d%02d%02d", 
+                        tm_val.tm_year + 1900, tm_val.tm_mon + 1, tm_val.tm_mday, tm_val.tm_hour);
+                _suffix = suffix;
                 _next_rotate_time = systemtime::get_nexthour_start(curtime);
                 break;
             }
             case ROTATE_TYPE_DAY:
             {
                 // 按自然日分割日志并命名 yyyymmdd
-                uint64_t suffix = static_cast<uint64_t>(tm_val.tm_year + 1900) * 10000 +
-                                  static_cast<uint64_t>(tm_val.tm_mon + 1) * 100 +
-                                  static_cast<uint64_t>(tm_val.tm_mday);
-                _suffix = std::to_string(suffix);
+                std::snprintf(suffix, sizeof(suffix), "%04d%02d%02d",
+                        tm_val.tm_year + 1900, tm_val.tm_mon + 1, tm_val.tm_mday);
+                _suffix = suffix;
                 _next_rotate_time = systemtime::get_nextday_start(curtime);
                 break;
             }
@@ -159,14 +159,13 @@ file_appender::file_appender(std::string filedir, std::string filename)
         _filedir = ".";
     }
 
-    if(!std::filesystem::create_directories(_filedir.data()) && errno != EEXIST)
+    if(std::error_code ec; !std::filesystem::create_directories(_filedir.data(), ec) && ec)
     {
-        printf("create directory failed, dir:%s err:%s\n", _filedir.data(), strerror(errno));
+        printf("create directory failed, dir:%s err:%s\n", _filedir.data(), ec.message().data());
         return;
     }
 
     reopen();
-    _running = true;
 }
 
 file_appender::~file_appender()
@@ -187,7 +186,6 @@ bool file_appender::rotate()
 
 void file_appender::log(LOG_LEVEL level, const log_event& event)
 {
-    if(!_running) return;
     std::string msg = _formatter->format(level, event);
 
 #ifdef _REENTRANT
@@ -225,7 +223,11 @@ async_appender::~async_appender()
 
 void async_appender::log(LOG_LEVEL level, const log_event& event)
 {
+#ifdef _REENTRANT
+    if(_running.load(std::memory_order_acquire) == false) return;
+#else
     if(!_running) return;
+#endif
     std::string msg = _formatter->format(level, event);
 
     std::unique_lock<std::mutex> lock(_locker);
@@ -244,11 +246,20 @@ void async_appender::log(LOG_LEVEL level, const log_event& event)
 
 void async_appender::start()
 {
+#ifdef _REENTRANT
+    _running.store(true);
+#else
     _running = true;
+#endif
     _thread = new std::thread([this]()
     {
-        while(_running)
+        while(true)
         {
+        #ifdef _REENTRANT
+            if(!_running.load(std::memory_order_acquire)) break;
+        #else
+            if(!_running) break;
+        #endif
             std::unique_lock<std::mutex> lock(_locker);
             while(_buf.empty())
             {
@@ -267,8 +278,12 @@ void async_appender::start()
 
 void async_appender::stop()
 {
+#ifdef _REENTRANT
+    if(!_running.exchange(false, std::memory_order_release)) return;
+#else
     if(!_running) return;
     _running = false;
+#endif
     _cond.notify_one();
     if(_thread->joinable())
     {
