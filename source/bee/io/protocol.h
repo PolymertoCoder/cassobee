@@ -16,6 +16,7 @@ class ostringstream;
 class protocol : public marshal
 {
 public:
+    CLASS_EXCEPTION_DEFINE(exception);
     protocol() = default;
     protocol(PROTOCOLID type) : _type(type) { assert(register_protocol(type, this)); }
     protocol(const protocol&) = default;

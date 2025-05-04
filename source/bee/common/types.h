@@ -77,4 +77,17 @@ protected:
     singleton_support& operator=(const singleton_support&&) = delete;
 };
 
+#define CLASS_EXCEPTION_DEFINE(name) \
+    class name : public std::exception /*NOLINT*/ \
+    { \
+    public: \
+        exception(const char* msg) : _msg(msg) {} \
+        FORCE_INLINE virtual const char* what() const noexcept override \
+        { \
+            return _msg.data(); \
+        } \
+    private: \
+        std::string _msg; \
+    };
+
 } // namespace bee

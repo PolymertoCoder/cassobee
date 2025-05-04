@@ -21,18 +21,7 @@ public:
 class octetsstream
 {
 public:
-    class exception : public std::exception
-    {
-    public:
-        exception(const char* msg) : _msg(msg) {}
-        FORCE_INLINE virtual const char* what() const noexcept override
-        {
-            return _msg.data();
-        }
-    private:
-        std::string _msg; 
-    };
-
+    CLASS_EXCEPTION_DEFINE(exception);
     enum Transaction : uint8_t
     {
         BEGIN,

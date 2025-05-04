@@ -334,12 +334,12 @@ bool streamio_event::handle_event(int active_events)
     if(active_events & EVENT_RECV)
     {
         handle_recv();
-        local_log("streamio_event handle_event EVENT_RECV fd=%d", _fd);
+        // local_log("streamio_event handle_event EVENT_RECV fd=%d", _fd);
     }
     if(active_events & EVENT_SEND)
     {
         handle_send();
-        local_log("streamio_event handle_event EVENT_SEND fd=%d", _fd);
+        // local_log("streamio_event handle_event EVENT_SEND fd=%d", _fd);
     }
     return true;
 }

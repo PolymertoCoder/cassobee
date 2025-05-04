@@ -11,6 +11,7 @@ namespace bee
 constexpr PROTOCOLID PROTOCOL_TYPE_HTTPREQUEST  = 200001;
 constexpr PROTOCOLID PROTOCOL_TYPE_HTTPRESPONCE = 200002;
 
+class httpsession;
 class httprequest;
 class httpresponse;
 
@@ -28,7 +29,7 @@ public:
     virtual octetsstream& unpack(octetsstream& os) override;
 
     virtual void encode(octetsstream& os) const override;
-    static httpprotocol* decode(octetsstream& os, session* ses); 
+    static httpprotocol* decode(octetsstream& os, httpsession* httpses);
 
     static httprequest*  get_request();
     static httpresponse* get_response();
@@ -57,7 +58,13 @@ public:
     void del_cookie(const std::string& key) { _cookies.erase(key); }
 
 protected:
+    void on_parse_header_finished();
+
+protected:
     friend class httpsession;
+    HTTP_PARSE_STATE _parse_state = HTTP_PARSE_STATE_NONE;
+    bool _is_chunked = false;
+    size_t _chunk_size = 0;
     bool _is_websocket = false;
     bool _is_keepalive = false;
     HTTP_VERSION _version;

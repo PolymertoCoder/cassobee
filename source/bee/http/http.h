@@ -117,6 +117,19 @@ enum HTTP_VERSION
 #undef X
 };
 
+enum HTTP_PARSE_STATE
+{
+    HTTP_PARSE_STATE_NONE = 0,
+    HTTP_PARSE_STATE_FIRST_LINE,
+    HTTP_PARSE_STATE_HEADER,
+    HTTP_PARSE_STATE_BODY,
+    HTTP_PARSE_STATE_CHUNKED_SIZE,
+    HTTP_PARSE_STATE_CHUNKED_DATA,
+    HTTP_PARSE_STATE_CHUNKED_END,
+    HTTP_PARSE_STATE_COMPLETE,
+    HTTP_PARSE_STATE_ERROR,
+};
+
 std::string http_method_to_string(HTTP_METHOD method);
 HTTP_METHOD string_to_http_method(const std::string& method);
 

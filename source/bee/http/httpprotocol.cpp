@@ -2,9 +2,13 @@
 #include "config.h"
 #include "glog.h"
 #include "http.h"
+#include "httpsession.h"
+#include "log.h"
 #include "marshal.h"
 #include "session.h"
+#include <cctype>
 #include <cstdlib>
+#include <string>
 
 namespace bee
 {
@@ -64,7 +68,7 @@ octetsstream& httpprotocol::pack(octetsstream& os) const
     {
         oss << key << ": " << value << "\r\n";
     }
-    oss << "Content-Length: " << _body.size() << "\r\n\r\n";
+    oss << "content-length: " << _body.size() << "\r\n\r\n";
     oss << _body;
     os << oss.str();
     return os;
@@ -73,54 +77,98 @@ octetsstream& httpprotocol::pack(octetsstream& os) const
 octetsstream& httpprotocol::unpack(octetsstream& os)
 {
     std::string line;
+    auto _getline = [&]()
+    {
+        if(_parse_state == HTTP_PARSE_STATE_BODY || _parse_state == HTTP_PARSE_STATE_CHUNKED_DATA)
+            return true;
+        return getline(os, line);
+    };
 
     try
     {
-        while(getline(os, line) && line != "\r")
+        while(_getline())
         {
-            size_t colon = line.find(':');
-            if(colon != std::string::npos)
+            switch(_parse_state)
             {
-                std::string key = line.substr(0, colon);
-                std::string value = line.substr(colon + 2, line.size() - colon - 3); // Remove ": " and "\r"
-                _headers[key] = value;
-
-                if(key == "Connection")
+                case HTTP_PARSE_STATE_HEADER:
                 {
-                    if(_version == HTTP_VERSION_1_0)
+                    if(line != "\r")
                     {
-                        if(strcasecmp(value.data(), "close") == 0)
+                        size_t colon = line.find(':');
+                        if(colon != std::string::npos)
                         {
-                            _is_keepalive = false;
-                        }
-                        else if(strcasecmp(value.data(), "keep-alive") == 0)
-                        {
-                            _is_keepalive = true;
-                        }
-                    }
-                    else if(_version == HTTP_VERSION_1_1)
-                    {
-                        if(strcasecmp(value.data(), "close") == 0)
-                        {
-                            _is_keepalive = false;
+                            std::string key = line.substr(0, colon);
+                            std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+                            std::string value = line.substr(colon + 2, line.size() - colon - 3); // Remove ": " and "\r"
+                            std::transform(value.begin(), value.end(), value.begin(), ::tolower);
+                            _headers[key] = value;
                         }
                     }
-                    if(strcasecmp(value.data(), "Upgrade") == 0)
+                    else
                     {
-                        _is_websocket = true;
+                        on_parse_header_finished();
+                        if(_is_chunked)
+                        {
+                            _parse_state = HTTP_PARSE_STATE_CHUNKED_SIZE;
+                        }
+                        else
+                        {
+                            _parse_state = HTTP_PARSE_STATE_BODY;
+                        }
                     }
-                }
+                } break;
+                case HTTP_PARSE_STATE_BODY:
+                {
+                    if(auto content_length = get_header("content-length"); content_length.size())
+                    {
+                        os >> octetsstream::BEGIN;
+                        int len = std::stoul(content_length);
+                        if(!os.data_ready(len))
+                        {
+                            os >> octetsstream::ROLLBACK;
+                            break;
+                        }
+                        size_t pos = os.get_pos();
+                        _body = std::string(os.data()[pos], len);
+                        os.advance(len + 2); // skip \r\n
+                        os >> octetsstream::COMMIT;
+                        _parse_state = HTTP_PARSE_STATE_COMPLETE;
+                    }
+                } break;
+                case HTTP_PARSE_STATE_CHUNKED_SIZE:
+                {
+                    _chunk_size = std::stoul(line);
+                    if(_chunk_size == 0) // chunked body end
+                    {
+                        _parse_state = HTTP_PARSE_STATE_COMPLETE;
+                    }
+                    else
+                    {
+                        _parse_state = HTTP_PARSE_STATE_CHUNKED_DATA;
+                    }
+                } break;
+                case HTTP_PARSE_STATE_CHUNKED_DATA:
+                {
+                    os >> octetsstream::BEGIN;
+                    if(!os.data_ready(_chunk_size))
+                    {
+                        os >> octetsstream::ROLLBACK;
+                        break;
+                    }
+                    size_t pos = os.get_pos();
+                    _body.append(os.data()[pos], _chunk_size);
+                    os.advance(_chunk_size + 2); // skip \r\n
+                    os >> octetsstream::COMMIT;
+                    _chunk_size = 0;
+                    _parse_state = HTTP_PARSE_STATE_CHUNKED_SIZE;
+                } break;
+                default: { break; }
             }
         }
-
-        if(!os.data_ready(1))
+        if(_parse_state == HTTP_PARSE_STATE_COMPLETE)
         {
-            throw std::runtime_error("Malformed HTTP headers");
+            local_log("HTTP protocol unpacked successfully.");
         }
-
-        size_t pos = os.get_pos();
-        int len = os.size() - pos;
-        _body = std::string(os.data()[pos], len);
     }
     catch(const std::exception& e)
     {
@@ -136,26 +184,50 @@ void httpprotocol::encode(octetsstream& os) const
     
 }
 
-httpprotocol* httpprotocol::decode(octetsstream& os, session* ses)
+httpprotocol* httpprotocol::decode(octetsstream& os, httpsession* httpses)
 {
     if(!os.data_ready(1)) return nullptr;
     try
     {
-        auto req = get_request();
+        httpprotocol* prot = httpses->get_unfinished_protocol();
+        if(!prot) // new protocol
+        {
+            os >> octetsstream::BEGIN;
+            std::string start_line;
+            getline(os, start_line);
+            if(start_line.starts_with("HTTP/"))
+            {
+                prot = get_response();
+            }
+            else
+            {
+                prot = get_request();
+            }
+            os >> octetsstream::ROLLBACK;
+        }
 
-        auto rsp = get_response();
-        req->unpack(os);
-        rsp->unpack(os);
+        prot->unpack(os);
+
+        if(prot->_parse_state == HTTP_PARSE_STATE_COMPLETE) // 解析完成了
+        {
+            httpses->set_unfinished_protocol(nullptr);
+            return prot;
+        }
+        else
+        {
+            httpses->set_unfinished_protocol(prot);
+            return nullptr;
+        }
     }
     catch(octetsstream::exception& e)
     {
-        ses->close();
-        //local_log("protocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
+        httpses->close();
+        // local_log("httpprotocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
     }
     catch(...)
     {
-        ses->close();
-        //local_log("protocol decode failed, id=%d size=%zu.", id, size);
+        httpses->close();
+        // local_log("httpprotocol decode failed, id=%d size=%zu.", id, size);
     }
     os >> octetsstream::ROLLBACK;
     return nullptr;
@@ -171,6 +243,34 @@ httpresponse* httpprotocol::get_response()
 {
     auto rsp = get_protocol(httpresponse::TYPE);
     return (httpresponse*)(rsp->dup());
+}
+
+void httpprotocol::on_parse_header_finished()
+{
+    if(auto value = get_header("connection"); value.size())
+    {
+        if(strcasecmp(value.data(), "close") == 0)
+        {
+            _is_keepalive = false;
+        }
+        else if(strcasecmp(value.data(), "keep-alive") == 0)
+        {
+            _is_keepalive = true;
+        }
+        else if(strcasecmp(value.data(), "upgrade") == 0)
+        {
+            _is_websocket = true;
+        }
+    }
+
+    if(auto value = get_header("transfer-encoding"); value.size())
+    {
+        if(strcasecmp(value.data(), "chunked") == 0)
+        {
+            _is_chunked = true;
+            _is_keepalive = true; // 分块传输需要维持长连接
+        }
+    }
 }
 
 // httprequest implementation
@@ -200,24 +300,34 @@ octetsstream& httprequest::pack(octetsstream& os) const
 octetsstream& httprequest::unpack(octetsstream& os)
 {
     // 解析请求行
-    std::string line;
-    getline(os, line);
-    if(line.empty()) throw std::runtime_error("Empty request line");
+    if(_parse_state == HTTP_PARSE_STATE_NONE)
+    {
+        _parse_state = HTTP_PARSE_STATE_FIRST_LINE;
+    }
 
-    // method
-    size_t method_end = line.find(' ');
-    _method = string_to_http_method(line.substr(0, method_end));
-    if(_method == HTTP_METHOD_UNKNOWN) throw std::runtime_error("Unknown HTTP method");
+    if(_parse_state == HTTP_PARSE_STATE_FIRST_LINE)
+    {
+        std::string line;
+        if(!getline(os, line)) return os;
+        if(line.empty()) throw exception("Empty request line");
 
-    // url
-    size_t url_end = line.find(' ', method_end + 1);
-    _url = line.substr(method_end + 1, url_end - method_end - 1);
-    if(_url.empty()) throw std::runtime_error("Empty URL");
+        // method
+        size_t method_end = line.find(' ');
+        _method = string_to_http_method(line.substr(0, method_end));
+        if(_method == HTTP_METHOD_UNKNOWN) throw exception("Unknown HTTP method");
 
-    // version
-    _version = string_to_http_version(line.substr(url_end + 1));
-    if(_version == HTTP_VERSION_UNKNOWN) throw std::runtime_error("Unknown HTTP version");
-    
+        // url
+        size_t url_end = line.find(' ', method_end + 1);
+        _url = line.substr(method_end + 1, url_end - method_end - 1);
+        if(_url.empty()) throw exception("Empty URL");
+
+        // version
+        _version = string_to_http_version(line.substr(url_end + 1));
+        if(_version == HTTP_VERSION_UNKNOWN) throw exception("Unknown HTTP version");
+
+        _parse_state = HTTP_PARSE_STATE_HEADER;
+    }
+
     httpprotocol::unpack(os);
     return os;
 }
@@ -248,20 +358,31 @@ octetsstream& httpresponse::pack(octetsstream& os) const
 
 octetsstream& httpresponse::unpack(octetsstream& os)
 {
-    // 解析状态行
-    std::string line;
-    getline(os, line);
+    if(_parse_state == HTTP_PARSE_STATE_NONE)
+    {
+        _parse_state = HTTP_PARSE_STATE_FIRST_LINE;
+    }
 
-    // version
-    size_t version_end = line.find(' ');
-    _version = string_to_http_version(line.substr(0, version_end));
-    if(_version == HTTP_VERSION_UNKNOWN) throw std::runtime_error("Unknown HTTP version");
+    if(_parse_state == HTTP_PARSE_STATE_FIRST_LINE)
+    {
+        // 解析状态行
+        std::string line;
+        if(!getline(os, line)) return os;
+        if(line.empty()) throw exception("Empty request line");
 
-    // status
-    size_t status_end = line.find(' ', version_end + 1);
-    std::string status_code(line.data() + version_end + 1, status_end - version_end - 1);
-    _status = (HTTP_STATUS)(std::atoi(status_code.data()));
-    if(_status == HTTP_STATUS_UNKNOWN) throw std::runtime_error("Unknown HTTP status");
+        // version
+        size_t version_end = line.find(' ');
+        _version = string_to_http_version(line.substr(0, version_end));
+        if(_version == HTTP_VERSION_UNKNOWN) throw std::runtime_error("Unknown HTTP version");
+
+        // status
+        size_t status_end = line.find(' ', version_end + 1);
+        std::string status_code(line.data() + version_end + 1, status_end - version_end - 1);
+        _status = (HTTP_STATUS)(std::atoi(status_code.data()));
+        if(_status == HTTP_STATUS_UNKNOWN) throw std::runtime_error("Unknown HTTP status");
+
+        _parse_state = HTTP_PARSE_STATE_HEADER;
+    }
 
     httpprotocol::unpack(os);
     return os;
