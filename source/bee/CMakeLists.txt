@@ -29,6 +29,7 @@ set(BEE_PUBLIC_INCLUDES ${SOURCE_PATH}/bee/common
                         ${SOURCE_PATH}/bee/cli
                         ${SOURCE_PATH}/bee/database
                         ${SOURCE_PATH}/bee/http
+                        ${SOURCE_PATH}/bee/http/servlets
                         ${SOURCE_PATH}/protocol
                         ${SOURCE_PATH}/protocol/include
 )

@@ -10,6 +10,7 @@ namespace bee
 
 class httprequest;
 class httpresponse;
+class servlet_dispatcher;
 
 class httpsession_manager : public session_manager
 {
@@ -41,6 +42,7 @@ protected:
         TIMETYPE timeout;
     };
     std::deque<pending_request> _pending_requests;
+    servlet_dispatcher* _dispatcher = nullptr;
 };
 
 } // namespace bee

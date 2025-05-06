@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <stddef.h>
 #include <sys/types.h>
 #include <string>
@@ -52,9 +53,9 @@ void set_process_affinity(int num);
 std::string format_string(const char* fmt, ...) FORMAT_PRINT_CHECK(1, 2);
 
 // string op
-std::string ltrim(const std::string& str, const char c = ' ');
-std::string rtrim(const std::string& str, const char c = ' ');
-std::string trim(const std::string_view& str, const char c = ' ');
+std::string ltrim(const std::string& str, const char* delim = " ");
+std::string rtrim(const std::string& str, const char* delim = " ");
+std::string trim(const std::string_view& str, const char* delim = " ");
 std::vector<std::string> split(const std::string_view& str, const char* delim = " ");
 bool startswith(const std::string_view& str, const std::string_view& prefix);
 bool endswith(const std::string_view& str, const std::string_view& suffix);

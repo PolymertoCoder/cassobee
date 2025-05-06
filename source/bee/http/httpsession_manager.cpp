@@ -3,6 +3,8 @@
 #include "httpsession.h"
 #include "config.h"
 #include "session_manager.h"
+#include "servlet.h"
+#include "config_servlet.h"
 #include "glog.h"
 #include "httpprotocol.h"
 #include "systemtime.h"
@@ -22,6 +24,10 @@ httpsession_manager::~httpsession_manager()
     {
         SSL_CTX_free(_ssl_ctx);
     }
+    if(_dispatcher)
+    {
+        delete _dispatcher;
+    }
 }
 
 void httpsession_manager::init()
@@ -30,6 +36,8 @@ void httpsession_manager::init()
     auto cfg = config::get_instance();
     _max_requests = cfg->get<int>(identity(), "max_requests");
     _request_timeout = cfg->get<int>(identity(), "request_timeout");
+    _dispatcher = new servlet_dispatcher;
+    _dispatcher->add_servlet("/_/config", new config_servlet);
 }
 
 void httpsession_manager::on_add_session(SID sid)

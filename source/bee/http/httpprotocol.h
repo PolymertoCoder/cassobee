@@ -104,7 +104,15 @@ public:
     const std::string& get_fragment() const { return _fragment; }
 
     void set_param(const std::string& key, const std::string& value) { _params[key] = value; }
+    const std::string& get_param(const std::string& key) const;
     void del_param(const std::string& key) { _params.erase(key); }
+
+protected:
+    using trim_func_type = std::function<std::string(const std::string_view&)>;
+    void parse_param(const std::string& str, MAP_TYPE& params, const char* flag, trim_func_type trim_func = {});
+    void init_query_param();
+    void init_body_param();
+    void init_cookies();
 
 private:
     HTTP_METHOD _method;

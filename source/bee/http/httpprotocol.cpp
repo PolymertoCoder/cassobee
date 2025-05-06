@@ -6,6 +6,7 @@
 #include "log.h"
 #include "marshal.h"
 #include "session.h"
+#include "util.h"
 #include <cctype>
 #include <cstdlib>
 #include <string>
@@ -247,25 +248,25 @@ httpresponse* httpprotocol::get_response()
 
 void httpprotocol::on_parse_header_finished()
 {
-    if(auto value = get_header("connection"); value.size())
+    if(auto connection = get_header("connection"); connection.size())
     {
-        if(strcasecmp(value.data(), "close") == 0)
+        if(strcasecmp(connection.data(), "close") == 0)
         {
             _is_keepalive = false;
         }
-        else if(strcasecmp(value.data(), "keep-alive") == 0)
+        else if(strcasecmp(connection.data(), "keep-alive") == 0)
         {
             _is_keepalive = true;
         }
-        else if(strcasecmp(value.data(), "upgrade") == 0)
+        else if(strcasecmp(connection.data(), "upgrade") == 0)
         {
             _is_websocket = true;
         }
     }
 
-    if(auto value = get_header("transfer-encoding"); value.size())
+    if(auto transfer_encoding = get_header("transfer-encoding"); transfer_encoding.size())
     {
-        if(strcasecmp(value.data(), "chunked") == 0)
+        if(strcasecmp(transfer_encoding.data(), "chunked") == 0)
         {
             _is_chunked = true;
             _is_keepalive = true; // 分块传输需要维持长连接
@@ -332,6 +333,50 @@ octetsstream& httprequest::unpack(octetsstream& os)
     return os;
 }
 
+const std::string& httprequest::get_param(const std::string& key) const
+{
+    static const std::string empty;
+    auto iter = _params.find(key);
+    return iter != _params.end() ? iter->second : empty;
+}
+
+void httprequest::parse_param(const std::string& str, MAP_TYPE& params, const char* flag, trim_func_type trim_func)
+{
+    for(const std::string& keyval : bee::split(str, flag))
+    {
+        size_t pos = keyval.find('=');
+        if(pos == std::string::npos) return;
+        std::string key   = keyval.substr(0, pos);
+        std::string value = keyval.substr(pos + 1);
+        if(trim_func) key   = trim_func(key);
+        value = util::url_decode(value);
+        params[key] = value;
+    };
+}
+
+void httprequest::init_query_param()
+{
+    parse_param(_query, _params, "&");
+}
+
+void httprequest::init_body_param()
+{
+    if(auto content_type = get_header("content-type"); content_type.size())
+    {
+        if(strcasestr(content_type.data(), "application/x-www-form-urlencoded"))
+        {
+            parse_param(_body, _params, "&");
+        }
+    }
+}
+
+void httprequest::init_cookies()
+{
+    auto cookie = get_header("cookie");
+    if(cookie.empty()) return;
+    parse_param(cookie, _cookies, ";", [](const std::string_view& str) { return bee::trim(str, "\t\r\n"); });
+}
+
 // httpresponse implementation
 
 size_t httpresponse::maxsize() const
@@ -373,13 +418,13 @@ octetsstream& httpresponse::unpack(octetsstream& os)
         // version
         size_t version_end = line.find(' ');
         _version = string_to_http_version(line.substr(0, version_end));
-        if(_version == HTTP_VERSION_UNKNOWN) throw std::runtime_error("Unknown HTTP version");
+        if(_version == HTTP_VERSION_UNKNOWN) throw exception("Unknown HTTP version");
 
         // status
         size_t status_end = line.find(' ', version_end + 1);
         std::string status_code(line.data() + version_end + 1, status_end - version_end - 1);
         _status = (HTTP_STATUS)(std::atoi(status_code.data()));
-        if(_status == HTTP_STATUS_UNKNOWN) throw std::runtime_error("Unknown HTTP status");
+        if(_status == HTTP_STATUS_UNKNOWN) throw exception("Unknown HTTP status");
 
         _parse_state = HTTP_PARSE_STATE_HEADER;
     }

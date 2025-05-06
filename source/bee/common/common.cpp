@@ -83,31 +83,24 @@ std::string format_string(const char* fmt, ...)
     return buf;
 }
 
-std::string ltrim(const std::string& str, const char c)
+std::string ltrim(const std::string& str, const char* delim)
 {
-    std::string result = str;
-    result.erase(result.begin(), std::find_if(result.begin(), result.end(), [c](unsigned char ch) {
-        return ch != c;
-    }));
-    return result;
+    auto begin = str.find_first_not_of(delim);
+    return begin != std::string::npos ? str.substr(begin) : "";
 }
 
-std::string rtrim(const std::string& str, const char c)
+std::string rtrim(const std::string& str, const char* delim)
 {
-    std::string result = str;
-    result.erase(std::find_if(result.rbegin(), result.rend(), [c](unsigned char ch) {
-        return ch != c;
-    }).base(), result.end());
-    return result;
+    auto end = str.find_last_not_of(delim);
+    return end != std::string::npos ? str.substr(0, end) : "";
 }
 
-std::string trim(const std::string_view& str, const char c)
+std::string trim(const std::string_view& str, const char* delim)
 {
-    size_t begin = str.find_first_not_of(c);
+    size_t begin = str.find_first_not_of(delim);
     if(begin == std::string::npos) return "";
 
-    size_t end = str.find_last_not_of(c);
-    if(end == std::string::npos) return "";
+    size_t end = str.find_last_not_of(delim);
     return std::string(str.substr(begin, end - begin + 1));
 }
 
