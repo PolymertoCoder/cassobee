@@ -3,7 +3,6 @@
 #include "command_line.h"
 #include "common.h"
 #include <memory>
-#include <sstream>
 
 namespace bee
 {
@@ -142,7 +141,7 @@ void command::remove_subcommand(const std::string& subcommand_name)
 
 void command::print_help()
 {
-    std::ostringstream os;
+    bee::ostringstream os;
     os << "Usage: " << _name << " [option][subcommand]\n";
     os << _description << "\n";
     if(_options.size())

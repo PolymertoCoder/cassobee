@@ -1,8 +1,7 @@
 #pragma once
-#include <format>
 #include <functional>
-#include <sstream>
 #include "command.h"
+#include "format.h"
 
 namespace bee
 {
@@ -13,7 +12,7 @@ public:
     global_help_command(const std::string& name, const std::string& description) : command(name, description, false) {}
     virtual int do_execute(const std::vector<std::string>& params) override
     {
-        std::ostringstream os;
+        bee::ostringstream os;
         os << "Usage:" << "\n";
         for(const auto& [command_name, command] : command_line::get_instance()->get_commands())
         {

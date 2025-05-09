@@ -6,7 +6,7 @@
 #include <set>
 #include "command_line.h"
 #include "types.h"
-#include "errcode.h"
+#include "cli.h"
 
 namespace bee
 {

@@ -5,11 +5,10 @@
 #include <unordered_map>
 #include "command_line.h"
 #include "app_commands.h"
-#include "errcode.h"
+#include "cli.h"
 #include "common.h"
 #include "readline.h"
 #include "history.h"
-#include "config.h"
 
 namespace bee
 {
