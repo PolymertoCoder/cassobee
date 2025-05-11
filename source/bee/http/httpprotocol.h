@@ -87,6 +87,7 @@ public:
     virtual size_t maxsize() const override;
     virtual httprequest* dup() const override { return new httprequest(*this); }
     virtual void run() override;
+    virtual void dump(ostringstream& out) const override;
 
     virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;
@@ -142,6 +143,7 @@ public:
     virtual size_t maxsize() const override;
     virtual httpresponse* dup() const override { return new httpresponse(*this); }
     virtual void run() override;
+    virtual void dump(ostringstream& out) const override;
 
     virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;

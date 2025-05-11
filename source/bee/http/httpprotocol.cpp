@@ -285,6 +285,13 @@ void httprequest::run()
     
 }
 
+void httprequest::dump(ostringstream& out) const
+{
+    out << http_method_to_string(_method) << " "
+        << _url
+        << (_query.empty() ? "" : "?") << _query;
+}
+
 octetsstream& httprequest::pack(octetsstream& os) const
 {
     thread_local bee::ostringstream oss;
@@ -391,6 +398,11 @@ size_t httpresponse::maxsize() const
 }
 
 void httpresponse::run()
+{
+
+}
+
+void httpresponse::dump(ostringstream& out) const
 {
 
 }
