@@ -133,11 +133,7 @@ DEBUGLOG("Application started, now:%lld.", systemtime::get_time());
 ERRORLOGF("Error occurred: {}.", error_msg);
 ```
 
-## Detailed API Documentation
-
-### Core Components (bee)
-
-#### Reactor (source/bee/io/reactor.h)
+### Reactor (source/bee/io/reactor.h)
 ```cpp
 // Initialize and run reactor
 auto* looper = bee::reactor::get_instance();
@@ -145,7 +141,7 @@ looper->init();
 looper->run()
 ```
 
-#### TimeWheel (source/bee/common/timewheel.h)
+### TimeWheel (source/bee/common/timewheel.h)
 ```cpp
 // Add timer (single shot)
 bee::add_timer(1000, [](){ 
@@ -160,7 +156,7 @@ bee::add_timer(true, 1000, -1, [](){
 });
 ```
 
-#### HTTP Server (source/bee/http/)
+### HTTP Server (source/bee/http/)
 ```cpp
 // Custom servlet example
 class myservlet : public bee::servlet {
@@ -180,7 +176,7 @@ server(httpmanager);
 return 0;
 ```
 
-#### Database (source/bee/database/cmysql.h)
+### Database (source/bee/database/cmysql.h)
 ```cpp
 // Transaction example
 bee::cmysql mysql;
@@ -188,6 +184,11 @@ mysql.connect("localhost", "user", "pass", "db");
 
 mysql.begin();
 try {
+    auto result = mysql.query("SELECT * FROM users");
+    while (result.next()) {
+        std::cout << result.get_string("username") << std::endl;
+    }
+
     mysql.execute("INSERT INTO users VALUES(1, 'test')");
     mysql.execute("UPDATE stats SET count=count+1");
     mysql.commit();
@@ -196,21 +197,7 @@ try {
 }
 ```
 
-### Database Example
-```cpp
-#include "bee/database/cmysql.h"
-
-bee::cmysql mysql;
-mysql.connect("localhost", "user", "password", "database");
-
-auto result = mysql.query("SELECT * FROM users");
-while (result.next())
-{
-    std::cout << result.get_string("username") << std::endl;
-}
-```
-
-#### Logging (source/bee/log/)
+### Logging (source/bee/log/)
 ```cpp
 // Custom logger configuration
 auto logger = bee::log::create_logger("mylogger");
