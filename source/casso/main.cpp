@@ -25,6 +25,7 @@
 #include "logserver_manager.h"
 #include "lr_map.h"
 #include "format.h"
+#include "util.h"
 
 using namespace bee;
 
@@ -110,14 +111,15 @@ int main(int argc, char* argv[])
     local_log("nowtime1=%ld", systemtime::get_microseconds());
     sleep(3);
     local_log("nowtime2=%ld", systemtime::get_microseconds());
-    int a = 1;
-    float b = 2.f;
-    std::string c = "hello world";
-    auto dview = std::views::iota(0, 11);
-    std::vector<int> d{dview.begin(), dview.end()};
-    DEBUGLOG << "logstream test, a:" << a << ", b:"<< b << ", c:" << c << ", d:" << d << "." << bee::endl;
-    DEBUGLOGF("logformat test, a:{}, b:{}, c:{} d:{}.", a, b, c, d);
-    DEBUGLOG("logformat test, a:%d, b:%f, c:%s, d:%s.", a, b, c.data(), bee::to_string(d).data());
+
+    // int a = 1;
+    // float b = 2.f;
+    // std::string c = "hello world";
+    // auto dview = std::views::iota(0, 11);
+    // std::vector<int> d{dview.begin(), dview.end()};
+    // DEBUGLOG << "logstream test, a:" << a << ", b:"<< b << ", c:" << c << ", d:" << d << "." << bee::endl;
+    // DEBUGLOGF("logformat test, a:{}, b:{}, c:{} d:{}.", a, b, c, d);
+    // DEBUGLOG("logformat test, a:%d, b:%f, c:%s, d:%s.", a, b, c.data(), bee::to_string(d).data());
 
     // add_timer(false, 5000, -1, [](void*){ local_log("timer1 nowtime1: %ld.", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
@@ -129,19 +131,19 @@ int main(int argc, char* argv[])
     add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
     add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
 
-    std::thread testlog_thread([]()
-    {
-        while(true)
-        {
-            threadpool::get_instance()->add_task(rand(0, 3), [](){ DEBUGLOG("DEBUG=%s", "多线程测试"); });
-            threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
-            threadpool::get_instance()->add_task(rand(0, 3), [](){ WARNLOG("WARN=%s", "多线程测试"); });
-            threadpool::get_instance()->add_task(rand(0, 3), [](){ ERRORLOG("ERROR=%s", "多线程测试"); });
-            // local_log("testlog_thread");
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-    });
-    testlog_thread.detach();
+    // std::thread testlog_thread([]()
+    // {
+    //     while(true)
+    //     {
+    //         threadpool::get_instance()->add_task(rand(0, 3), [](){ DEBUGLOG("DEBUG=%s", "多线程测试"); });
+    //         threadpool::get_instance()->add_task(rand(0, 3), [](){ INFOLOG("INFO=%s", "多线程测试"); });
+    //         threadpool::get_instance()->add_task(rand(0, 3), [](){ WARNLOG("WARN=%s", "多线程测试"); });
+    //         threadpool::get_instance()->add_task(rand(0, 3), [](){ ERRORLOG("ERROR=%s", "多线程测试"); });
+    //         // local_log("testlog_thread");
+    //         std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    //     }
+    // });
+    // testlog_thread.detach();
 
     // stress_test();
 
@@ -213,6 +215,23 @@ int main(int argc, char* argv[])
     // auto temp = protocol::decode(os, nullptr);
     // auto prot2 = dynamic_cast<bee::remotelog*>(temp);
     // printf("prot2 loglevel:%d\n", prot2->loglevel),
+
+    // auto test_http_encode_decode = [](const std::string& str)
+    // {
+    //     std::string encoded = bee::util::url_encode(str);
+    //     std::string decoded = bee::util::url_decode(encoded);
+    //     DEBUGLOGF("encoded: {}, decoded: {}, decode_result:{}", encoded, decoded, decoded==str);
+    // };
+    // test_http_encode_decode(""); // 空字符串
+    // test_http_encode_decode(""); // 纯ASCII字符（无需编码）
+    // test_http_encode_decode("it is encodeurl decodeurl test="); // 空格
+    // test_http_encode_decode(":/?#[]@!$&'()*+,;="); // RFC 3986保留字符
+    // test_http_encode_decode("^\\`{|}"); // 需要编码的特殊符号
+    // test_http_encode_decode("中文"); // 中文
+    // test_http_encode_decode("%41%42%43"); // 十六进制
+    // test_http_encode_decode("%zz"); // 无效十六进制字符
+    // test_http_encode_decode("%1"); // 不完整的百分比编码
+    // test_http_encode_decode("%%20"); // 双重%开头
 
     looper->run();
     timer_thread.join();

@@ -29,13 +29,17 @@ public:
     ostringstream(const std::string& str) : _buf(str) {}
     ostringstream(ostringstream&& other) noexcept = default;
 
-    template<can_to_string T> ostringstream& operator<<(const T& value)
+    template<can_to_string T> ATTR_WEAK ostringstream& operator<<(const T& value)
     {
-        *this << bee::to_string(value);
-        return *this;
+        if constexpr(std::is_same_v<T, char> || std::is_same_v<T, unsigned char>) {
+            return *this << (char)value;
+        } else {
+            return *this << bee::to_string(value);
+        }
     }
 
     ostringstream& operator<<(bool value);
+    ostringstream& operator<<(char value);
     ostringstream& operator<<(const char* value);
     ostringstream& operator<<(const std::string& value);
     ostringstream& operator<<(ostringstream& (*manipulator)(ostringstream&));

@@ -348,7 +348,7 @@ void httprequest::parse_param(const std::string& str, MAP_TYPE& params, const ch
         if(pos == std::string::npos) return;
         std::string key   = keyval.substr(0, pos);
         std::string value = keyval.substr(pos + 1);
-        if(trim_func) key   = trim_func(key);
+        if(trim_func) key = trim_func(key);
         value = util::url_decode(value);
         params[key] = value;
     };
@@ -356,11 +356,14 @@ void httprequest::parse_param(const std::string& str, MAP_TYPE& params, const ch
 
 void httprequest::init_query_param()
 {
+    if(_parse_param_flag.test(PARSE_QUERY_PARAM)) return;
     parse_param(_query, _params, "&");
+    _parse_param_flag.set(PARSE_QUERY_PARAM);
 }
 
 void httprequest::init_body_param()
 {
+    if(_parse_param_flag.test(PARSE_BODY_PARAM)) return;
     if(auto content_type = get_header("content-type"); content_type.size())
     {
         if(strcasestr(content_type.data(), "application/x-www-form-urlencoded"))
@@ -368,13 +371,16 @@ void httprequest::init_body_param()
             parse_param(_body, _params, "&");
         }
     }
+    _parse_param_flag.set(PARSE_BODY_PARAM);
 }
 
 void httprequest::init_cookies()
 {
+    if(_parse_param_flag.test(PARSE_COOKIES)) return;
     auto cookie = get_header("cookie");
     if(cookie.empty()) return;
     parse_param(cookie, _cookies, ";", [](const std::string_view& str) { return bee::trim(str, "\t\r\n"); });
+    _parse_param_flag.set(PARSE_COOKIES);
 }
 
 // httpresponse implementation

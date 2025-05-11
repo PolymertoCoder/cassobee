@@ -9,6 +9,12 @@ ostringstream& ostringstream::operator<<(bool value)
     return *this;
 }
 
+ostringstream& ostringstream::operator<<(char value)
+{
+    _buf.append(value);
+    return *this;
+}
+
 ostringstream& ostringstream::operator<<(const char* value)
 {
     _buf.append(value, std::strlen(value));

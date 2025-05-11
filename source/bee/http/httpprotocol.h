@@ -1,6 +1,7 @@
 #pragma once
 #include "protocol.h"
 #include "http.h"
+#include <bitset>
 #include <string>
 #include <unordered_map>
 #include <functional>
@@ -108,6 +109,14 @@ public:
     void del_param(const std::string& key) { _params.erase(key); }
 
 protected:
+    enum
+    {
+        PARSE_QUERY_PARAM,
+        PARSE_BODY_PARAM,
+        PARSE_COOKIES,
+        PARSE_FLAG_SIZE,
+    };
+    std::bitset<PARSE_FLAG_SIZE> _parse_param_flag;
     using trim_func_type = std::function<std::string(const std::string_view&)>;
     void parse_param(const std::string& str, MAP_TYPE& params, const char* flag, trim_func_type trim_func = {});
     void init_query_param();
