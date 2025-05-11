@@ -145,9 +145,9 @@ auto value = cfg->get<int>("mysection", "mykey");
 </protocol>
 ```
 ```bash
+# generates source/protocol/include/remotelog.h and source/protocol/source/remotelog.cpp files.
 pg
 ```
-generates source/protocol/include/remotelog.h and source/protocol/source/remotelog.cpp files.
 
 ### Logging Example
 ```cpp
