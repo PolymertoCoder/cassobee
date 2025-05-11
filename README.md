@@ -125,6 +125,30 @@ Main configuration files are located in `config/` directory:
 
 ## Basic Usage
 
+### Custom Configuration
+```cpp
+// Load custom configuration file
+auto cfg = bee::config::get_instance();
+cfg->init("myconfig.conf");
+
+// Get value
+auto value = cfg->get<int>("mysection", "mykey");
+```
+
+### Custom Protocol Defintion
+```xml
+<!-- Define custom protocol progen/log.xml -->
+<protocol name="remotelog" maxsize="2048" type="1">
+    <include name="log_event.h"/>
+    <field name="loglevel" type="uint8_t" default="0"/>
+    <field name="logevent" type="log_event" default="log_event()"/>
+</protocol>
+```
+```bash
+pg
+```
+generates source/protocol/include/remotelog.h and source/protocol/source/remotelog.cpp files.
+
 ### Logging Example
 ```cpp
 #include "bee/log/log.h"
