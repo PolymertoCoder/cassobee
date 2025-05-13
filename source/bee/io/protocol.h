@@ -11,7 +11,6 @@ namespace bee
 
 class session;
 class session_manager;
-class ostringstream;
 
 class protocol : public marshal
 {
@@ -26,7 +25,7 @@ public:
     virtual size_t maxsize() const = 0;
     virtual protocol* dup() const = 0;
     virtual void run() = 0;
-    virtual void dump(ostringstream& out) const;
+    virtual ostringstream& dump(ostringstream& out) const;
     FORCE_INLINE virtual size_t thread_group_idx() const { return 0; }
     
     static bool size_policy(PROTOCOLID type, size_t size);

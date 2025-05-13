@@ -1,11 +1,12 @@
 #include "httpprotocol.h"
 #include "config.h"
+#include "format.h"
 #include "glog.h"
 #include "http.h"
 #include "httpsession.h"
 #include "log.h"
 #include "marshal.h"
-#include "session.h"
+#include "systemtime.h"
 #include "util.h"
 #include <cctype>
 #include <cstdlib>
@@ -59,20 +60,6 @@ const std::string& httpprotocol::get_header(const std::string& key) const
     static const std::string empty;
     auto iter = _headers.find(key);
     return iter != _headers.end() ? iter->second : empty;
-}
-
-octetsstream& httpprotocol::pack(octetsstream& os) const
-{
-    thread_local bee::ostringstream oss;
-    oss.clear();
-    for(const auto& [key, value] : _headers)
-    {
-        oss << key << ": " << value << "\r\n";
-    }
-    oss << "content-length: " << _body.size() << "\r\n\r\n";
-    oss << _body;
-    os << oss.str();
-    return os;
 }
 
 octetsstream& httpprotocol::unpack(octetsstream& os)
@@ -285,23 +272,44 @@ void httprequest::run()
     
 }
 
-void httprequest::dump(ostringstream& out) const
+ostringstream& httprequest::dump(ostringstream& out) const
 {
     out << http_method_to_string(_method) << " "
         << _url
-        << (_query.empty() ? "" : "?") << _query;
+        << (_query.empty() ? "" : "?")
+        << _query
+        << (_fragment.empty() ? "" : "#")
+        << _fragment
+        << " HTTP/"
+        << http_version_to_string(_version)
+        << "\r\n";
+
+    if(!_is_websocket)
+    {
+        out << "connection: " << (_is_keepalive? "keep-alive" : "close") << "\r\n";
+    }
+    for(const auto& [key, value] : _headers)
+    {
+        if(!_is_websocket && strcasecmp(key.data(), "connection") == 0) continue;
+        out << key << ": " << value << "\r\n";
+    }
+    if(!_body.empty())
+    {
+        out << "content-length: " << _body.size() << "\r\n\r\n";
+    }
+    else
+    {
+        out << "\r\n";
+    }
+    return out;
 }
 
 octetsstream& httprequest::pack(octetsstream& os) const
 {
     thread_local bee::ostringstream oss;
     oss.clear();
-    oss << http_method_to_string(_method) << " "; // method
-    oss << _url << " "; // url
-    oss << http_version_to_string(_version) << " "; // version
-    oss << "\r\n";
+    dump(oss);
     os.data().append(oss.c_str());
-    httpprotocol::pack(os);
     return os;
 }
 
@@ -345,6 +353,13 @@ const std::string& httprequest::get_param(const std::string& key) const
     static const std::string empty;
     auto iter = _params.find(key);
     return iter != _params.end() ? iter->second : empty;
+}
+
+const std::string& httprequest::get_cookie(const std::string& key) const
+{
+    static const std::string empty;
+    auto iter = _cookies.find(key);
+    return iter != _cookies.end() ? iter->second : empty;
 }
 
 void httprequest::parse_param(const std::string& str, MAP_TYPE& params, const char* flag, trim_func_type trim_func)
@@ -402,25 +417,53 @@ void httpresponse::run()
 
 }
 
-void httpresponse::dump(ostringstream& out) const
+ostringstream& httpresponse::dump(ostringstream& out) const
 {
-
+    out << "HTTP/"
+        << http_version_to_string(_version)
+        << " "
+        << _status
+        << " "
+        << http_status_to_string(_status)
+        << "\r\n";
+    
+    if(!_is_websocket)
+    {
+        out << "connection: " << (_is_keepalive? "keep-alive" : "close") << "\r\n";
+    }
+    for(const auto& [key, value] : _headers)
+    {
+        if(!_is_websocket && strcasecmp(key.data(), "connection") == 0) continue;
+        out << key << ": " << value << "\r\n";
+    }
+    for(const auto& cookie : _cookies)
+    {
+        out << "set-cookie: " << cookie << "\r\n";
+    }
+    if(!_body.empty())
+    {
+        out << "content-length: " << _body.size() << "\r\n\r\n"
+            << _body;
+    }
+    else
+    {
+        out << "\r\n";
+    }
+    return out;
 }
 
 octetsstream& httpresponse::pack(octetsstream& os) const
 {
     thread_local ostringstream oss;
     oss.clear();
-    oss << http_version_to_string(_version) << " "; // version
-    oss << _status << " " << http_status_to_string(_status); // status
-    oss << "\r\n";
+    dump(oss);
     os.data().append(oss.c_str());
-    httpprotocol::pack(os);
     return os;
 }
 
 octetsstream& httpresponse::unpack(octetsstream& os)
 {
+    // 解析响应行
     if(_parse_state == HTTP_PARSE_STATE_NONE)
     {
         _parse_state = HTTP_PARSE_STATE_FIRST_LINE;
@@ -449,6 +492,41 @@ octetsstream& httpresponse::unpack(octetsstream& os)
 
     httpprotocol::unpack(os);
     return os;
+}
+
+void httpresponse::set_redirect(const std::string& url)
+{
+    _status = HTTP_STATUS_FOUND;
+    set_header("location", url);
+}
+
+void httpresponse::set_cookie(const std::string& key, const std::string& value, TIMETYPE expiretime,
+    const std::string& path, const std::string& domain, bool secure, bool httponly)
+{
+    thread_local bee::ostringstream oss;
+    oss.clear();
+    oss << key << "=" << value;
+    if(expiretime != 0)
+    {
+        oss << ";expires=" << systemtime::format_time(expiretime, "%a, %d %b %Y %H:%M:%S") << " GMT";
+    }
+    if(!domain.empty())
+    {
+        oss << ";domain=" << domain;
+    }
+    if(!path.empty())
+    {
+        oss << ";path=" << path;
+    }
+    if(secure)
+    {
+        oss << ";secure";
+    }
+    if(httponly)
+    {
+        oss << ";httponly";
+    }
+    _cookies.emplace_back(oss.str());
 }
 
 } // namespace bee

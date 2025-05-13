@@ -11,7 +11,7 @@ class rpcdata : public marshal
 public:
     rpcdata() = default;
     virtual ~rpcdata() = default;
-    virtual void dump(ostringstream& out) const;
+    virtual ostringstream& dump(ostringstream& out) const;
 };
 
 ostringstream& operator<<(ostringstream& oss, const rpcdata& data);

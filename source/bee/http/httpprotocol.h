@@ -26,9 +26,7 @@ public:
 
     static bool getline(octetsstream& os, std::string& str, char declm = '\n');
 
-    virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;
-
     virtual void encode(octetsstream& os) const override;
     static httpprotocol* decode(octetsstream& os, httpsession* httpses);
 
@@ -55,9 +53,6 @@ public:
     size_t get_header_count() const { return _headers.size(); }
     bool has_header(const std::string& key) const { return _headers.contains(key); }
 
-    void set_cookie(const std::string& key, const std::string& value);
-    void del_cookie(const std::string& key) { _cookies.erase(key); }
-
 protected:
     void on_parse_header_finished();
 
@@ -71,7 +66,6 @@ protected:
     HTTP_VERSION _version;
     std::string  _body;
     MAP_TYPE _headers;
-    MAP_TYPE _cookies;
 };
 
 class httprequest : public httpprotocol
@@ -87,8 +81,7 @@ public:
     virtual size_t maxsize() const override;
     virtual httprequest* dup() const override { return new httprequest(*this); }
     virtual void run() override;
-    virtual void dump(ostringstream& out) const override;
-
+    virtual ostringstream& dump(ostringstream& out) const override;
     virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;
 
@@ -108,6 +101,10 @@ public:
     void set_param(const std::string& key, const std::string& value) { _params[key] = value; }
     const std::string& get_param(const std::string& key) const;
     void del_param(const std::string& key) { _params.erase(key); }
+
+    void set_cookie(const std::string& key, const std::string& value) { _cookies[key] = value; }
+    const std::string& get_cookie(const std::string& key) const;
+    void del_cookie(const std::string& key) { _cookies.erase(key); }
 
 protected:
     enum
@@ -130,6 +127,7 @@ private:
     std::string _query;     // 请求参数
     std::string _fragment;  // 请求fragment
     MAP_TYPE    _params;    // 请求参数map
+    MAP_TYPE    _cookies;   // 请求cookie
 };
 
 class httpresponse : public httpprotocol
@@ -143,8 +141,7 @@ public:
     virtual size_t maxsize() const override;
     virtual httpresponse* dup() const override { return new httpresponse(*this); }
     virtual void run() override;
-    virtual void dump(ostringstream& out) const override;
-
+    virtual ostringstream& dump(ostringstream& out) const override;
     virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;
 
@@ -152,8 +149,14 @@ public:
     void set_status(HTTP_STATUS code) { _status = code; }
     HTTP_STATUS get_status() const { return _status; }
 
+    void set_redirect(const std::string& url);
+    void set_cookie(const std::string& key, const std::string& value, TIMETYPE expiretime = 0,
+                    const std::string& path = "/", const std::string& domain = "",
+                    bool secure = false, bool httponly = false);
+
 private:
     HTTP_STATUS _status = HTTP_STATUS_OK;
+    std::vector<std::string> _cookies;
     std::string _reason;
 };
 

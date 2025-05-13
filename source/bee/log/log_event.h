@@ -52,7 +52,7 @@ public:
     octetsstream& pack(octetsstream& os) const override;
     octetsstream& unpack(octetsstream& os) override;
 
-    virtual void dump(ostringstream& out) const override;
+    virtual ostringstream& dump(ostringstream& out) const override;
 
 public:
     void set_process_name()

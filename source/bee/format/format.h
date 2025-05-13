@@ -29,7 +29,7 @@ public:
     ostringstream(const std::string& str) : _buf(str) {}
     ostringstream(ostringstream&& other) noexcept = default;
 
-    template<can_to_string T> ATTR_WEAK ostringstream& operator<<(const T& value)
+    template<can_to_string T> ostringstream& operator<<(const T& value)
     {
         if constexpr(std::is_same_v<T, char> || std::is_same_v<T, unsigned char>) {
             return *this << (char)value;

@@ -13,7 +13,7 @@ public:
     void parse(const std::string& uri_str);
     std::string to_string() const;
 
-    // Getters
+    // getters
     const std::string& get_scheme() const { return _schema; }
     const std::string& get_user() const { return _user; }
     const std::string& get_password() const { return _password; }
@@ -23,7 +23,7 @@ public:
     const std::string& get_query() const { return _query; }
     const std::string& get_fragment() const { return _fragment; }
 
-    // Setters
+    // setters
     void set_scheme(const std::string& scheme) { _schema = scheme; }
     void set_user(const std::string& user) { _user = user; }
     void set_password(const std::string& password) { _password = password; }

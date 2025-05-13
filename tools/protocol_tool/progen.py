@@ -236,7 +236,7 @@ class XMLProcessor:
             virtual_methods += f"    virtual size_t maxsize() const override {{ return {protocol.maxsize}; }}\n"
             virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
             virtual_methods += "    virtual void run() override;\n"
-        virtual_methods += f"    virtual void dump(ostringstream& out) const override;\n\n"
+        virtual_methods += f"    virtual ostringstream& dump(ostringstream& out) const override;\n\n"
         return virtual_methods
 
     def _generate_codefield_methods(self, protocol):
@@ -301,12 +301,12 @@ class XMLProcessor:
 
     def _generate_dump_method(self, protocol):
         """Generate the dump method for the class."""
-        dump_method = f"void {protocol.name}::dump(ostringstream& out) const\n{{\n"
+        dump_method = f"ostringstream& {protocol.name}::dump(ostringstream& out) const\n{{\n"
         if protocol.codefield:
             dump_method += f"    out << \"code: \" << code;\n"
         for field_name, _, _ in protocol.fields:
             dump_method += f"    out << \"{field_name}: \" << {field_name};\n"
-        dump_method += "}\n"
+        dump_method += "    return out;\n}\n"
         return dump_method
 
     def _generate_header_content(self, protocol):

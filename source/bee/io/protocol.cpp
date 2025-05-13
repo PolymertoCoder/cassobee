@@ -10,12 +10,13 @@
 namespace bee
 {
 
-void protocol::dump(ostringstream& out) const
+ostringstream& protocol::dump(ostringstream& out) const
 {
     out << "type: " << _type << "\n";
     out << "maxsize: " << maxsize() << "\n";
     out << "sid: " << _sid << "\n";
     out << "priority: " << _priority << "\n";
+    return out;
 }
 
 bool protocol::size_policy(PROTOCOLID type, size_t size)

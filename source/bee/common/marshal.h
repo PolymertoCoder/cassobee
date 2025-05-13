@@ -1,6 +1,5 @@
 #pragma once
 
-#include <exception>
 #include "concept.h"
 #include "octets.h"
 #include "types.h"
