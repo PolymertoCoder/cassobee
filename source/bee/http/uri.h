@@ -12,6 +12,7 @@ public:
     void clear();
     void parse(const std::string& uri_str);
     std::string to_string() const;
+    bool is_valid() const;
 
     // getters
     const std::string& get_scheme() const { return _schema; }

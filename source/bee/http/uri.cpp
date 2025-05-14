@@ -3,6 +3,11 @@
 namespace bee
 {
 
+uri::uri(const std::string& uri_str)
+{
+    parse(uri_str);
+}
+
 void uri::clear()
 {
     _schema.clear();
@@ -89,6 +94,73 @@ void uri::parse(const std::string& uri_str)
     }
 }
 
+std::string uri::to_string() const
+{
+    std::string result;
+    if(!_schema.empty())
+    {
+        result += _schema + ":";
+        if(!_host.empty() || !_port.empty() || !_user.empty())
+        {
+            result += "//";
+        }
+    }
+    
+    if(!_user.empty())
+    {
+        result += _user;
+        if(!_password.empty())
+        {
+            result += ":" + _password;
+        }
+        result += "@";
+    }
+    
+    if(!_host.empty())
+    {
+        if(_host.find(':') != std::string::npos)
+        {
+            result += "[" + _host + "]"; // IPv6 地址
+        }
+        else
+        {
+            result += _host;
+        }
+    }
+    
+    if(!_port.empty())
+    {
+        result += ":" + _port;
+    }
+    
+    if(!_path.empty())
+    {
+        // 确保路径以斜杠开头（仅限分层URI）
+        if(!result.empty() && _path[0] != '/' && !_host.empty())
+        {
+            result += "/";
+        }
+        result += _path;
+    }
+    
+    if(!_query.empty())
+    {
+        result += "?" + _query;
+    }
+    
+    if(!_fragment.empty())
+    {
+        result += "#" + _fragment;
+    }
+    
+    return result;
+}
+
+bool uri::is_valid() const
+{
+    return !_schema.empty() || !_host.empty() || !_path.empty();
+}
+
 // 解析Authority
 void uri::parse_authority(const std::string& authority)
 {
@@ -151,68 +223,6 @@ void uri::parse_hostport(const std::string& hostport)
             _host = hostport;
         }
     }
-}
-
-std::string uri::to_string() const
-{
-    std::string result;
-    if(!_schema.empty())
-    {
-        result += _schema + ":";
-        if(!_host.empty() || !_port.empty() || !_user.empty())
-        {
-            result += "//";
-        }
-    }
-    
-    if(!_user.empty())
-    {
-        result += _user;
-        if(!_password.empty())
-        {
-            result += ":" + _password;
-        }
-        result += "@";
-    }
-    
-    if(!_host.empty())
-    {
-        if(_host.find(':') != std::string::npos)
-        {
-            result += "[" + _host + "]"; // IPv6 地址
-        }
-        else
-        {
-            result += _host;
-        }
-    }
-    
-    if(!_port.empty())
-    {
-        result += ":" + _port;
-    }
-    
-    if(!_path.empty())
-    {
-        // 确保路径以斜杠开头（仅限分层URI）
-        if(!result.empty() && _path[0] != '/' && !_host.empty())
-        {
-            result += "/";
-        }
-        result += _path;
-    }
-    
-    if(!_query.empty())
-    {
-        result += "?" + _query;
-    }
-    
-    if(!_fragment.empty())
-    {
-        result += "#" + _fragment;
-    }
-    
-    return result;
 }
 
 } // namespace bee

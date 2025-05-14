@@ -5,7 +5,7 @@
 #include "threadpool.h"
 #include "httpsession_manager.h"
 #include "session.h"
-#include <openssl/err.h>
+#include "systemtime.h"
 
 namespace bee
 {
@@ -17,6 +17,7 @@ httpsession::httpsession(httpsession_manager* manager)
 
 httpsession::~httpsession()
 {
+    delete _unfinished_protocol;
 }
 
 httpsession* httpsession::dup()
@@ -32,11 +33,15 @@ httpsession* httpsession::dup()
     ses->_writebuf.clear();
     ses->_reados.clear();
     ses->_writeos.clear();
+    ses->_create_time = 0;
+    ses->_requests = 0;
+    ses->_unfinished_protocol = nullptr;
     return ses;
 }
 
 void httpsession::set_open()
 {
+    _create_time = systemtime::get_time();
     session::set_open();
 }
 

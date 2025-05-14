@@ -86,11 +86,13 @@ public:
     virtual octetsstream& unpack(octetsstream& os) override;
 
     // httprequest method
+    void init_param();
+
     void set_method(HTTP_METHOD method) { _method = method; }
     HTTP_METHOD get_method() const { return _method; }
 
-    void set_url(const std::string& url) { _url = url; }
-    const std::string& get_url() const { return _url; }
+    void set_path(const std::string& path) { _path = path; }
+    const std::string& get_path() const { return _path; }
 
     void set_query(const std::string& query) { _query = query; }
     const std::string& get_query() const { return _query; }
@@ -99,11 +101,11 @@ public:
     const std::string& get_fragment() const { return _fragment; }
 
     void set_param(const std::string& key, const std::string& value) { _params[key] = value; }
-    const std::string& get_param(const std::string& key) const;
+    const std::string& get_param(const std::string& key);
     void del_param(const std::string& key) { _params.erase(key); }
 
     void set_cookie(const std::string& key, const std::string& value) { _cookies[key] = value; }
-    const std::string& get_cookie(const std::string& key) const;
+    const std::string& get_cookie(const std::string& key);
     void del_cookie(const std::string& key) { _cookies.erase(key); }
 
 protected:
@@ -122,8 +124,8 @@ protected:
     void init_cookies();
 
 private:
-    HTTP_METHOD _method;
-    std::string _url;       // 请求url
+    HTTP_METHOD _method;    // HTTP方法
+    std::string _path;      // 请求路径
     std::string _query;     // 请求参数
     std::string _fragment;  // 请求fragment
     MAP_TYPE    _params;    // 请求参数map
@@ -150,9 +152,7 @@ public:
     HTTP_STATUS get_status() const { return _status; }
 
     void set_redirect(const std::string& url);
-    void set_cookie(const std::string& key, const std::string& value, TIMETYPE expiretime = 0,
-                    const std::string& path = "/", const std::string& domain = "",
-                    bool secure = false, bool httponly = false);
+    void set_cookie(const std::string& key, const std::string& value, TIMETYPE expiretime = 0, const std::string& path = "/", const std::string& domain = "", bool secure = false, bool httponly = false);
 
 private:
     HTTP_STATUS _status = HTTP_STATUS_OK;

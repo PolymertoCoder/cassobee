@@ -7,18 +7,6 @@
 namespace bee
 {
 
-template<typename... Args>
-auto format(const char* fmt, Args&&... args)
-{
-    return format_string(fmt, std::forward<Args>(args)...);
-}
-
-template<typename... Args>
-auto format(std::format_string<Args...> fmt, Args&&... args)
-{
-    return std::format(fmt, std::forward<Args>(args)...);
-}
-
 class ostringstream
 {
 public:

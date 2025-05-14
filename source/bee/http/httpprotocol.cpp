@@ -240,14 +240,17 @@ void httpprotocol::on_parse_header_finished()
         if(strcasecmp(connection.data(), "close") == 0)
         {
             _is_keepalive = false;
+            local_log("httpprotocol connection close.");
         }
         else if(strcasecmp(connection.data(), "keep-alive") == 0)
         {
             _is_keepalive = true;
+            local_log("httpprotocol connection keep-alive.");
         }
         else if(strcasecmp(connection.data(), "upgrade") == 0)
         {
             _is_websocket = true;
+            local_log("httpprotocol connection upgrade.");
         }
     }
 
@@ -257,6 +260,7 @@ void httpprotocol::on_parse_header_finished()
         {
             _is_chunked = true;
             _is_keepalive = true; // 分块传输需要维持长连接
+            local_log("httpprotocol transfer-encoding chunked.");
         }
     }
 }
@@ -275,7 +279,7 @@ void httprequest::run()
 ostringstream& httprequest::dump(ostringstream& out) const
 {
     out << http_method_to_string(_method) << " "
-        << _url
+        << _path
         << (_query.empty() ? "" : "?")
         << _query
         << (_fragment.empty() ? "" : "#")
@@ -332,13 +336,13 @@ octetsstream& httprequest::unpack(octetsstream& os)
         _method = string_to_http_method(line.substr(0, method_end));
         if(_method == HTTP_METHOD_UNKNOWN) throw exception("Unknown HTTP method");
 
-        // url
-        size_t url_end = line.find(' ', method_end + 1);
-        _url = line.substr(method_end + 1, url_end - method_end - 1);
-        if(_url.empty()) throw exception("Empty URL");
+        // path
+        size_t path_end = line.find(' ', method_end + 1);
+        _path = line.substr(method_end + 1, path_end - method_end - 1);
+        if(_path.empty()) throw exception("Empty URL");
 
         // version
-        _version = string_to_http_version(line.substr(url_end + 1));
+        _version = string_to_http_version(line.substr(path_end + 1));
         if(_version == HTTP_VERSION_UNKNOWN) throw exception("Unknown HTTP version");
 
         _parse_state = HTTP_PARSE_STATE_HEADER;
@@ -348,15 +352,25 @@ octetsstream& httprequest::unpack(octetsstream& os)
     return os;
 }
 
-const std::string& httprequest::get_param(const std::string& key) const
+void httprequest::init_param()
 {
+    init_query_param();
+    init_body_param();
+    init_cookies();
+}
+
+const std::string& httprequest::get_param(const std::string& key)
+{
+    init_query_param();
+    init_body_param();
     static const std::string empty;
     auto iter = _params.find(key);
     return iter != _params.end() ? iter->second : empty;
 }
 
-const std::string& httprequest::get_cookie(const std::string& key) const
+const std::string& httprequest::get_cookie(const std::string& key)
 {
+    init_cookies();
     static const std::string empty;
     auto iter = _cookies.find(key);
     return iter != _cookies.end() ? iter->second : empty;
@@ -500,8 +514,7 @@ void httpresponse::set_redirect(const std::string& url)
     set_header("location", url);
 }
 
-void httpresponse::set_cookie(const std::string& key, const std::string& value, TIMETYPE expiretime,
-    const std::string& path, const std::string& domain, bool secure, bool httponly)
+void httpresponse::set_cookie(const std::string& key, const std::string& value, TIMETYPE expiretime, const std::string& path, const std::string& domain, bool secure, bool httponly)
 {
     thread_local bee::ostringstream oss;
     oss.clear();
