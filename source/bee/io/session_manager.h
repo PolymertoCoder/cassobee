@@ -18,7 +18,9 @@ class octets;
 
 enum SESSION_TYPE
 {
-    SESSION_TYPE_NORMAL,
+    SESSION_TYPE_NONE = -1,
+    SESSION_TYPE_TCP,
+    SESSION_TYPE_UDP,
     SESSION_TYPE_HTTP,
     SESSION_TYPE_HTTPS,
 };
@@ -36,6 +38,8 @@ public:
 
     FORCE_INLINE bool check_protocol(PROTOCOLID type) { return _state._permited_protocols.test(type); }
 
+    virtual void connect(); // as client
+    virtual void listen();  // as server
     virtual void on_add_session(SID sid);
     virtual void on_del_session(SID sid);
     virtual void reconnect();
@@ -58,8 +62,6 @@ public:
     FORCE_INLINE bool ssl_enabled() const { return _ssl_ctx != nullptr; }
     FORCE_INLINE SSL_CTX* get_ssl_ctx() const { return _ssl_ctx; }
 
-    FORCE_INLINE bool is_httpsession_manager() const { return _session_type == SESSION_TYPE_HTTP; }
-
 protected:
     friend class session;
     struct state
@@ -67,7 +69,7 @@ protected:
         std::bitset<MAXPROTOCOLID> _permited_protocols;
     } _state;
 
-    uint8_t _session_type = SESSION_TYPE_NORMAL;
+    char _session_type = SESSION_TYPE_NONE;
 
     int _socktype = 0;
     int _family = 0;
@@ -85,9 +87,5 @@ protected:
     std::string _cert_path;
     std::string _key_path;
 };
-
-
-void client(session_manager* manager);
-void server(session_manager* manager);
 
 } // namespace bee

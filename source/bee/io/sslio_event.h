@@ -1,5 +1,6 @@
 #pragma once
 #include "ioevent.h"
+#include <openssl/ssl.h>
 
 namespace bee
 {

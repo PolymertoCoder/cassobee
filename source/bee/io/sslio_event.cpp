@@ -3,8 +3,9 @@
 #include "glog.h"
 #include "ioevent.h"
 #include "reactor.h"
+#include "session.h"
+#include "session_manager.h"
 #include "systemtime.h"
-#include <openssl/ssl.h>
 
 namespace bee
 {

@@ -5,13 +5,13 @@
 #include "octets.h"
 #include "marshal.h"
 #include "types.h"
-#include "session_manager.h"
 
 namespace bee
 {
 
 class address;
 struct event;
+class session_manager;
 
 enum SESSION_STATE
 {
@@ -45,8 +45,8 @@ public:
     void forbid_recv();
     void forbid_send();
 
-    FORCE_INLINE size_t max_rbuf_size() const { return _manager->_read_buffer_size;  }
-    FORCE_INLINE size_t max_wbuf_size() const { return _manager->_write_buffer_size; }
+    FORCE_INLINE size_t max_rbuf_size() const;
+    FORCE_INLINE size_t max_wbuf_size() const;
     octets& rbuffer();
     octets& wbuffer();
     void clear_wbuffer();

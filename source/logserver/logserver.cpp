@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 
     auto logclientmgr = logclient_manager::get_instance();
     logclientmgr->init();
-    server(logclientmgr);
+    logclientmgr->listen();
 
     // while(true)
     // {

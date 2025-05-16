@@ -41,17 +41,6 @@ void httpsession_manager::init()
     _dispatcher->add_servlet("/_/config", new config_servlet);
 }
 
-void httpsession_manager::on_add_session(SID sid)
-{
-    session_manager::on_add_session(sid);
-    // TODO 动态保活配置
-}
-
-void httpsession_manager::on_del_session(SID sid)
-{
-    session_manager::on_del_session(sid);
-}
-
 void httpsession_manager::reconnect()
 {
     
@@ -158,34 +147,16 @@ void httpsession_manager::send_response(SID sid, const httpresponse& rsp)
     }   
 }
 
-http_result httpclient_manager::do_get(const std::string& url, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
+void httpclient_manager::on_add_session(SID sid)
 {
-    uri uri(url);
-    if(!uri.is_valid())
-    {
-        return http_result(http_result::ERR::INVALID_URL, nullptr, "invalid url");
-    }
-    return do_get(uri, timeout, headers, body);
+    session_manager::on_add_session(sid);
+    _free_connections.erase(sid);
+    _busy_connections.insert(sid);
 }
 
-http_result httpclient_manager::do_get(const uri& uri, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
+void httpclient_manager::on_del_session(SID sid)
 {
-    return send_request(HTTP_METHOD_GET, uri, timeout);
-}
-
-http_result httpclient_manager::do_post(const std::string& url, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
-{
-    uri uri(url);
-    if(!uri.is_valid())
-    {
-        return http_result(http_result::ERR::INVALID_URL, nullptr, "invalid url");
-    }
-    return do_post(uri, timeout, headers, body);
-}
-
-http_result httpclient_manager::do_post(const uri& uri, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
-{
-    return send_request(HTTP_METHOD_POST, uri, timeout);
+    session_manager::on_del_session(sid);
 }
 
 http_result httpclient_manager::send_request(HTTP_METHOD method, const std::string& url, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
@@ -200,13 +171,13 @@ http_result httpclient_manager::send_request(HTTP_METHOD method, const std::stri
 
 http_result httpclient_manager::send_request(HTTP_METHOD method, const uri& uri, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
 {
-    httprequest req;
-    req.set_version(HTTP_VERSION_1_1);
-    req.set_method(method);
-    req.set_path(uri.get_path());
-    req.set_query(uri.get_query());
-    req.set_fragment(uri.get_fragment());
-    req.set_body(body);
+    httprequest* req = httpprotocol::get_request();
+    req->set_version(HTTP_VERSION_1_1);
+    req->set_method(method);
+    req->set_path(uri.get_path());
+    req->set_query(uri.get_query());
+    req->set_fragment(uri.get_fragment());
+    req->set_body(body);
 
     bool has_host = false;
     for(auto& [key, value] : headers)
@@ -215,7 +186,7 @@ http_result httpclient_manager::send_request(HTTP_METHOD method, const uri& uri,
         {
             if(strcasecmp(value.data(), "keep-alive") == 0) 
             {
-                req.set_keepalive(true);
+                req->set_keepalive(true);
             }
             continue;
         }
@@ -225,21 +196,26 @@ http_result httpclient_manager::send_request(HTTP_METHOD method, const uri& uri,
             has_host = !value.empty();
         }
 
-        req.set_header(key, value);
+        req->set_header(key, value);
     }
     if(!has_host)
     {
-        req.set_header("host", uri.get_host());
+        req->set_header("host", uri.get_host());
     }
 
-    req.set_body(body);
+    req->set_body(body);
 
     return send_request(req, uri, timeout);
 }
 
-http_result httpclient_manager::send_request(const httprequest& req, const uri& uri, TIMETYPE timeout/*ms*/)
+http_result httpclient_manager::send_request(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/)
 {
     bool is_ssl = (uri.get_scheme() == "https");
+    
+}
+
+void httpclient_manager::try_new_connection(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/)
+{
     
 }
 

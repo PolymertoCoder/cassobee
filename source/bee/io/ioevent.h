@@ -1,14 +1,12 @@
 #pragma once
 #include "event.h"
-#include "httpsession.h"
+#include "octets.h"
 #include <cstdio>
-#include <openssl/ssl.h>
 
 namespace bee
 {
 
 class session;
-class httpsession;
 class session_manager;
 
 struct io_event : event

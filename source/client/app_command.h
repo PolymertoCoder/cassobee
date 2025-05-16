@@ -84,7 +84,7 @@ public:
     {
         auto servermgr = server_manager::get_instance();
         servermgr->init();
-        client(servermgr);
+        servermgr->connect();
         return OK;
     }
 };

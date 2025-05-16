@@ -5,6 +5,7 @@
 #include "protocol.h"
 #include "reactor.h"
 #include "systemtime.h"
+#include "session_manager.h"
 #ifdef _REENTRANT   
 #include "threadpool.h"
 #endif
@@ -150,6 +151,16 @@ void session::forbid_send()
     _event->_events &= (~EVENT_SEND);
     reactor::get_instance()->add_event(_event);
     local_log("session %s forbid_send.", _peer->to_string().data());
+}
+
+size_t session::max_rbuf_size() const
+{
+    return _manager->_read_buffer_size; 
+}
+
+size_t session::max_wbuf_size() const
+{
+    return _manager->_write_buffer_size;
 }
 
 octets& session::rbuffer()

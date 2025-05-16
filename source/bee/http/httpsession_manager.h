@@ -1,5 +1,4 @@
 #pragma once
-#include "httpprotocol.h"
 #include "httpsession.h"
 #include "session_manager.h"
 #include "types.h"
@@ -45,8 +44,6 @@ public:
     virtual const char* identity() const override { return "httpsession_manager"; }
 
     virtual void init() override;
-    virtual void on_add_session(SID sid) override;
-    virtual void on_del_session(SID sid) override;
     virtual void reconnect() override;
 
     virtual httpsession* create_session() override;
@@ -73,21 +70,26 @@ protected:
 class httpclient_manager : public httpsession_manager
 {
 public:
-    http_result do_get(const std::string& url, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
-    http_result do_get(const uri& uri, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
-
-    http_result do_post(const std::string& url, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
-    http_result do_post(const uri& uri, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
+    virtual void on_add_session(SID sid) override;
+    virtual void on_del_session(SID sid) override;
 
     http_result send_request(HTTP_METHOD method, const std::string& url, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
     http_result send_request(HTTP_METHOD method, const uri& uri, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
-    http_result send_request(const httprequest& req, const uri& uri, TIMETYPE timeout/*ms*/);
+    http_result send_request(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/);
+
+protected:
+    void try_new_connection(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/);
+
+protected:
+    std::set<SID> _free_connections; // 已连接但闲置中的链接
+    std::set<SID> _busy_connections; // 已发送请求等待回应的链接
+    std::deque<httprequest*> _pending_requests; // 未发送的http请求
 };
 
 class httpserver_manager : public httpsession_manager
 {
 public:
-
+    void send_response();
 };
 
 } // namespace bee

@@ -16,6 +16,7 @@
 #include "common.h"
 #include "reactor.h"
 #include "session.h"
+#include "session_manager.h"
 
 namespace bee
 {

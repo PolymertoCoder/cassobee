@@ -101,12 +101,12 @@ int main(int argc, char* argv[])
 
     auto logservermgr = logserver_manager::get_instance();
     logservermgr->init();
-    client(logservermgr);
+    logservermgr->connect();
     logclient->set_logserver(logservermgr);
 
     auto clientmgr = client_manager::get_instance();
     clientmgr->init();
-    server(clientmgr);
+    clientmgr->listen();
 
     local_log("nowtime1=%ld", systemtime::get_microseconds());
     sleep(3);

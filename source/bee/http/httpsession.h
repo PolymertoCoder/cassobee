@@ -1,8 +1,6 @@
 #pragma once
-#include "http.h"
 #include "httpprotocol.h"
 #include "session.h"
-#include <string>
 
 namespace bee
 {
@@ -34,14 +32,15 @@ protected:
     httpprotocol* _unfinished_protocol = nullptr;
 };
 
-class httpclient : public httpsession
+class httpclient_session : public httpsession
 {
 public:
     
-
+protected:
+    
 };
 
-class httpserver : public httpsession
+class httpserver_session : public httpsession
 {
 
 };

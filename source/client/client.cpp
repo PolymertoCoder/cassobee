@@ -100,7 +100,7 @@ int main()
 
     auto logservermgr = logserver_manager::get_instance();
     logservermgr->init();
-    client(logservermgr);
+    logservermgr->connect();
     logclient->set_logserver(logservermgr);
     looper->run();
 

@@ -42,7 +42,7 @@ servlet_dispatcher::~servlet_dispatcher()
 
 int servlet_dispatcher::handle(httprequest* req, httpresponse* rsp, httpsession* ses)
 {
-    if(servlet* srv = get_matched_servlet(req->get_url()))
+    if(servlet* srv = get_matched_servlet(req->get_path()))
     {
         srv->handle(req, rsp, ses);
     }

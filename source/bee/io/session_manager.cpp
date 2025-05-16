@@ -3,6 +3,7 @@
 #include "address.h"
 #include "glog.h"
 #include "ioevent.h"
+#include "sslio_event.h"
 #include "lock.h"
 #include "marshal.h"
 #include "reactor.h"
@@ -27,6 +28,30 @@ session_manager::~session_manager()
     _sessions.clear();
 }
 
+void session_manager::connect()
+{
+    if(ssl_enabled())
+    {
+        reactor::get_instance()->add_event(new ssl_activeio_event(this));
+    }
+    else
+    {
+        reactor::get_instance()->add_event(new activeio_event(this));
+    }
+}
+
+void session_manager::listen()
+{
+    if(ssl_enabled())
+    {
+        reactor::get_instance()->add_event(new ssl_passiveio_event(this));
+    }
+    else
+    {
+        reactor::get_instance()->add_event(new passiveio_event(this));
+    }
+}
+
 void session_manager::on_add_session(SID sid)
 {
     local_log("session_manager %s, on_add_session %lu. ", identity(), sid);
@@ -41,7 +66,7 @@ void session_manager::reconnect()
 {
     add_timer(2000, [this]()
     {
-        client(this);
+        connect();
         local_log("session_manager::reconnect run");
         return false;
     });
@@ -66,6 +91,7 @@ void session_manager::init()
     std::string socktype = cfg->get(identity(), "socktype");
     if(socktype == "tcp")
     {
+        _session_type = SESSION_TYPE_TCP;
         _socktype = SOCK_STREAM;
         int version = cfg->get<int>(identity(), "version");
         auto address = cfg->get(identity(), "address");
@@ -89,6 +115,7 @@ void session_manager::init()
     }
     else if(socktype == "udp")
     {
+        _session_type = SESSION_TYPE_UDP;
         _socktype = SOCK_DGRAM;
         // TODO
     }
@@ -237,16 +264,6 @@ bool session_manager::init_ssl(bool is_server)
         local_log("client SSL context initialized for %s", identity());
     }
     return true;
-}
-
-void client(session_manager* manager)
-{
-    reactor::get_instance()->add_event(new activeio_event(manager));
-}
-
-void server(session_manager* manager)
-{
-    reactor::get_instance()->add_event(new passiveio_event(manager));
 }
 
 } // namespace bee
