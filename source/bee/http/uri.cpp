@@ -1,4 +1,5 @@
 #include "uri.h"
+#include "format.h"
 
 namespace bee
 {
@@ -14,7 +15,7 @@ void uri::clear()
     _user.clear();
     _password.clear();
     _host.clear();
-    _port.clear();
+    _port = 0;
     _path.clear();
     _query.clear();
     _fragment.clear();
@@ -96,69 +97,82 @@ void uri::parse(const std::string& uri_str)
 
 std::string uri::to_string() const
 {
-    std::string result;
+    bee::ostringstream result;
+    result.clear();
+
     if(!_schema.empty())
     {
-        result += _schema + ":";
-        if(!_host.empty() || !_port.empty() || !_user.empty())
+        result << _schema << ":";
+        if(!_host.empty() || _port > 0 || !_user.empty())
         {
-            result += "//";
+            result << "//";
         }
     }
     
     if(!_user.empty())
     {
-        result += _user;
+        result << _user;
         if(!_password.empty())
         {
-            result += ":" + _password;
+            result << ":" << _password;
         }
-        result += "@";
+        result << "@";
     }
     
     if(!_host.empty())
     {
         if(_host.find(':') != std::string::npos)
         {
-            result += "[" + _host + "]"; // IPv6 地址
+            result << "[" << _host << "]"; // IPv6 地址
         }
         else
         {
-            result += _host;
+            result << _host;
         }
     }
-    
-    if(!_port.empty())
-    {
-        result += ":" + _port;
-    }
+
+    result << (is_default_port() ? "" : ":" + std::to_string(_port));
     
     if(!_path.empty())
     {
         // 确保路径以斜杠开头（仅限分层URI）
         if(!result.empty() && _path[0] != '/' && !_host.empty())
         {
-            result += "/";
+            result << "/";
         }
-        result += _path;
+        result << _path;
     }
     
     if(!_query.empty())
     {
-        result += "?" + _query;
+        result << "?" << _query;
     }
     
     if(!_fragment.empty())
     {
-        result += "#" + _fragment;
+        result << "#" << _fragment;
     }
     
-    return result;
+    return result.str();
 }
 
 bool uri::is_valid() const
 {
     return !_schema.empty() || !_host.empty() || !_path.empty();
+}
+
+bool uri::is_default_port() const
+{
+    if(_port == 0) return true;
+    if(_schema == "http" || _schema == "ws")
+    {
+        return _port == 80;
+    }
+    else if(_schema == "https" || _schema == "wss")
+    {
+        return _port == 443;
+    }
+    return false;
 }
 
 // 解析Authority
@@ -206,7 +220,7 @@ void uri::parse_hostport(const std::string& hostport)
             size_t colon_pos = hostport.find(':', closing_bracket);
             if(colon_pos != std::string::npos)
             {
-                _port = hostport.substr(colon_pos + 1);
+                _port = std::atoi(hostport.substr(colon_pos + 1).data());
             }
         }
     }
@@ -216,7 +230,7 @@ void uri::parse_hostport(const std::string& hostport)
         if(colon_pos != std::string::npos)
         {
             _host = hostport.substr(0, colon_pos);
-            _port = hostport.substr(colon_pos + 1);
+            _port = std::atoi(hostport.substr(colon_pos + 1).data());
         }
         else
         {

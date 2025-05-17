@@ -26,6 +26,12 @@ session_manager::~session_manager()
         delete ses;
     }
     _sessions.clear();
+
+    if(_ssl_ctx)
+    {
+        SSL_CTX_set_quiet_shutdown(_ssl_ctx, 1);
+        SSL_CTX_free(_ssl_ctx);
+    }
 }
 
 void session_manager::connect()

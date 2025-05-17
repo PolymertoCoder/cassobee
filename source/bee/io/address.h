@@ -1,6 +1,7 @@
 #pragma once
 #include <arpa/inet.h>
 #include <cstring>
+#include <memory>
 #include <netinet/in.h>
 #include <string>
 #include <sys/socket.h>
@@ -28,8 +29,12 @@ public:
     virtual sockaddr* addr() = 0;
     virtual socklen_t& len() = 0;
     virtual int family() = 0;
+    virtual void set_port(uint16_t port) = 0;
     virtual address* dup() = 0;
     virtual std::string to_string() = 0;
+
+    static bool lookup(std::vector<std::unique_ptr<address>>& addrs, const std::string& host, int family = AF_INET, int type = 0, int protocol = 0);
+    static address* lookup_any(const std::string& host, int family = AF_INET, int type = 0, int protocol = 0);
 };
 
 class general_address : public address
@@ -45,6 +50,7 @@ public:
     virtual sockaddr* addr() override { return &_addr; };
     virtual socklen_t& len() override { return _len; };
     virtual int family() override { return _addr.sa_family; };
+    virtual void set_port(uint16_t port) override { /*do nothing*/ }
     virtual general_address* dup() override { return new general_address(*this); }
     virtual std::string to_string() override
     {
@@ -75,6 +81,7 @@ public:
     virtual sockaddr* addr() override { return (sockaddr*)&_addr; };
     virtual socklen_t& len() override { return _len; };
     virtual int family() override { return AF_INET; };
+    virtual void set_port(uint16_t port) override { _addr.sin_port = htobe16(port); }
     virtual ipv4_address* dup() override { return new ipv4_address(*this); }
     virtual std::string to_string() override
     {
@@ -113,6 +120,7 @@ public:
     virtual sockaddr* addr() override { return (sockaddr*)&_addr; };
     virtual socklen_t& len() override { return _len; };
     virtual int family() override { return AF_INET6; };
+    virtual void set_port(uint16_t port) override { _addr.sin6_port = htobe16(port); }
     virtual ipv6_address* dup() override { return new ipv6_address(*this); }
     virtual std::string to_string() override
     {
@@ -150,6 +158,7 @@ public:
     virtual sockaddr* addr() override { return (sockaddr*)&_addr; };
     virtual socklen_t& len() override { return _len; };
     virtual int family() override { return AF_UNIX; };
+    virtual void set_port(uint16_t port) override { /*do nothing*/ }
     virtual unix_address* dup() override { return new unix_address(*this); }
     virtual std::string to_string() override
     {
