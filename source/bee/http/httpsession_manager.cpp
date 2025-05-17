@@ -1,5 +1,8 @@
+#include <algorithm>
+#include <cctype>
 #include <openssl/ssl.h>
 #include "httpsession_manager.h"
+#include "address.h"
 #include "httpsession.h"
 #include "config.h"
 #include "session_manager.h"
@@ -17,33 +20,6 @@ httpsession_manager::httpsession_manager()
     : session_manager()
 {
     _session_type = SESSION_TYPE_HTTP;
-}
-    
-httpsession_manager::~httpsession_manager()
-{
-    if(_ssl_ctx)
-    {
-        SSL_CTX_free(_ssl_ctx);
-    }
-    if(_dispatcher)
-    {
-        delete _dispatcher;
-    }
-}
-
-void httpsession_manager::init()
-{
-    session_manager::init();
-    auto cfg = config::get_instance();
-    _max_requests = cfg->get<int>(identity(), "max_requests");
-    _request_timeout = cfg->get<int>(identity(), "request_timeout");
-    _dispatcher = new servlet_dispatcher;
-    _dispatcher->add_servlet("/_/config", new config_servlet);
-}
-
-void httpsession_manager::reconnect()
-{
-    
 }
 
 httpsession* httpsession_manager::create_session()
@@ -64,35 +40,42 @@ httpsession* httpsession_manager::find_session(SID sid)
 bool httpsession_manager::check_headers(const httpprotocol* req)
 {
     constexpr size_t MAX_BODY_SIZE = 1024 * 1024; // 1MB
-    if(req->get_header("Content-Length").size() > MAX_BODY_SIZE) return false;
+    if(req->get_header("content-length").size() > MAX_BODY_SIZE) return false;
 
     // 检查Host头
-    if(!req->has_header("Host")) return false;
+    if(!req->has_header("host")) return false;
 
     // 限制头数量
     constexpr size_t MAX_HEADERS = 64;
     if(req->get_header_count() > MAX_HEADERS) return false;
 
     // 防御请求走私攻击
-    if(req->has_header("Transfer-Encoding") && 
-        req->has_header("Content-Length")) return false;
+    if(req->has_header("transfer-encoding") && 
+        req->has_header("content-length")) return false;
 
     // 检查头字段合法性
     static const std::set<std::string> ALLOWED_HEADERS = {
-        "Host", "User-Agent", "Accept", "Content-Length", 
-        "Content-Type", "Connection"
+        "host", "user-agent", "accept", "content-length", 
+        "content-type", "connection"
     };
 
     for(const auto& [k, v] : req->get_headers())
     {
         // 检查字段名合法性
-        if (k.find_first_not_of("abcdefghijklmnopqrstuvwxyz-") != std::string::npos)
+        std::string key;
+        std::ranges::transform(k, key.begin(), [](unsigned char c){ return std::tolower(c); });
+        if(key.find_first_not_of("abcdefghijklmnopqrstuvwxyz-") != std::string::npos)
             return false;
         
         // 白名单检查
-        if (!ALLOWED_HEADERS.contains(k)) return false;
+        if(!ALLOWED_HEADERS.contains(key)) return false;
     }
     return true;
+}
+
+void httpsession_manager::check_timeouts()
+{
+
 }
 
 void httpsession_manager::send_request(SID sid, const httprequest& req, httprequest::callback cbk)
@@ -114,7 +97,7 @@ void httpsession_manager::send_request(SID sid, const httprequest& req, httprequ
         ses->_writeos.data().append(os.data(), os.size());
         ses->permit_send();
 
-        _pending_requests.emplace_back(req.dup(), cbk, systemtime::get_time() + _request_timeout);
+        // _pending_requests.emplace_back(req.dup(), cbk, systemtime::get_time() + _request_timeout);
     }
     else
     {
@@ -145,6 +128,19 @@ void httpsession_manager::send_response(SID sid, const httpresponse& rsp)
     {
         local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
     }   
+}
+
+httpclient_manager::~httpclient_manager()
+{
+
+}
+
+void httpclient_manager::init()
+{
+    session_manager::init();
+    auto cfg = config::get_instance();
+    _max_requests = cfg->get<int>(identity(), "max_requests");
+    _request_timeout = cfg->get<int>(identity(), "request_timeout");
 }
 
 void httpclient_manager::on_add_session(SID sid)
@@ -211,12 +207,42 @@ http_result httpclient_manager::send_request(HTTP_METHOD method, const uri& uri,
 http_result httpclient_manager::send_request(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/)
 {
     bool is_ssl = (uri.get_scheme() == "https");
+    if(is_ssl && !this->ssl_enabled())
+    {
+        return http_result(http_result::ERR::SSL_NOT_ENABLED, nullptr, "ssl not enabled");
+    }
     
 }
 
 void httpclient_manager::try_new_connection(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/)
 {
-    
+    std::string host = _dns.host.empty() ? uri.get_host() : _dns.host;
+    int32_t port = (_dns.port == 0) ? uri.get_port() : _dns.port;
+
+    address* addr = address::lookup_any(host, AF_INET, SOCK_STREAM);
+    if(!addr)
+    {
+        local_log("session_manager %s cant find address %s", identity(), host.data());
+        return;
+    }
+    addr->set_port(port);
+}
+
+void httpclient_manager::refresh_dns()
+{
+
+}
+
+httpserver_manager::~httpserver_manager()
+{
+    delete _dispatcher;
+}
+
+void httpserver_manager::init()
+{
+    session_manager::init();
+    _dispatcher = new servlet_dispatcher;
+    _dispatcher->add_servlet("/_/config", new config_servlet);
 }
 
 } // namespace bee

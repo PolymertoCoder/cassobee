@@ -109,6 +109,10 @@ public:
     void del_cookie(const std::string& key) { _cookies.erase(key); }
 
     void set_callback(callback cbk) { _callback = cbk; }
+    callback& get_callback() { return _callback; }
+
+    void set_timeout(TIMETYPE timeout) { _timeout = timeout; }
+    TIMETYPE get_timeout() const { return _timeout; }
 
 protected:
     enum
@@ -133,6 +137,7 @@ private:
     std::string _fragment;  // 请求fragment
     MAP_TYPE    _params;    // 请求参数map
     MAP_TYPE    _cookies;   // 请求cookie
+    TIMETYPE    _timeout;   // 超时时间
     callback    _callback;  // 回调函数
 };
 

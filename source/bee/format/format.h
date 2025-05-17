@@ -46,4 +46,15 @@ private:
 
 ostringstream& endl(ostringstream& oss);
 
+template<typename... Args>
+std::string join(const std::string& sep, const Args&... args)
+{
+    thread_local bee::ostringstream oss;
+    oss.clear();
+    size_t count = 0;
+    static constinit size_t size = sizeof...(Args);
+    ((oss << bee::to_string(args) << (++count < size ? sep : "")), ...);
+    return oss.str();
+}
+
 } // namespace bee

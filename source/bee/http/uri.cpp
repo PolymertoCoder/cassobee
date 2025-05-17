@@ -97,7 +97,7 @@ void uri::parse(const std::string& uri_str)
 
 std::string uri::to_string() const
 {
-    bee::ostringstream result;
+    thread_local bee::ostringstream result;
     result.clear();
 
     if(!_schema.empty())

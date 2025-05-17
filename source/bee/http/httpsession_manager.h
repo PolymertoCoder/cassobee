@@ -3,6 +3,7 @@
 #include "session_manager.h"
 #include "types.h"
 #include <deque>
+#include <string>
 
 namespace bee
 {
@@ -23,6 +24,7 @@ struct http_result
         SEND_CLOSE_BY_PEER,
         SEND_SOCKET_ERROR,
         TIMEOUT,
+        SSL_NOT_ENABLED,
         CREATE_SOCKET_ERROR,
         POOL_GET_CONNECTION_ERROR,
         POOL_INVALID_CONNECTION,
@@ -40,36 +42,25 @@ class httpsession_manager : public session_manager
 {
 public:
     httpsession_manager();
-    virtual ~httpsession_manager();
     virtual const char* identity() const override { return "httpsession_manager"; }
-
-    virtual void init() override;
-    virtual void reconnect() override;
 
     virtual httpsession* create_session() override;
     virtual httpsession* find_session(SID sid) override;
 
     bool check_headers(const httpprotocol* req);
+    void check_timeouts();
 
     void send_request(SID sid, const httprequest& req, httprequest::callback cbk);
     void send_response(SID sid, const httpresponse& rsp);
-
-protected:
-    int _max_requests = 0;
-    int _request_timeout = 0;
-    struct pending_request
-    {
-        httprequest* req;
-        httprequest::callback cbk;
-        TIMETYPE timeout;
-    };
-    std::deque<pending_request> _pending_requests;
-    servlet_dispatcher* _dispatcher = nullptr;
 };
 
 class httpclient_manager : public httpsession_manager
 {
 public:
+    virtual ~httpclient_manager();
+    virtual const char* identity() const override { return "httpclient_manager"; }
+
+    virtual void init() override;
     virtual void on_add_session(SID sid) override;
     virtual void on_del_session(SID sid) override;
 
@@ -79,8 +70,16 @@ public:
 
 protected:
     void try_new_connection(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/);
+    void refresh_dns();
 
 protected:
+    struct
+    {
+        std::string host;
+        int32_t port;
+    } _dns;
+    int _max_requests = 0;
+    int _request_timeout = 0;
     std::set<SID> _free_connections; // 已连接但闲置中的链接
     std::set<SID> _busy_connections; // 已发送请求等待回应的链接
     std::deque<httprequest*> _pending_requests; // 未发送的http请求
@@ -89,7 +88,15 @@ protected:
 class httpserver_manager : public httpsession_manager
 {
 public:
+    virtual ~httpserver_manager();
+    virtual const char* identity() const override { return "httpserver_manager"; }
+
+    virtual void init() override;
+
     void send_response();
+
+protected:
+    servlet_dispatcher* _dispatcher = nullptr;
 };
 
 } // namespace bee
