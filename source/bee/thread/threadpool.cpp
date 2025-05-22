@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <atomic>
 #include <bits/chrono.h>
-#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -25,7 +24,7 @@ thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
             auto pool = threadpool::get_instance();
             while(true)
             {
-                std::function<void()> task;
+                runnable* task = nullptr;
                 {
                     std::unique_lock<std::mutex> l(_queue_lock);
                     while(!has_task()) // 循环判断条件是否满足，避免cond的假唤醒，增加程序的健壮性
@@ -51,12 +50,12 @@ thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
                     {
                         if(!_essential_task_queue.empty())
                         {
-                            task.swap(_essential_task_queue.front());
+                            task = _essential_task_queue.front();
                             _essential_task_queue.pop_front();
                         }
                         else if(!this->_task_queue.empty())
                         {
-                            task.swap(this->_task_queue.front());
+                            task = this->_task_queue.front();
                             this->_task_queue.pop_front();
                         }
                     }
@@ -65,13 +64,14 @@ thread_group::thread_group(size_t idx, size_t maxsize, size_t threadcnt)
                 ++_busy;
                 try
                 {
-                    task();
+                    task->run();
                     //local_log("thread_task run success");
                 }
                 catch(...)
                 {
                     local_log("thread_task run throw exception!!!");
                 }
+                task->destroy();
                 --_busy;
 
                 {
@@ -103,16 +103,20 @@ thread_group::~thread_group()
     }
 }
 
-void thread_group::add_task(const std::function<void()>& task)
+void thread_group::add_task(runnable* task)
 {
     std::lock_guard<std::mutex> l(_queue_lock);
     if(_task_queue.size() >= _maxsize)
     {
-        throw std::runtime_error("task_queue is full!!!");
+        local_log("thread group %d task_queue is full!!!", (int)_idx);
+        task->destroy();
+        return;
     }
     if(_stop.load(std::memory_order_acquire))
     {
-        throw std::runtime_error("add task to a stopped thread group.");
+        local_log("thread group %d is stopped, add_task failed.", (int)_idx);
+        task->destroy();
+        return;
     }
    _task_queue.push_back(task);
    _cond.notify_one();
@@ -187,28 +191,50 @@ void threadpool::stop()
     _groups.shrink_to_fit();
 }
 
-void threadpool::add_task(int groupidx, const std::function<void()>& task)
+void threadpool::add_task(int groupidx, runnable* task)
 {
     if(_stop.load(std::memory_order_acquire))
     {
         local_log("threadpool is stopped, add_task failed.");
+        task->destroy();
         return;
     }
     ASSERT(groupidx >= 0 && groupidx < static_cast<int>(_groups.size()));
     _groups[groupidx]->add_task(task);
 }
 
-void threadpool::add_essential_task(const std::function<void()>& task)
+void threadpool::add_task(int groupidx, std::function<void()> task)
+{
+    add_task(groupidx, new functional_runnable(std::move(task)));
+}
+
+void threadpool::add_task(int groupidx, std::function<void()>&& task)
+{
+    add_task(groupidx, new functional_runnable(std::move(task)));
+}
+
+void threadpool::add_essential_task(runnable* task)
 {
     if(_stop.load(std::memory_order_acquire))
     {
         local_log("threadpool is stopped, add_essential_task failed.");
+        task->destroy();
         return;
     }
     _essential_task_queue.push_back(task);
 }
 
-void threadpool::try_steal_one(int current_idx, std::function<void()>& task)
+void threadpool::add_essential_task(std::function<void()> task)
+{
+    add_essential_task(new functional_runnable(std::move(task)));
+}
+
+void threadpool::add_essential_task(std::function<void()>&& task)
+{
+    add_essential_task(new functional_runnable(std::move(task)));
+}
+
+void threadpool::try_steal_one(int current_idx, runnable*& task)
 {
     int group_size = _groups.size();
     int offset = rand(0, group_size - 1);
@@ -220,7 +246,7 @@ void threadpool::try_steal_one(int current_idx, std::function<void()>& task)
         std::unique_lock<std::mutex> l(_groups[idx]->_queue_lock, std::try_to_lock);
         if(l.owns_lock() && _groups[idx]->has_task())
         {
-            task.swap(_groups[idx]->_task_queue.front());
+            task = _groups[idx]->_task_queue.front();
             _groups[idx]->_task_queue.pop_front();
             if(_groups[idx]->has_task())
             {
