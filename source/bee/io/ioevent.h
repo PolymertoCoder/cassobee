@@ -23,9 +23,10 @@ struct io_event : event
 struct stdio_event : io_event
 {
     stdio_event(int fd, size_t buffer_size);
-    virtual void on_read(size_t n) = 0;
-    virtual void on_write(size_t n) = 0;
-    virtual void on_error(size_t n) = 0;
+    virtual bool handle_event(int active_events) override;
+    virtual bool on_read(size_t n) {};
+    virtual bool on_write(size_t n) {};
+    virtual bool on_error(size_t n) {};
     octets _buffer;
 };
 

@@ -42,6 +42,21 @@ stdio_event::stdio_event(int fd, size_t buffer_size)
     set_nonblocking(_fd);
 }
 
+bool stdio_event::handle_event(int active_events)
+{
+    if(active_events & EVENT_RECV)
+    {
+        size_t n = handle_read();
+        return on_read(n) || on_error(n);
+    }
+    if(active_events & EVENT_SEND)
+    {
+        size_t n = handle_write();
+        return on_write(n);
+    }
+    return false;
+}
+
 stdin_event::stdin_event(size_t buffer_size)
     : stdio_event(fileno(stdin), buffer_size)
 {
