@@ -100,7 +100,7 @@ bool ssl_activeio_event::handle_event(int active_events)
         if(errno != EINPROGRESS)
         {
             perror("connect");
-            close_socket();
+            del_event();
             return false;
         }
     }
@@ -117,7 +117,7 @@ bool ssl_activeio_event::handle_event(int active_events)
         {
             perror("getsockopt");
         }
-        close_socket();
+        del_event();
         return false;
     }
 
@@ -160,62 +160,19 @@ bool sslio_event::handle_event(int active_events)
     }
     if(active_events & EVENT_RECV)
     {
-        handle_recv();
+        handle_read();
         local_log("sslio_event handle_event EVENT_RECV fd=%d", _fd);
     }
     if(active_events & EVENT_SEND)
     {
-        handle_send();
+        handle_write();
         local_log("sslio_event handle_event EVENT_SEND fd=%d", _fd);
     }
+    handle_close();
     return true;
 }
 
-bool sslio_event::handle_handshake()
-{
-    // 检查握手超时（30s）
-    TIMETYPE curtime = systemtime::get_time();
-    if(curtime - _handshake_starttime > 30)
-    {
-        local_log("sslio_event handle_handshake timeout fd=%d", _fd);
-        cleanup_ssl();
-        close_socket();
-        return false;
-    }
-
-    int ret = SSL_do_handshake(_ssl);
-    if(ret == 1)
-    {
-        _handshake_done = true;
-        local_log("sslio_event handle_handshake success fd=%d", _fd);
-        return true;
-    }
-
-    int err = SSL_get_error(_ssl, ret);
-    switch(err)
-    {
-        case SSL_ERROR_WANT_READ:
-        {
-            _ses->permit_recv();
-            local_log("sslio_event handle_handshake SSL_ERROR_WANT_READ fd=%d", _fd);
-        } break;
-        case SSL_ERROR_WANT_WRITE:
-        {
-            _ses->permit_send();
-            local_log("sslio_event handle_handshake SSL_ERROR_WANT_WRITE fd=%d", _fd);
-        } break;
-        default:
-        {
-            local_log("sslio_event handle_handshake error fd=%d", _fd);
-            cleanup_ssl();
-            close_socket();
-            return false;
-        } break;
-    }
-    return true;
-}
-
-int sslio_event::handle_recv()
+int sslio_event::handle_read()
 {
     octets& rbuffer = _ses->rbuffer();
     size_t free_space = rbuffer.free_space();
@@ -254,7 +211,7 @@ int sslio_event::handle_recv()
                 break;
             }
             cleanup_ssl();
-            close_socket();
+            del_event();
             local_log("sslio_event handle_recv error fd=%d", _fd);
             return -1;
         }
@@ -264,8 +221,7 @@ int sslio_event::handle_recv()
     return total_recv;
 }
 
-// 优化SSL写操作（减少内存拷贝）
-int sslio_event::handle_send()
+int sslio_event::handle_write()
 {
     octets* wbuffer = nullptr;
     {
@@ -308,7 +264,7 @@ int sslio_event::handle_send()
                 break;
             }
             cleanup_ssl();
-            close_socket();
+            del_event();
             local_log("sslio_event handle_send error fd=%d", _fd);
             return -1;
         }
@@ -328,6 +284,50 @@ int sslio_event::handle_send()
 
     _ses->on_send(total_send);
     return total_send;
+}
+
+bool sslio_event::handle_handshake()
+{
+    // 检查握手超时（30s）
+    TIMETYPE curtime = systemtime::get_time();
+    if(curtime - _handshake_starttime > 30)
+    {
+        local_log("sslio_event handle_handshake timeout fd=%d", _fd);
+        cleanup_ssl();
+        del_event();
+        return false;
+    }
+
+    int ret = SSL_do_handshake(_ssl);
+    if(ret == 1)
+    {
+        _handshake_done = true;
+        local_log("sslio_event handle_handshake success fd=%d", _fd);
+        return true;
+    }
+
+    int err = SSL_get_error(_ssl, ret);
+    switch(err)
+    {
+        case SSL_ERROR_WANT_READ:
+        {
+            _ses->permit_recv();
+            local_log("sslio_event handle_handshake SSL_ERROR_WANT_READ fd=%d", _fd);
+        } break;
+        case SSL_ERROR_WANT_WRITE:
+        {
+            _ses->permit_send();
+            local_log("sslio_event handle_handshake SSL_ERROR_WANT_WRITE fd=%d", _fd);
+        } break;
+        default:
+        {
+            local_log("sslio_event handle_handshake error fd=%d", _fd);
+            cleanup_ssl();
+            del_event();
+            return false;
+        } break;
+    }
+    return true;
 }
 
 void sslio_event::cleanup_ssl()

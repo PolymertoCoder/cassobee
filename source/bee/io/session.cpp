@@ -82,10 +82,7 @@ void session::set_close()
 
 void session::close()
 {
-    if(auto event = dynamic_cast<netio_event*>(_event))
-    {
-        event->close_socket();
-    }
+    set_state(SESSION_STATE_CLOSING);
 }
 
 void session::on_recv(size_t len)
@@ -182,6 +179,11 @@ void session::clear_wbuffer()
 {
     _writebuf.clear();
     _write_offset = 0;
+}
+
+bool session::is_writeos_empty()
+{
+    return _write_offset == _writeos.size();
 }
 
 void session::activate()

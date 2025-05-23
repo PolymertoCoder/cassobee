@@ -49,6 +49,7 @@ public:
     void add_session(SID sid, session* ses);
     void del_session(SID sid);
     virtual session* find_session(SID sid);
+    void close_session(SID sid);
 
     void add_session_nolock(SID sid, session* ses);
     void del_session_nolock(SID sid);

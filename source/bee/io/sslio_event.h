@@ -22,9 +22,9 @@ struct sslio_event : netio_event
     sslio_event(int fd, SSL_CTX* ssl_ctx, bool is_server, session* ses);
     virtual ~sslio_event() override;
     virtual bool handle_event(int active_events) override;
+    virtual int  handle_read() override;
+    virtual int  handle_write() override;
     bool handle_handshake();
-    int  handle_recv();
-    int  handle_send();
     void cleanup_ssl();
     
     SSL_CTX* _ssl_ctx = nullptr; // session_manager::_ssl_ctx的引用

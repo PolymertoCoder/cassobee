@@ -12,6 +12,10 @@ class session_manager;
 struct io_event : event
 {
     virtual int get_handle() const override { return _fd; }
+    virtual bool handle_event(int active_events) override;
+    virtual int  handle_read() { return false; }
+    virtual int  handle_write() { return false; }
+    virtual void handle_close() {}
     int _fd = -1;
 };
 
@@ -19,30 +23,28 @@ struct io_event : event
 struct stdio_event : io_event
 {
     stdio_event(int fd, size_t buffer_size);
-    size_t on_read();
-    size_t on_write();
+    virtual void on_read(size_t n) = 0;
+    virtual void on_write(size_t n) = 0;
+    virtual void on_error(size_t n) = 0;
     octets _buffer;
 };
 
 struct stdin_event : stdio_event
 {
     stdin_event(size_t buffer_size);
-    virtual bool handle_event(int active_events) override;
-    virtual bool handle_read(size_t n) = 0;
+    virtual int handle_read() override;
 };
 
 struct stdout_event : stdio_event
 {
     stdout_event(size_t buffer_size);
-    virtual bool handle_event(int active_events) override;
-    virtual bool handle_write(size_t n) = 0;
+    virtual int handle_write() override;
 };
 
 struct stderr_event : stdio_event
 {
     stderr_event(size_t buffer_size);
-    virtual bool handle_event(int active_events) override;
-    virtual bool handle_error(size_t n) = 0;
+    virtual int handle_read() override;
 };
 
 // 网络io
@@ -50,7 +52,7 @@ struct netio_event : io_event
 {
     netio_event(session* ses);
     virtual ~netio_event();
-    void close_socket();
+    virtual void handle_close() override;
     session* _ses;
 };
 
@@ -69,9 +71,8 @@ struct activeio_event : netio_event
 struct streamio_event : netio_event
 {
     streamio_event(int fd, session* ses);
-    virtual bool handle_event(int active_events) override;
-    int handle_recv();
-    int handle_send();
+    virtual int handle_read() override;
+    virtual int handle_write() override;
 };
 
 } // namespace bee

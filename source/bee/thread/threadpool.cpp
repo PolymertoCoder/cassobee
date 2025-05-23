@@ -203,7 +203,7 @@ void threadpool::add_task(int groupidx, runnable* task)
     _groups[groupidx]->add_task(task);
 }
 
-void threadpool::add_task(int groupidx, std::function<void()> task)
+void threadpool::add_task(int groupidx, const std::function<void()>& task)
 {
     add_task(groupidx, new functional_runnable(std::move(task)));
 }
@@ -224,7 +224,7 @@ void threadpool::add_essential_task(runnable* task)
     _essential_task_queue.push_back(task);
 }
 
-void threadpool::add_essential_task(std::function<void()> task)
+void threadpool::add_essential_task(const std::function<void()>& task)
 {
     add_essential_task(new functional_runnable(std::move(task)));
 }

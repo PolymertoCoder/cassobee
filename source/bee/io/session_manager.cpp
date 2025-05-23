@@ -3,6 +3,7 @@
 #include "address.h"
 #include "glog.h"
 #include "ioevent.h"
+#include "log.h"
 #include "sslio_event.h"
 #include "lock.h"
 #include "marshal.h"
@@ -160,6 +161,15 @@ session* session_manager::find_session(SID sid)
     return find_session_nolock(sid);
 }
 
+void session_manager::close_session(SID sid)
+{
+    bee::rwlock::rdscoped l(_locker);
+    if(session* ses = find_session_nolock(sid))
+    {
+        ses->close();
+    }
+}
+
 void session_manager::add_session_nolock(SID sid, session* ses)
 {
     ASSERT(!_sessions.contains(sid) && ses);
@@ -186,6 +196,12 @@ void session_manager::send_protocol(SID sid, const protocol& prot)
     bee::rwlock::rdscoped l(_locker);
     if(session* ses = find_session_nolock(sid))
     {
+        if(ses->is_close())
+        {
+            local_log("session_manager %s, session %lu send_protocol after closing.", identity(), sid);
+            return;
+        }
+
         thread_local octetsstream os;
         os.clear();
         prot.encode(os);
@@ -211,6 +227,12 @@ void session_manager::send_octets(SID sid, const octets& oct)
     bee::rwlock::rdscoped l(_locker);
     if(session* ses = find_session_nolock(sid))
     {
+        if(ses->is_close())
+        {
+            local_log("session_manager %s, session %lu send_octets after closing.", identity(), sid);
+            return;
+        }
+
         bee::rwlock::wrscoped sesl(ses->_locker);
         if(oct.size() > ses->_writeos.data().free_space())
         {

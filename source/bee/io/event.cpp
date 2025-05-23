@@ -10,6 +10,11 @@
 namespace bee
 {
 
+void event::del_event()
+{
+    if(_base) _base->del_event(this);
+}
+
 control_event::control_event()
 {
     set_events(EVENT_WAKEUP);

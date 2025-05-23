@@ -43,7 +43,8 @@ struct event
     void set_status(int status) { _status = status; }
     int  get_events() const { return _events; }
     void set_events(int events) { _events = events; }
-    bool is_close() const { return _status != EVENT_STATUS_ADD; }
+    void del_event();
+    bool is_close() const { return _status == EVENT_STATUS_DEL; }
 
     int _status = EVENT_STATUS_NONE;
     int _events = EVENT_NONE;

@@ -21,6 +21,20 @@
 namespace bee
 {
 
+bool io_event::handle_event(int active_events)
+{
+    if(active_events & EVENT_RECV)
+    {
+        handle_read();
+    }
+    if(active_events & EVENT_SEND)
+    {
+        handle_write();
+    }
+    handle_close();
+    return true;
+}
+
 stdio_event::stdio_event(int fd, size_t buffer_size)
 {
     _fd = fd;
@@ -28,7 +42,13 @@ stdio_event::stdio_event(int fd, size_t buffer_size)
     set_nonblocking(_fd);
 }
 
-size_t stdio_event::on_read()
+stdin_event::stdin_event(size_t buffer_size)
+    : stdio_event(fileno(stdin), buffer_size)
+{
+    set_events(EVENT_RECV);
+}
+
+int stdin_event::handle_read()
 {
     size_t total_read = 0;
     while(true)
@@ -66,7 +86,13 @@ size_t stdio_event::on_read()
     return total_read;
 }
 
-size_t stdio_event::on_write()
+stdout_event::stdout_event(size_t buffer_size)
+    : stdio_event(fileno(stdout), buffer_size)
+{
+    set_events(EVENT_SEND);
+}
+
+int stdout_event::handle_write()
 {
     size_t total_write = 0;
     while(true)
@@ -103,52 +129,48 @@ size_t stdio_event::on_write()
     return total_write;
 }
 
-stdin_event::stdin_event(size_t buffer_size)
-    : stdio_event(fileno(stdin), buffer_size)
-{
-    set_events(EVENT_RECV);
-}
-
-bool stdin_event::handle_event(int active_events)
-{
-    if(active_events & EVENT_RECV)
-    {
-        size_t total_read = stdio_event::on_read();
-        return handle_read(total_read);
-    }
-    return true;
-}
-
-stdout_event::stdout_event(size_t buffer_size)
-    : stdio_event(fileno(stdout), buffer_size)
-{
-    set_events(EVENT_SEND);
-}
-
-bool stdout_event::handle_event(int active_events)
-{
-    if(active_events & EVENT_SEND)
-    {
-        size_t total_write = stdio_event::on_write();
-        return handle_write(total_write);
-    }
-    return true;
-}
-
 stderr_event::stderr_event(size_t buffer_size)
     : stdio_event(fileno(stderr), buffer_size)
 {
     set_events(EVENT_RECV);
 }
 
-bool stderr_event::handle_event(int active_events)
+int stderr_event::handle_read()
 {
-    if(active_events & EVENT_RECV)
+    size_t total_read = 0;
+    while(true)
     {
-        size_t total_read = stdio_event::on_read();
-        return handle_error(total_read);
+        size_t free_size = _buffer.free_space();
+        if(free_size == 0) break;
+
+        char* recv_ptr = _buffer.end();
+        int len = read(_fd, recv_ptr, free_size);
+        if(len > 0)
+        {
+            _buffer.fast_resize(len);
+            total_read += len;
+            local_log("stdio_event handle_event read %d bytes from stdin.", len);
+        }
+        else if(len == 0)
+        {
+            local_log("stdio_event handle_event stdin closed.");
+            return false;
+        }
+        else
+        {
+            if(errno == EAGAIN || errno == EINTR)
+            {
+                local_log("stdio_event handle_event temporary error (errno=%d: %s).", errno, strerror(errno));
+                return true;
+            }
+            else
+            {
+                perror("read");
+                return false;
+            }
+        }
     }
-    return true;
+    return total_read;
 }
 
 netio_event::netio_event(session* ses) : _ses(ses)
@@ -171,9 +193,19 @@ netio_event::~netio_event()
     }
 }
 
-void netio_event::close_socket()
+void netio_event::handle_close()
 {
-    _base->del_event(this);
+    if(_ses && _ses->is_close())
+    {
+        if(_ses->is_writeos_empty())
+        {
+            _ses->permit_send();
+        }
+        else
+        {
+            del_event();
+        }
+    }
 }
 
 passiveio_event::passiveio_event(session_manager* manager)
@@ -270,7 +302,7 @@ bool activeio_event::handle_event(int active_events)
         if(errno != EINPROGRESS)
         {
             perror("connect");
-            close_socket();
+            del_event();
             return false;
         }
     }
@@ -287,7 +319,7 @@ bool activeio_event::handle_event(int active_events)
         {
             perror("getsockopt");
         }
-        close_socket();
+        del_event();
         return false;
     }
 
@@ -310,42 +342,27 @@ streamio_event::streamio_event(int fd, session* ses)
     if(getsockname(_fd, addr->addr(), &addr->len()) < 0)
     {
         perror("getsockname");
-        close(_fd);
-        exit(-1);
+        del_event();
+        return;
     }
     int flag = 1;
     if(setsockopt(_fd, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(int)) < 0)
     {
         perror("setsockopt");
-        close(_fd);
-        exit(-1);
+        del_event();
+        return;
     }
     if(setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int)) < 0)
     {
         perror("setsockopt");
-        close(_fd);
-        exit(-1);
+        del_event();
+        return;
     }
     ses->set_open();
     //local_log("streamio_event constructor run");
 }
 
-bool streamio_event::handle_event(int active_events)
-{
-    if(active_events & EVENT_RECV)
-    {
-        handle_recv();
-        // local_log("streamio_event handle_event EVENT_RECV fd=%d", _fd);
-    }
-    if(active_events & EVENT_SEND)
-    {
-        handle_send();
-        // local_log("streamio_event handle_event EVENT_SEND fd=%d", _fd);
-    }
-    return true;
-}
-
-int streamio_event::handle_recv()
+int streamio_event::handle_read()
 {
     octets& rbuffer = _ses->rbuffer();
     size_t free_space = rbuffer.free_space();
@@ -378,7 +395,7 @@ int streamio_event::handle_recv()
         {
             local_log("recv[fd=%d]: connection closed by peer, buffer size=%zu",
                 _fd, rbuffer.size());
-            close_socket();
+            del_event();
             return -1;
         }
         else // len < 0
@@ -395,7 +412,7 @@ int streamio_event::handle_recv()
                 perror("recv");
                 local_log("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
                     _fd, errno, strerror(errno), rbuffer.size());
-                close_socket();
+                del_event();
                 return -1;
             }
         }
@@ -405,7 +422,7 @@ int streamio_event::handle_recv()
     return total_recv;
 }
 
-int streamio_event::handle_send()
+int streamio_event::handle_write()
 {
     octets* wbuffer = nullptr;
     {

@@ -75,11 +75,11 @@ public:
     void stop();
 
     void add_task(int groupidx, runnable* task);
-    void add_task(int groupidx, std::function<void()> task);
+    void add_task(int groupidx, const std::function<void()>& task);
     void add_task(int groupidx, std::function<void()>&& task);
 
     void add_essential_task(runnable* task);
-    void add_essential_task(std::function<void()> task);
+    void add_essential_task(const std::function<void()>& task);
     void add_essential_task(std::function<void()>&& task);
 
     bool is_steal() { return _is_steal; }

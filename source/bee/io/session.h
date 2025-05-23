@@ -19,7 +19,7 @@ enum SESSION_STATE
     SESSION_STATE_ACTIVE,
     SESSION_STATE_SENDING,
     SESSION_STATE_RECVING,
-    SESSION_STATE_CLOSING
+    SESSION_STATE_CLOSING,
 };
 
 class session
@@ -50,6 +50,7 @@ public:
     octets& rbuffer();
     octets& wbuffer();
     void clear_wbuffer();
+    bool is_writeos_empty();
 
     FORCE_INLINE void set_sid(SID sid) { _sid = sid; }
     FORCE_INLINE SID  get_sid() const { return _sid;}
@@ -58,6 +59,8 @@ public:
     FORCE_INLINE session_manager* get_manager() const { return _manager; }
 
     FORCE_INLINE void set_state(SESSION_STATE state) { _state = state; }
+    FORCE_INLINE bool is_close() { return _state == SESSION_STATE_CLOSING; }
+
     FORCE_INLINE void set_event(event* ev) { _event = ev; }
 
     void activate(); // 更新会话的最后活跃时间
