@@ -2,8 +2,9 @@
 #include "httpsession.h"
 #include "session_manager.h"
 #include "types.h"
-#include <deque>
+#include <list>
 #include <string>
+#include <unordered_map>
 
 namespace bee
 {
@@ -57,6 +58,9 @@ public:
 class httpclient_manager : public httpsession_manager
 {
 public:
+    using REQUESTID = httprequest::REQUESTID;
+    using callback  = httprequest::callback;
+
     virtual ~httpclient_manager();
     virtual const char* identity() const override { return "httpclient_manager"; }
 
@@ -64,12 +68,16 @@ public:
     virtual void on_add_session(SID sid) override;
     virtual void on_del_session(SID sid) override;
 
-    http_result send_request(HTTP_METHOD method, const std::string& url, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
-    http_result send_request(HTTP_METHOD method, const uri& uri, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
-    http_result send_request(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/);
+    http_result send_request(HTTP_METHOD method, const std::string& url, callback cbk = {}, TIMETYPE timeout = 30000/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
+    http_result send_request(HTTP_METHOD method, const uri& uri, callback cbk = {}, TIMETYPE timeout = 30000/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
+    http_result send_request(httprequest* req, const uri& uri, callback cbk = {}, TIMETYPE timeout = 30000/*ms*/);
+
+    httprequest* find_httprequest(REQUESTID requestid);
+    httprequest* find_httprequest_by_sid(SID sid);
 
 protected:
-    void try_new_connection(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/);
+    auto get_new_requestid() -> REQUESTID;
+    void try_new_connection(httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/);
     void refresh_dns();
 
 protected:
@@ -80,9 +88,10 @@ protected:
     } _dns;
     int _max_requests = 0;
     int _request_timeout = 0;
-    std::set<SID> _free_connections; // 已连接但闲置中的链接
-    std::set<SID> _busy_connections; // 已发送请求等待回应的链接
-    std::deque<httprequest*> _pending_requests; // 未发送的http请求
+    std::set<SID> _idle_connections; // 还未发送请求的连接
+    std::map<SID, REQUESTID> _busy_connections; // 已发送请求，等待回应中的连接
+    std::list<REQUESTID> _waiting_requests; // 未发送的请求
+    std::unordered_map<REQUESTID, httprequest*> _requests_cache; // 未完成的请求，包括已发送和未发送的
 };
 
 class httpserver_manager : public httpsession_manager

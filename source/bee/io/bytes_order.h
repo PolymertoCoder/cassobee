@@ -79,7 +79,14 @@ inline int8_t hostToNetwork<int8_t>(int8_t host8)
     return host8;
 }
 
-inline float hostToNetwork(float host)
+template<>
+inline bool hostToNetwork<bool>(bool host8)
+{
+    return host8;
+}
+
+template<>
+inline float hostToNetwork<float>(float host)
 {
     uint32_t temp;
     std::memcpy(&temp, &host, sizeof(float));
@@ -89,7 +96,8 @@ inline float hostToNetwork(float host)
     return net;
 }
 
-inline double hostToNetwork(double host)
+template<>
+inline double hostToNetwork<double>(double host)
 {
     uint64_t temp;
     std::memcpy(&temp, &host, sizeof(double));
@@ -150,7 +158,14 @@ inline int8_t networkToHost<int8_t>(int8_t host8)
     return ntohs(host8);
 }
 
-inline float networkToHost(float net)
+template<>
+inline bool networkToHost<bool>(bool host8)
+{
+    return ntohs(host8);
+}
+
+template<>
+inline float networkToHost<float>(float net)
 {
     uint32_t temp;
     std::memcpy(&temp, &net, sizeof(float));
@@ -160,7 +175,8 @@ inline float networkToHost(float net)
     return host;
 }
 
-inline double networkToHost(double net)
+template<>
+inline double networkToHost<double>(double net)
 {
     uint64_t temp;
     std::memcpy(&temp, &net, sizeof(double));

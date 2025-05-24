@@ -202,7 +202,7 @@ netio_event::~netio_event()
     }
     if(_ses)
     {
-        _ses->set_close();
+        _ses->close();
         delete _ses;
         _ses = nullptr;
     }
@@ -212,15 +212,21 @@ void netio_event::handle_close()
 {
     if(_ses && _ses->is_close())
     {
-        if(_ses->is_writeos_empty())
+        if(!_ses->is_writeos_empty())
         {
-            _ses->permit_send();
+            _ses->permit_send(); // 断开连接前把数据发完
         }
         else
         {
             del_event();
         }
     }
+}
+
+void netio_event::close_socket() // 强制断开
+{
+    _ses->set_close();
+    del_event();
 }
 
 passiveio_event::passiveio_event(session_manager* manager)
@@ -317,7 +323,7 @@ bool activeio_event::handle_event(int active_events)
         if(errno != EINPROGRESS)
         {
             perror("connect");
-            del_event();
+            close_socket();
             return false;
         }
     }
@@ -334,7 +340,7 @@ bool activeio_event::handle_event(int active_events)
         {
             perror("getsockopt");
         }
-        del_event();
+        close_socket();
         return false;
     }
 
@@ -357,20 +363,20 @@ streamio_event::streamio_event(int fd, session* ses)
     if(getsockname(_fd, addr->addr(), &addr->len()) < 0)
     {
         perror("getsockname");
-        del_event();
+        close_socket();
         return;
     }
     int flag = 1;
     if(setsockopt(_fd, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(int)) < 0)
     {
         perror("setsockopt");
-        del_event();
+        close_socket();
         return;
     }
     if(setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int)) < 0)
     {
         perror("setsockopt");
-        del_event();
+        close_socket();
         return;
     }
     ses->set_open();
@@ -415,21 +421,13 @@ int streamio_event::handle_read()
         }
         else // len < 0
         {
-            if(errno == EAGAIN || errno == EINTR)
-            {
-                // 非阻塞模式下的正常情况，不需要额外处理
-                // local_log("recv[fd=%d]: temporary error (errno=%d: %s), buffer size=%zu, free space=%zu",
-                //     _fd, errno, strerror(errno), rbuffer.size(), rbuffer.free_space());
-                break;
-            }
-            else
-            {
-                perror("recv");
-                local_log("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
-                    _fd, errno, strerror(errno), rbuffer.size());
-                del_event();
-                return -1;
-            }
+            if(errno == EINTR) continue; // 被信号中断，继续接收
+            if(errno == EAGAIN) break; // 非阻塞模式下没有数据可读
+            perror("recv");
+            local_log("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
+                _fd, errno, strerror(errno), rbuffer.size());
+            close_socket();
+            return -1;
         }
     }
     
@@ -472,12 +470,11 @@ int streamio_event::handle_write()
         }
         else // len < 0
         {
-            if(errno != EAGAIN && errno != EINTR)
-            {
-                perror("send");
-                // close_socket();
-                break;
-            }
+            if(errno == EINTR) continue;
+            if(errno == EAGAIN) break;
+            perror("send");
+            close_socket();
+            break;
         }
 
         if(_ses->_write_offset == wbuffer->size())

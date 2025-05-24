@@ -26,6 +26,7 @@
 #include "lr_map.h"
 #include "format.h"
 #include "util.h"
+#include "ExampleRPC.h"
 
 using namespace bee;
 
@@ -232,6 +233,9 @@ int main(int argc, char* argv[])
     // test_http_encode_decode("%zz"); // 无效十六进制字符
     // test_http_encode_decode("%1"); // 不完整的百分比编码
     // test_http_encode_decode("%%20"); // 双重%开头
+
+    ExampleRPC rpc;
+    auto rpc2 = rpc;
 
     looper->run();
     timer_thread.join();

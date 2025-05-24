@@ -25,7 +25,7 @@ public:
         UNIX
     };
 
-    virtual ~address() {};
+    virtual ~address() {}
     virtual sockaddr* addr() = 0;
     virtual socklen_t& len() = 0;
     virtual int family() = 0;

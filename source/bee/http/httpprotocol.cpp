@@ -4,6 +4,7 @@
 #include "glog.h"
 #include "http.h"
 #include "httpsession.h"
+#include "httpsession_manager.h"
 #include "log.h"
 #include "marshal.h"
 #include "systemtime.h"
@@ -52,7 +53,10 @@ void httpprotocol::set_header(const std::string& key, const std::string& value)
     {
         throw std::invalid_argument("Header key or value cannot be empty");
     }
-    _headers[key] = value;
+    std::string k, v;
+    std::transform(key.begin(), key.end(), k.begin(), ::tolower);
+    std::transform(value.begin(), value.end(), v.begin(), ::tolower);
+    _headers[k] = v;
 }
 
 const std::string& httpprotocol::get_header(const std::string& key) const
@@ -198,6 +202,7 @@ httpprotocol* httpprotocol::decode(octetsstream& os, httpsession* httpses)
 
         if(prot->_parse_state == HTTP_PARSE_STATE_COMPLETE) // 解析完成了
         {
+            prot->init_session(httpses);
             httpses->set_unfinished_protocol(nullptr);
             return prot;
         }
@@ -288,6 +293,10 @@ ostringstream& httprequest::dump(ostringstream& out) const
         << http_version_to_string(_version)
         << "\r\n";
 
+    if(_requestid != 0)
+    {
+        out << "x-request-id: " << _requestid << "\r\n";
+    }
     if(!_is_websocket)
     {
         out << "connection: " << (_is_keepalive? "keep-alive" : "close") << "\r\n";
@@ -428,7 +437,7 @@ size_t httpresponse::maxsize() const
 
 void httpresponse::run()
 {
-    
+    // _manager->find_request(_sid);
 }
 
 ostringstream& httpresponse::dump(ostringstream& out) const

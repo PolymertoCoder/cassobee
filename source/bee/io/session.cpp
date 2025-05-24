@@ -76,13 +76,12 @@ void session::set_open()
 void session::set_close()
 {
     set_state(SESSION_STATE_CLOSING);
-    _manager->del_session(_sid);
-    clear();
 }
 
 void session::close()
 {
-    set_state(SESSION_STATE_CLOSING);
+    _manager->del_session(_sid);
+    clear();
 }
 
 void session::on_recv(size_t len)
@@ -120,34 +119,38 @@ void session::on_send(size_t len)
 
 void session::permit_recv()
 {
-    if(!_event || _event->is_close() || (_event->get_events() & EVENT_RECV)) return;
-    _event->_events |= EVENT_RECV;
-    reactor::get_instance()->add_event(_event);
-    local_log("session %s permit_recv.", _peer->to_string().data());
+    if(_event)
+    {
+        _event->permit_read();
+        local_log("session %s permit_recv.", _peer->to_string().data());
+    }
 }
 
 void session::permit_send()
 {
-    if(!_event || _event->is_close() || (_event->get_events() & EVENT_SEND)) return;
-    _event->_events |= EVENT_SEND;
-    reactor::get_instance()->add_event(_event);
-    local_log("session %s permit_send.", _peer->to_string().data());
+    if(_event)
+    {
+        _event->permit_write();
+        local_log("session %s permit_send.", _peer->to_string().data());
+    }
 }
 
 void session::forbid_recv()
 {
-    if(!_event || _event->is_close() || !(_event->get_events() & EVENT_RECV)) return;
-    _event->_events &= (~EVENT_RECV);
-    reactor::get_instance()->add_event(_event);
-    local_log("session %s forbid_recv.", _peer->to_string().data());
+    if(_event)
+    {
+        _event->forbid_read();
+        local_log("session %s forbid_recv.", _peer->to_string().data());
+    }
 }
 
 void session::forbid_send()
 {
-    if(!_event || _event->is_close() || !(_event->get_events() & EVENT_SEND)) return;
-    _event->_events &= (~EVENT_SEND);
-    reactor::get_instance()->add_event(_event);
-    local_log("session %s forbid_send.", _peer->to_string().data());
+    if(_event)
+    {
+        _event->forbid_write();
+        local_log("session %s forbid_send.", _peer->to_string().data());
+    }
 }
 
 size_t session::max_rbuf_size() const

@@ -123,6 +123,16 @@ public:
         _composer.assign<T>(std::forward<Args...>(args...));
     }
 
+    void lock()
+    {
+        _locker.lock();
+    }
+
+    void unlock()
+    {
+        _locker.unlock();
+    }
+
 public:
     bee::mutex _locker;
     component_composer _composer;

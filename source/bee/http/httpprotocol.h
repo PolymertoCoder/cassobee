@@ -2,6 +2,7 @@
 #include "protocol.h"
 #include "http.h"
 #include <bitset>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <functional>
@@ -68,10 +69,17 @@ protected:
     MAP_TYPE _headers;
 };
 
+struct http_callback
+{
+    int on_handle(httprequest* req, httpresponse* rsp) { return 0; }
+    int on_timeout(httprequest* req) { return 0; }
+};
+
 class httprequest : public httpprotocol
 {
 public:
     static constexpr PROTOCOLID TYPE = PROTOCOL_TYPE_HTTPREQUEST;
+    using REQUESTID = int64_t;
     using callback = std::function<void(httpresponse*)>;
 
     httprequest() = default;
@@ -108,11 +116,14 @@ public:
     const std::string& get_cookie(const std::string& key);
     void del_cookie(const std::string& key) { _cookies.erase(key); }
 
-    void set_callback(callback cbk) { _callback = cbk; }
-    callback& get_callback() { return _callback; }
+    void set_requestid(int64_t requestid) { _requestid = requestid; }
+    int64_t get_requestid() const { return _requestid; }
 
     void set_timeout(TIMETYPE timeout) { _timeout = timeout; }
     TIMETYPE get_timeout() const { return _timeout; }
+
+    void set_callback(callback cbk) { _callback = cbk; }
+    callback get_callback() const { return _callback; }
 
 protected:
     enum
@@ -137,8 +148,9 @@ private:
     std::string _fragment;  // 请求fragment
     MAP_TYPE    _params;    // 请求参数map
     MAP_TYPE    _cookies;   // 请求cookie
+    REQUESTID   _requestid; // 请求ID
     TIMETYPE    _timeout;   // 超时时间
-    callback    _callback;  // 回调函数
+    callback    _callback;  // 回调函数 
 };
 
 class httpresponse : public httpprotocol

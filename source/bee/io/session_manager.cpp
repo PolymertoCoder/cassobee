@@ -166,23 +166,40 @@ void session_manager::close_session(SID sid)
     bee::rwlock::rdscoped l(_locker);
     if(session* ses = find_session_nolock(sid))
     {
-        ses->close();
+        bee::rwlock::wrscoped sesl(ses->_locker);
+        ses->set_close();
     }
 }
 
 void session_manager::add_session_nolock(SID sid, session* ses)
 {
-    ASSERT(!_sessions.contains(sid) && ses);
-    _sessions.emplace(sid, ses);
-    on_add_session(sid);
-    local_log("session_manager add_session %lu.", sid);
+    if(!ses) return;
+    if(_sessions.emplace(sid, ses).second)
+    {
+        on_add_session(sid);
+        local_log("session_manager add_session %lu.", sid);
+    }
+    else
+    {
+        local_log("session_manager %s, add_session %lu already exists.", identity(), sid);
+        delete ses;
+        return;
+    }
 }
 
 void session_manager::del_session_nolock(SID sid)
 {
-    _sessions.erase(sid);
-    on_del_session(sid);
-    local_log("session_manager del_session %lu.", sid);
+    if(auto iter = _sessions.find(sid); iter != _sessions.end())
+    {
+        _sessions.erase(iter);
+        on_del_session(sid);
+        local_log("session_manager del_session %lu.", sid);
+    }
+    else
+    {
+        local_log("session_manager %s, del_session %lu not found.", identity(), sid);
+        return;
+    }
 }
 
 session* session_manager::find_session_nolock(SID sid)

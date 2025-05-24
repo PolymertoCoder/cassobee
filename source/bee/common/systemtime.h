@@ -26,6 +26,12 @@ public:
         localtime_r(&t, &tm);
         return tm;
     }
+    static TIMETYPE get_seconds()
+    {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        return tv.tv_sec;
+    }
     static TIMETYPE get_millseconds()
     {
         struct timeval tv;

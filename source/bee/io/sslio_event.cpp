@@ -100,7 +100,7 @@ bool ssl_activeio_event::handle_event(int active_events)
         if(errno != EINPROGRESS)
         {
             perror("connect");
-            del_event();
+            close_socket();
             return false;
         }
     }
@@ -117,7 +117,7 @@ bool ssl_activeio_event::handle_event(int active_events)
         {
             perror("getsockopt");
         }
-        del_event();
+        close_socket();
         return false;
     }
 
@@ -211,7 +211,7 @@ int sslio_event::handle_read()
                 break;
             }
             cleanup_ssl();
-            del_event();
+            close_socket();
             local_log("sslio_event handle_recv error fd=%d", _fd);
             return -1;
         }
@@ -264,7 +264,7 @@ int sslio_event::handle_write()
                 break;
             }
             cleanup_ssl();
-            del_event();
+            close_socket();
             local_log("sslio_event handle_send error fd=%d", _fd);
             return -1;
         }
@@ -294,7 +294,7 @@ bool sslio_event::handle_handshake()
     {
         local_log("sslio_event handle_handshake timeout fd=%d", _fd);
         cleanup_ssl();
-        del_event();
+        close_socket();
         return false;
     }
 
@@ -323,7 +323,7 @@ bool sslio_event::handle_handshake()
         {
             local_log("sslio_event handle_handshake error fd=%d", _fd);
             cleanup_ssl();
-            del_event();
+            close_socket();
             return false;
         } break;
     }

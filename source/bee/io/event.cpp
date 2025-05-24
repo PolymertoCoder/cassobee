@@ -15,6 +15,34 @@ void event::del_event()
     if(_base) _base->del_event(this);
 }
 
+void event::permit_read()
+{
+    if(is_close() || (_events & EVENT_RECV)) return;
+    _events |= EVENT_RECV;
+    _base->add_event(this);
+}
+
+void event::permit_write()
+{
+    if(is_close() || (_events & EVENT_SEND)) return;
+    _events |= EVENT_SEND;
+    _base->add_event(this);
+}
+
+void event::forbid_read()
+{
+    if(is_close() || !(_events & EVENT_RECV)) return;
+    _events &= (~EVENT_RECV);
+    _base->add_event(this);
+}
+
+void event::forbid_write()
+{
+    if(is_close() || !(_events & EVENT_SEND)) return;
+    _events &= (~EVENT_SEND);
+    _base->add_event(this);
+}
+
 control_event::control_event()
 {
     set_events(EVENT_WAKEUP);

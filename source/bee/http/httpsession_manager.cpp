@@ -146,26 +146,31 @@ void httpclient_manager::init()
 void httpclient_manager::on_add_session(SID sid)
 {
     session_manager::on_add_session(sid);
-    _free_connections.erase(sid);
-    _busy_connections.insert(sid);
+    _idle_connections.erase(sid);
+    //_busy_connections.insert(sid);
 }
 
 void httpclient_manager::on_del_session(SID sid)
 {
     session_manager::on_del_session(sid);
+    _idle_connections.erase(sid);
+    if(auto iter = _busy_connections.find(sid); iter != _busy_connections.end())
+    {
+        REQUESTID requestid = iter->second;
+    }
 }
 
-http_result httpclient_manager::send_request(HTTP_METHOD method, const std::string& url, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
+http_result httpclient_manager::send_request(HTTP_METHOD method, const std::string& url, callback cbk, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
 {
     uri uri(url);
     if(!uri.is_valid())
     {
         return http_result(http_result::ERR::INVALID_URL, nullptr, "invalid url");
     }
-    return send_request(method, uri, timeout, headers, body);
+    return send_request(method, uri, std::move(cbk), timeout, headers, body);
 }
 
-http_result httpclient_manager::send_request(HTTP_METHOD method, const uri& uri, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
+http_result httpclient_manager::send_request(HTTP_METHOD method, const uri& uri, callback cbk, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
 {
     httprequest* req = httpprotocol::get_request();
     req->set_version(HTTP_VERSION_1_1);
@@ -174,6 +179,8 @@ http_result httpclient_manager::send_request(HTTP_METHOD method, const uri& uri,
     req->set_query(uri.get_query());
     req->set_fragment(uri.get_fragment());
     req->set_body(body);
+    req->set_requestid(get_new_requestid());
+    req->set_timeout(systemtime::get_time() + timeout);
 
     bool has_host = false;
     for(auto& [key, value] : headers)
@@ -201,20 +208,42 @@ http_result httpclient_manager::send_request(HTTP_METHOD method, const uri& uri,
 
     req->set_body(body);
 
-    return send_request(req, uri, timeout);
+    return send_request(req, uri, cbk, timeout);
 }
 
-http_result httpclient_manager::send_request(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/)
+http_result httpclient_manager::send_request(httprequest* req, const uri& uri, httprequest::callback cbk, TIMETYPE timeout/*ms*/)
 {
     bool is_ssl = (uri.get_scheme() == "https");
     if(is_ssl && !this->ssl_enabled())
     {
         return http_result(http_result::ERR::SSL_NOT_ENABLED, nullptr, "ssl not enabled");
     }
+    if(req->get_requestid() == 0)
+    {
+        req->set_requestid(get_new_requestid());
+    }
+
+    //_pending_requests.emplace_back(req, timeout, cbk);
+}
+
+httprequest* httpclient_manager::find_httprequest(REQUESTID requestid)
+{
+    auto iter = _requests_cache.find(requestid);
+    return iter != _requests_cache.end() ? iter->second : nullptr;
+}
+
+httprequest* httpclient_manager::find_httprequest_by_sid(SID sid)
+{
     
 }
 
-void httpclient_manager::try_new_connection(const httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/)
+auto httpclient_manager::get_new_requestid() -> httprequest::REQUESTID
+{
+    static httprequest::REQUESTID requestid = 0;
+    return requestid++;
+}
+
+void httpclient_manager::try_new_connection(httprequest* req, const uri& uri, TIMETYPE timeout/*ms*/)
 {
     std::string host = _dns.host.empty() ? uri.get_host() : _dns.host;
     int32_t port = (_dns.port == 0) ? uri.get_port() : _dns.port;
@@ -243,6 +272,11 @@ void httpserver_manager::init()
     session_manager::init();
     _dispatcher = new servlet_dispatcher;
     _dispatcher->add_servlet("/_/config", new config_servlet);
+}
+
+void httpserver_manager::send_response()
+{
+
 }
 
 } // namespace bee

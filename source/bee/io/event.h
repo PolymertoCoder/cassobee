@@ -46,6 +46,11 @@ struct event
     void del_event();
     bool is_close() const { return _status == EVENT_STATUS_DEL; }
 
+    void permit_read();
+    void permit_write();
+    void forbid_read();
+    void forbid_write();
+
     int _status = EVENT_STATUS_NONE;
     int _events = EVENT_NONE;
     reactor* _base = nullptr;

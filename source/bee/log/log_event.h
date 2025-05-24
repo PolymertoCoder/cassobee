@@ -52,6 +52,7 @@ public:
     octetsstream& pack(octetsstream& os) const override;
     octetsstream& unpack(octetsstream& os) override;
 
+    virtual rpcdata* dup() const override { return new log_event(*this); };
     virtual ostringstream& dump(ostringstream& out) const override;
 
 public:

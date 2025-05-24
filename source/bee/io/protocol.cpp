@@ -10,6 +10,13 @@
 namespace bee
 {
 
+void protocol::init_session(session* ses)
+{
+    if(!ses) return;
+    _sid = ses->get_sid();
+    _manager = ses->get_manager();
+}
+
 ostringstream& protocol::dump(ostringstream& out) const
 {
     out << "type: " << _type << "\n";
@@ -85,6 +92,7 @@ protocol* protocol::decode(octetsstream& os, session* ses)
 
         if(protocol* temp = get_protocol(id))
         {
+            temp->init_session(ses);
             temp->unpack(os);
             return temp;
         }

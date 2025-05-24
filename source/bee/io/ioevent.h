@@ -24,9 +24,9 @@ struct stdio_event : io_event
 {
     stdio_event(int fd, size_t buffer_size);
     virtual bool handle_event(int active_events) override;
-    virtual bool on_read(size_t n) {};
-    virtual bool on_write(size_t n) {};
-    virtual bool on_error(size_t n) {};
+    virtual bool on_read(size_t n)  { return false; };
+    virtual bool on_write(size_t n) { return false; };
+    virtual bool on_error(size_t n) { return false; };
     octets _buffer;
 };
 
@@ -54,6 +54,7 @@ struct netio_event : io_event
     netio_event(session* ses);
     virtual ~netio_event();
     virtual void handle_close() override;
+    void close_socket();
     session* _ses;
 };
 
