@@ -1,19 +1,25 @@
 <application>
-    <!-- <protocol name="challenge" type="2" maxsize="1024">
+    <!-- 协议号[100, 200) -->
+    <protocol name="challenge" type="101" maxsize="1024">
 
     </protocol>
 
-    <protocol name="keyexchange" type="2" maxsize="1024">
+    <protocol name="response" type="102" maxsize="1024">
+
+    </protocol>
+
+    <protocol name="keyexchange" type="103" maxsize="1024">
         <field name="key" type="std::string" default="std::string()"/>
         
-    </protocol> -->
-
-    <protocol name="c2s_user_login" type="2" maxsize="1024">
-        <field name="username" type="std::string" default="std::string()"/>
-        <field name="password" type="std::string" default="std::string()"/>
     </protocol>
 
-    <protocol name="s2c_user_login_re" type="3" maxsize="1024">
+    <protocol name="c2s_user_login" type="104" maxsize="1024">
+        <field name="username" type="std::string" default="std::string()"/>
+        <field name="password" type="std::string" default="std::string()"/>
+        <field name="payload" type="EmptyRpcData2" default="EmptyRpcData2()"/>
+    </protocol>
+
+    <protocol name="s2c_user_login_re" type="105" maxsize="1024">
         <field name="username" type="std::string" default="std::string()"/>
         <field name="retcode" type="int" default="0"/>
     </protocol>
@@ -23,9 +29,12 @@
         <field name="fieldB" type="std::map&lt;int, std::string&gt;" default="std::map&lt;int, std::string&gt;()"/>
     </rpcdata>
 
-    <rpcdata name="EmptyRpcData">
-    </rpcdata>
-
     <rpcdata name="EmptyRpcData2" codefield="uint32_t">
     </rpcdata>
+
+    <rpc name="ExampleRPC" type="106" maxsize="1024">
+        <argument type="ExampleRpcData" default="ExampleRpcData()"/>
+        <result type="EmptyRpcData2" default="EmptyRpcData2"/>
+    </rpc>
+
 </application>

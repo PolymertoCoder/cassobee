@@ -1,0 +1,6 @@
+<application>
+    <!-- 协议号[0, 100) -->
+    <rpcdata name="empty_rpcdata">
+    </rpcdata>
+
+</application>

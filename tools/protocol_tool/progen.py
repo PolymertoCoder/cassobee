@@ -12,7 +12,7 @@ stl_types = ["std::vector", "std::map", "std::set", "std::string", "std::pair", 
 
 # 数据缓存结构
 class ProtocolInfo:
-    __slots__ = ['name', 'base_class', 'fields', 'type', 'maxsize', 'codefield', 'default_code', 'includes']
+    __slots__ = ['name', 'base_class', 'fields', 'type', 'maxsize', 'codefield', 'default_code', 'argument_type', 'result_type', 'includes']
     
     def __init__(self):
         self.name = ""
@@ -22,6 +22,8 @@ class ProtocolInfo:
         self.maxsize = None
         self.codefield = None
         self.default_code = '0'
+        self.argument_type = None
+        self.result_type = None
         self.includes = set()
 
 def check_regenerate(xmlpath, header_output_directory, cpp_output_directory):
@@ -29,13 +31,21 @@ def check_regenerate(xmlpath, header_output_directory, cpp_output_directory):
     any_change_detected = False
     header_mtime = os.path.getmtime(header_output_directory)
     cpp_mtime = os.path.getmtime(cpp_output_directory)
+    
+    def check_mtime(mtime):
+        return mtime > header_mtime or mtime > cpp_mtime
+
+    script_path = os.path.abspath(__file__)
+    script_mtime = os.path.getmtime(script_path)
+    if check_mtime(script_mtime):
+        any_change_detected = True
 
     xml_files = [file for file in os.listdir(xmlpath) if file.endswith('.xml')]
     for xml_file in xml_files:
         xml_path = os.path.join(xmlpath, xml_file)
         xml_mtime = os.path.getmtime(xml_path)
 
-        if xml_mtime > header_mtime or xml_mtime > cpp_mtime:
+        if check_mtime(xml_mtime):
             any_change_detected = True
             modified_xml_files.append(xml_file)
 
@@ -69,6 +79,8 @@ class XMLProcessor:
         self.protocol_cache = OrderedDict()  # 有序字典保证生成顺序
         self.state_cache = defaultdict(list)  # state缓存
         self.protocol_enum_entries = OrderedDict() # 协议号枚举
+        self.protocol_name2id = OrderedDict() # 名称到协议号的映射
+        self.protocol_ids = set() # 所有的协议类型
 
     def preprocess_xml(self, xmlpath):
         """预处理阶段：解析所有XML文件并缓存数据"""
@@ -108,7 +120,7 @@ class XMLProcessor:
             info.base_class = element.tag
             
             # 解析公共属性
-            if info.base_class == "protocol":
+            if info.base_class == "protocol" or info.base_class == "rpc":
                 info.type = element.get('type') # type: ignore
                 info.maxsize = element.get('maxsize') # type: ignore
                 if not info.type or not info.maxsize:
@@ -120,6 +132,8 @@ class XMLProcessor:
             # 解析字段和包含
             info.fields = self._parse_fields(element)
             info.includes = self._parse_includes(element)
+            if info.base_class == "rpc":
+                [info.argument_type, info.result_type] = self._parse_rpc_info(element)
             
             # 解析codefield相关属性
             info.codefield = element.get('codefield') # type: ignore
@@ -127,6 +141,11 @@ class XMLProcessor:
             
             # 缓存协议信息
             self.protocol_cache[info.name] = info
+            if info.base_class == "protocol" or info.base_class == "rpc":
+                self.protocol_name2id[info.name] = info.type
+                if info.type in self.protocol_ids:
+                    raise ValueError(f"Duplicate protocol type {info.type} in {info.name}")
+                self.protocol_ids.add(info.type)
 
     def _parse_fields(self, element):
         """解析字段信息"""
@@ -148,6 +167,28 @@ class XMLProcessor:
         for include in element.findall('include'):
             includes.add(include.get('name'))
         return includes
+    
+    def _parse_rpc_info(self, element):
+        """解析RPC相关信息"""
+        argument = element.find('argument')
+        result = element.find('result')
+        if argument is None or result is None:
+            raise ValueError(f"Invalid RPC definition in {element.get('name')}")
+
+        argument_type = argument.get('type')
+        result_type = result.get('type')
+        if argument_type is None or result_type is None:
+            raise ValueError(f"Invalid RPC definition in {element.get('name')}")
+
+        if argument_type not in self.protocol_cache:
+            raise ValueError(f"Argument type {argument_type} not found in protocol cache")
+        if result_type not in self.protocol_cache:
+            raise ValueError(f"Result type {result_type} not found in protocol cache")
+        return argument_type, result_type
+    
+    def _is_rpcdata(self, field_type):
+        """检查字段类型是否为rpcdata"""
+        return field_type in self.protocol_cache and self.protocol_cache[field_type].base_class == "rpcdata"
 
     def generate_code(self, root_dir, header_dir, cpp_dir, state_dir):
         """生成阶段：根据缓存数据生成代码文件"""
@@ -175,13 +216,28 @@ class XMLProcessor:
         def __generate_default_constructor_params(protocol):
             """Generate default constructor parameters."""
             constructor_content = ""
-            constructor_content += f"    {protocol.name}() = default;\n"
+            if protocol.base_class == "rpc":
+                constructor_content += f"    {protocol.name}()\n"
+                constructor_content += "    {    \n"
+                constructor_content += f"        _argument = new {protocol.argument_type};\n"
+                constructor_content += f"        _result = new {protocol.result_type};\n"
+                constructor_content += "    }\n"
+            else:
+                constructor_content += f"    {protocol.name}() = default;\n"
             if protocol.base_class == "protocol":
-                constructor_content += f"    {protocol.name}(PROTOCOLID type) : protocol(type)\n    {{}}\n"
+                constructor_content += f"    {protocol.name}(PROTOCOLID type) : {protocol.base_class}(type)\n    {{}}\n"
+            elif protocol.base_class == "rpc":
+                constructor_content += f"    {protocol.name}(PROTOCOLID type) : {protocol.base_class}(type)\n"
+                constructor_content += "    {\n"
+                constructor_content += f"        _argument = new {protocol.argument_type};\n"
+                constructor_content += f"        _result = new {protocol.result_type};\n"
+                constructor_content += "    }\n"
             return constructor_content
 
         def __generate_non_basic_type_constructors(protocol):
             """Generate constructors with const& and && parameters for non-basic types."""
+            if len(protocol.fields) == 0:
+                return ""
             constructor_content = ""
             non_basic_fields = [(field_name, field_type) for field_name, field_type, _ in protocol.fields if field_type not in basic_types]
 
@@ -209,8 +265,9 @@ class XMLProcessor:
         constructor_content += __generate_non_basic_type_constructors(protocol)
 
         constructor_content += f"    {protocol.name}(const {protocol.name}& rhs) = default;\n"
-        constructor_content += f"    {protocol.name}({protocol.name}&& rhs) = default;\n\n"
-        constructor_content += f"    {protocol.name}& operator=(const {protocol.name}& rhs) = default;\n"
+        constructor_content += f"    {protocol.name}({protocol.name}&& rhs) = default;\n"
+        if protocol.base_class != "rpc":
+            constructor_content += f"    {protocol.name}& operator=(const {protocol.name}& rhs) = default;\n"
 
         return constructor_content
     
@@ -221,8 +278,8 @@ class XMLProcessor:
             operator_content += "code == rhs.code"
             if len(protocol.fields):
                 operator_content += " && "
-            else:
-                operator_content += "\n"
+        elif len(protocol.fields) == 0:
+            operator_content += "true"
         operator_content += " && ".join([f"{field_name} == rhs.{field_name}" for field_name, _, _ in protocol.fields])
         operator_content += ";\n    }\n"
         operator_content += f"    bool operator!=(const {protocol.name}& rhs) const {{ return !(*this == rhs); }}\n"
@@ -236,6 +293,15 @@ class XMLProcessor:
             virtual_methods += f"    virtual size_t maxsize() const override {{ return {protocol.maxsize}; }}\n"
             virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
             virtual_methods += "    virtual void run() override;\n"
+        elif protocol.base_class == "rpc":
+            virtual_methods = f"    virtual PROTOCOLID get_type() const override {{ return TYPE; }}\n"
+            virtual_methods += f"    virtual size_t maxsize() const override {{ return {protocol.maxsize}; }}\n"
+            virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
+            virtual_methods += f"    virtual bool server(rpcdata* argument, rpcdata* result) override;\n"
+            virtual_methods += f"    virtual void client(rpcdata* argument, rpcdata* result) override;\n"
+            virtual_methods += f"    virtual void timeout(rpcdata* argument) override;\n"
+        elif protocol.base_class == "rpcdata":
+            virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
         virtual_methods += f"    virtual ostringstream& dump(ostringstream& out) const override;\n\n"
         return virtual_methods
 
@@ -252,18 +318,21 @@ class XMLProcessor:
                 codefield_methods += f"        if ({field_name} == {field_type}()) code &= ~FIELDS_{field_name.upper()};\n"
             else:
                 codefield_methods += f"        if ({field_name} == {default_value}) code &= ~FIELDS_{field_name.upper()};\n"
-        codefield_methods += "    }\n\n"
+        codefield_methods += "    }\n"
         return codefield_methods
 
     def _generate_pack_unpack_methods(self, protocol):
         """Generate pack and unpack methods for the class."""
-        pack_unpack_methods = f"    octetsstream& pack(octetsstream& os) const override;\n"
-        pack_unpack_methods += "    octetsstream& unpack(octetsstream& os) override;\n\n"
+        pack_unpack_methods = f"    virtual octetsstream& pack(octetsstream& os) const override;\n"
+        pack_unpack_methods += "    virtual octetsstream& unpack(octetsstream& os) override;\n\n"
         return pack_unpack_methods
 
     def _generate_public_fields(self, protocol):
         """Generate public fields for the class."""
-        public_fields = "public:\n"
+        if not protocol.codefield and not protocol.fields:
+            return ""
+
+        public_fields = "\npublic:\n"
         if protocol.codefield:
             public_fields += f"    {protocol.codefield} code = 0;\n"
         for field_name, field_type, default_value in protocol.fields:
@@ -314,16 +383,8 @@ class XMLProcessor:
         lines = []
         lines.append("#pragma once\n")
         
-        # 添加基础头文件
-        lines.append(f'#include "{protocol.base_class}.h"\n')
-        
-        # 添加STL头文件
-        stl_headers = self._get_required_stl_headers(protocol)
-        lines.extend(stl_headers)
-        
-        # 添加自定义头文件
-        for include in protocol.includes:
-            lines.append(f'#include "{include}"\n')
+        # 生成包含头文件的内容
+        lines.append(self._generate_includes(protocol))
         
         lines.append("\nnamespace bee\n{\n\n")
         lines.append(f"class {protocol.name} : public {protocol.base_class}\n{{\npublic:\n")
@@ -331,20 +392,29 @@ class XMLProcessor:
         # 生成类内容
         if protocol.base_class == "protocol":
             lines.append(f"    static constexpr PROTOCOLID TYPE = {protocol.type};\n")
+        elif protocol.base_class == "rpc":
+            lines.append(f"    static constexpr PROTOCOLID TYPE = {protocol.type};\n")
+            lines.append(f"    using argument_type = {protocol.argument_type};\n")
+            lines.append(f"    using result_type = {protocol.result_type};\n")
 
         if protocol.codefield:
             lines.append(self._generate_enum_fields(protocol))
 
-        if protocol.fields:
-            lines.append(self._generate_constructors(protocol))
-            lines.append(self._generate_operator_overloads(protocol))
-        else:
-            lines.append(f"    {protocol.name}() = default;\n")
+        # if protocol.fields:
+        #     lines.append(self._generate_constructors(protocol))
+        # else:
+        #     lines.append(f"    {protocol.name}() = default;\n")
 
-        lines.append(f"    virtual ~{protocol.name}() override = default;\n")
-        
+        lines.append(self._generate_constructors(protocol))
+
+        lines.append(self._generate_operator_overloads(protocol))
+        lines.append(f"    virtual ~{protocol.name}() override = default;\n\n")
+    
         lines.append(self._generate_pack_unpack_methods(protocol))
         lines.append(self._generate_virtual_methods(protocol))
+
+        if protocol.base_class == "rpc":
+            lines.append(f"    static {protocol.base_class}* call(const {protocol.argument_type}& argument = {{}}) {{ return {protocol.base_class}::call(TYPE, argument); }}\n")
 
         if protocol.codefield:
             lines.append(self._generate_codefield_methods(protocol))
@@ -369,19 +439,42 @@ class XMLProcessor:
         
         if protocol.base_class == "protocol":
             lines.append(f"\n__attribute__((weak)) void {protocol.name}::run() {{}}\n")
+        elif protocol.base_class == "rpc":
+            lines.append(f"\n__attribute__((weak)) bool {protocol.name}::server(rpcdata* argument, rpcdata* result) {{ return false; }}")
+            lines.append(f"\n__attribute__((weak)) void {protocol.name}::client(rpcdata* argument, rpcdata* result) {{}}")
+            lines.append(f"\n__attribute__((weak)) void {protocol.name}::timeout(rpcdata* argument) {{}}\n")
         
         lines.append("\n} // namespace bee")
         return "".join(lines)
 
-    # 以下为具体的代码生成方法（保持原有逻辑，但改为使用缓存数据）
-    def _get_required_stl_headers(self, protocol):
-        """获取需要的STL头文件"""
-        headers = set()
+    def _generate_includes(self, protocol):
+        lines = []
+
+        # 添加STL头文件
+        stl_headers = set()
+        rpcdata_headers = set()
         for _, field_type, _ in protocol.fields:
             for stl in stl_types:
                 if stl in field_type:
-                    headers.add(f"#include <{stl.split('::')[-1]}>\n")
-        return sorted(headers)
+                    stl_headers.add(f"#include <{stl.split('::')[-1]}>\n")
+            if self._is_rpcdata(field_type):
+                rpcdata_headers.add(f"#include \"{field_type}.h\"\n")
+
+        lines.extend(sorted(stl_headers))
+
+        # 添加基础头文件
+        lines.append(f'#include "{protocol.base_class}.h"\n')
+        if protocol.base_class == "rpc":
+            lines.append(f'#include "{protocol.argument_type}.h"\n')
+            lines.append(f'#include "{protocol.result_type}.h"\n')
+        
+        # rpcdata头文件
+        lines.extend(sorted(rpcdata_headers))
+        
+        # 添加自定义头文件
+        for include in protocol.includes:
+            lines.append(f'#include "{include}"\n')
+        return "".join(lines)
 
     def _generate_enum_fields(self, protocol):
         """生成枚举字段"""

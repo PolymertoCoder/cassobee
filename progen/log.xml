@@ -1,4 +1,5 @@
 <application>
+    <!-- 协议号[200, 300) -->
     <protocol name="remotelog" maxsize="2048" type="1">
         <include name="log_event.h"/>
         <field name="loglevel" type="uint8_t" default="0"/>
