@@ -1,8 +1,8 @@
 #!/bin/bash
 
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
-procpath=$rootpath/debug/
-binpath=$rootpath/bin/
+procpath=$rootpath/debug
+binpath=$rootpath/bin
 
 if [ -z "$1" ]; then
     echo "Usage: ks <process_name>"
@@ -30,7 +30,7 @@ while true; do
     fi
 
     waiting_counter=$((waiting_counter+1))
-    echo $waiting_counter
+    echo retry counter:$waiting_counter
     if [ $waiting_counter -gt 10 ]; then
         echo "waiting for processes to exit timeout."
         break

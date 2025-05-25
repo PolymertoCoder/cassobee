@@ -28,7 +28,7 @@ public:
     virtual void log(LOG_LEVEL level, const log_event& event) = 0;
 
 protected:
-    std::mutex _locker;
+    bee::mutex _locker;
     log_formatter* _formatter = nullptr;
 };
 
@@ -95,7 +95,7 @@ private:
 #else
     bool _running = false;
 #endif
-    std::condition_variable _cond;
+    std::condition_variable_any _cond;
     std::thread* _thread = nullptr;
     buffer_type _buf;
 };

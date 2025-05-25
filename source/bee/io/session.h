@@ -59,6 +59,7 @@ public:
     FORCE_INLINE session_manager* get_manager() const { return _manager; }
 
     FORCE_INLINE void set_state(SESSION_STATE state) { _state = state; }
+    FORCE_INLINE bool is_active() { return _state == SESSION_STATE_ACTIVE; }
     FORCE_INLINE bool is_close() { return _state == SESSION_STATE_CLOSING; }
 
     FORCE_INLINE void set_event(event* ev) { _event = ev; }

@@ -71,10 +71,10 @@ void session_manager::on_del_session(SID sid)
 
 void session_manager::reconnect()
 {
-    add_timer(2000, [this]()
+    add_timer(5000, [this]()
     {
         connect();
-        local_log("session_manager::reconnect run");
+        local_log("session_manager %s, try reconnect.", identity());
         return false;
     });
 }
@@ -183,7 +183,6 @@ void session_manager::add_session_nolock(SID sid, session* ses)
     {
         local_log("session_manager %s, add_session %lu already exists.", identity(), sid);
         delete ses;
-        return;
     }
 }
 
@@ -192,14 +191,9 @@ void session_manager::del_session_nolock(SID sid)
     if(auto iter = _sessions.find(sid); iter != _sessions.end())
     {
         _sessions.erase(iter);
-        on_del_session(sid);
         local_log("session_manager del_session %lu.", sid);
     }
-    else
-    {
-        local_log("session_manager %s, del_session %lu not found.", identity(), sid);
-        return;
-    }
+    on_del_session(sid); // 无论连接有没有建立成功，都调一下吧
 }
 
 session* session_manager::find_session_nolock(SID sid)

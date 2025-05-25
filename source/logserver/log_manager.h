@@ -2,7 +2,6 @@
 #include <unordered_map>
 
 #include "glog.h"
-#include "common.h"
 #include "log_event.h"
 
 namespace bee

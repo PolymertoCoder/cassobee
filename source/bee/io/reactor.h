@@ -4,7 +4,7 @@
 #include <functional>
 #include <thread>
 
-#include "cc_changelist.h"
+#include "double_buffer.h"
 #include "common.h"
 #include "event.h"
 #include "types.h"
@@ -52,7 +52,7 @@ private:
     bool _use_timer_thread = true;
     int  _timeout = -1; // ms
 
-    bee::cc_changelist<event*, std::set> _changelist;
+    bee::one_reader_double_buffer<event*, std::set> _changelist;
 
     EVENTS_MAP _io_events;
     EVENTS_MAP _signal_events;

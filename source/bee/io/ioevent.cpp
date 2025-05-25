@@ -416,7 +416,7 @@ int streamio_event::handle_read()
         {
             local_log("recv[fd=%d]: connection closed by peer, buffer size=%zu",
                 _fd, rbuffer.size());
-            del_event();
+            close_socket();
             return -1;
         }
         else // len < 0

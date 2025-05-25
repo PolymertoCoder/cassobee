@@ -43,13 +43,15 @@ bool sigusr1_handler(int signum)
     return true;
 }
 
-struct TestObject {
+struct TestObject
+{
     int value;
     double data[100];
     TestObject() : value(0) {}
 };
 
-void stress_test() {
+void stress_test()
+{
     lockfree_objectpool<TestObject> pool(1000);
     constexpr int THREADS = 8;
     constexpr int OPS_PER_THREAD = 100000;

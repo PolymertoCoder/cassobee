@@ -25,7 +25,7 @@ void console_appender::log(LOG_LEVEL level, const log_event& event)
 {
     std::string msg = _formatter->format(level, event);
 #ifdef _REENTRANT
-    std::unique_lock<std::mutex> lock(_locker);
+    std::unique_lock<bee::mutex> lock(_locker);
 #endif
     std::fwrite(msg.data(), 1, msg.size(), stdout);
     std::fflush(stdout);
@@ -177,7 +177,7 @@ file_appender::~file_appender()
 bool file_appender::rotate()
 {
 #ifdef _REENTRANT
-    std::unique_lock<std::mutex> lock(_locker);
+    std::unique_lock<bee::mutex> lock(_locker);
 #endif
     return reopen();
 }
@@ -187,7 +187,7 @@ void file_appender::log(LOG_LEVEL level, const log_event& event)
     std::string msg = _formatter->format(level, event);
 
 #ifdef _REENTRANT
-    std::unique_lock<std::mutex> lock(_locker);
+    std::unique_lock<bee::mutex> lock(_locker);
 #endif
     _filestream << msg;
     _filestream.flush();
@@ -228,7 +228,7 @@ void async_appender::log(LOG_LEVEL level, const log_event& event)
 #endif
     std::string msg = _formatter->format(level, event);
 
-    std::unique_lock<std::mutex> lock(_locker);
+    std::unique_lock<bee::mutex> lock(_locker);
     size_t write_len = _buf.write(msg.data(), msg.size());
     if(PREDICT_FALSE(write_len != msg.size()))
     {
@@ -258,7 +258,7 @@ void async_appender::start()
         #else
             if(!_running) break;
         #endif
-            std::unique_lock<std::mutex> lock(_locker);
+            std::unique_lock<bee::mutex> lock(_locker);
             while(_buf.empty())
             {
                 _cond.wait_for(lock, std::chrono::milliseconds(_timeout),
