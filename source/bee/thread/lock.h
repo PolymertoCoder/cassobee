@@ -79,6 +79,7 @@ public:
 #ifndef _REENTRANT
 typedef empty_lock spinlock;
 typedef empty_lock atomic_spinlock;
+typedef empty_lock ticket_spinlock;
 typedef empty_lock mutex;
 typedef empty_lock rwlock;
 #else
@@ -137,6 +138,40 @@ public:
 
 private:
     std::atomic_flag _flag = false;
+};
+
+class ticket_spinlock : public lock_support<ticket_spinlock>
+{
+public:
+    void lock() noexcept
+    {
+        const auto ticket = m_next_ticket.fetch_add(1, std::memory_order_relaxed);
+        while(m_serving.load(std::memory_order_acquire) != ticket)
+        {
+        #if defined(__x86_64__) || defined(__i386__)
+            __builtin_ia32_pause();
+        #else
+            std::this_thread::yield();
+        #endif
+        }
+    }
+    void unlock() noexcept
+    {
+        m_serving.fetch_add(1, std::memory_order_release);
+    }
+    bool try_lock() noexcept
+    {
+        const auto ticket = m_next_ticket.load(std::memory_order_relaxed);
+        if(m_serving.load(std::memory_order_acquire) == ticket)
+        {
+            return true;
+        }
+        return false;
+    }
+
+private:
+    std::atomic<unsigned> m_serving{0};
+    std::atomic<unsigned> m_next_ticket{0};
 };
 
 class mutex : public lock_support<mutex>

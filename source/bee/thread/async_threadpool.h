@@ -11,6 +11,9 @@
 
 #include "types.h"
 
+namespace bee
+{
+
 class async_threadpool
 {
 public:
@@ -126,3 +129,5 @@ private:
     std::mutex _queue_lock; 
     std::condition_variable _cond;
 };
+
+} // namespace bee

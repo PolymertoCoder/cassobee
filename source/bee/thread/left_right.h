@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <functional>
 #include <mutex>
 #include <thread>
 
@@ -49,6 +50,8 @@ private:
 class ri_distributed_counter : public read_indicator
 {
 public:
+    struct ALIGN_CACHELINE_SIZE align_counter_t { std::atomic<size_t> value{0}; };
+
     ri_distributed_counter()
     {
         constexpr static int DEFAULT_COUNTER_NUMS = 8;
@@ -57,7 +60,7 @@ public:
         {
             _counters_nums = DEFAULT_COUNTER_NUMS;
         }
-        _counters = new std::atomic<size_t>[_counters_nums * CACHELINE_WORDS];
+        _counters = new align_counter_t[_counters_nums * CACHELINE_WORDS];
     }
 
     ~ri_distributed_counter()
@@ -67,12 +70,12 @@ public:
 
     virtual void arrive() override
     {
-        _counters[thread_to_idx()].fetch_add(1);
+        _counters[thread_to_idx()].value.fetch_add(1);
     }
 
     virtual void depart() override
     {
-        _counters[thread_to_idx()].fetch_sub(1);
+        _counters[thread_to_idx()].value.fetch_sub(1);
     }
 
     virtual bool is_empty() override
@@ -80,7 +83,7 @@ public:
         int idx = _acquire_load.load();
         for(; idx < _counters_nums * (int)CACHELINE_WORDS; idx += CACHELINE_WORDS)
         {
-            if(_counters[idx].load(std::memory_order_relaxed) > 0)
+            if(_counters[idx].value.load(std::memory_order_relaxed) > 0)
             {
                 std::atomic_thread_fence(std::memory_order_acquire);
                 return false;
@@ -99,7 +102,7 @@ private:
 
 private:
     int _counters_nums;
-    std::atomic<size_t>*  _counters = nullptr;
+    align_counter_t*  _counters = nullptr;
     std::atomic<uint64_t> _acquire_load{0};
     std::hash<std::thread::id> _hash_func;
 };
@@ -126,30 +129,30 @@ public:
 
     template<typename Fn, typename ...Args>
     requires std::invocable<Fn, T*, Args...>
-    auto apply_read(Fn func, Args&&... args)
+    auto apply_read(Fn&& func, Args&&... args)
     {
         const int vi = arrive();
         T* inst = _left_right.load() == LEFT ? _left_inst : _right_inst;
-        auto ret = func(inst, std::forward<Args>(args)...);
+        auto ret = std::invoke(std::forward<Fn>(func), inst, std::forward<Args>(args)...);
         depart(vi);
         return ret;
     }
 
     template<typename Fn, typename ...Args>
     requires std::invocable<Fn, T*, Args...>
-    auto apply_write(Fn func, Args&&... args)
+    auto apply_write(Fn&& func, Args&&... args)
     {
         std::lock_guard<lock_type> lock(_writer_lock);
         if(_left_right.load(std::memory_order_relaxed) == LEFT)
         {
-            func(_right_inst, std::forward<Args>(args)...);
+            std::invoke(std::forward<Fn>(func), _right_inst, std::forward<Args>(args)...);
             _left_right.store(LEFT);
             toggle_version_and_wait();
             return func(_left_inst, std::forward<Args>(args)...);
         }
         else
         {
-            func(_left_inst, std::forward<Args>(args)...);
+            std::invoke(std::forward<Fn>(func), _left_inst, std::forward<Args>(args)...);
             _left_right.store(RIGHT);
             toggle_version_and_wait();
             return func(_right_inst, std::forward<Args>(args)...);
