@@ -2,10 +2,17 @@
 
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
-mkdir $rootpath/build
+if [ ! -d $rootpath/build ]; then
+    mkdir $rootpath/build
+    echo $rootpath/build
+fi
+
+cd $rootpath/build
+
+cmake ..
 
 if [ -z $1 ]; then
-	cd $rootpath/build && cmake .. && make -j8
+    make -j8
 else
-	cd $rootpath/build && cmake .. && make $1
+	make $1 -j8
 fi

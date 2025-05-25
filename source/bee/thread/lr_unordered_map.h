@@ -40,19 +40,19 @@ public:
     }
 
     // 元素访问
-    T& operator[](const Key& key)
+    T operator[](const Key& key)
     {
-        return _lr.apply_write([&](auto* map) -> T& { return (*map)[key]; });
+        return _lr.apply_write([&](auto* map) -> T { return (*map)[key]; });
     }
 
-    T& at(const Key& key)
+    T at(const Key& key)
     {
-        return _lr.apply_read([&](auto* map) -> T& { return map->at(key); });
+        return _lr.apply_read([&](auto* map) -> T { return map->at(key); });
     }
 
-    const T& at(const Key& key) const
+    T at(const Key& key) const
     {
-        return _lr.apply_read([&](const auto* map) -> const T& { return map->at(key); });
+        return _lr.apply_read([&](const auto* map) -> T { return map->at(key); });
     }
 
     // 修改操作

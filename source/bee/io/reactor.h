@@ -5,7 +5,6 @@
 #include <thread>
 
 #include "double_buffer.h"
-#include "common.h"
 #include "event.h"
 #include "types.h"
 

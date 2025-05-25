@@ -40,34 +40,34 @@ public:
     }
 
     // 元素访问
-    reference operator[](size_type pos)
+    T operator[](size_type pos)
     {
-        return _lr.apply_read([pos](auto* dq) -> reference { return (*dq)[pos]; });
+        return _lr.apply_read([pos](auto* dq) -> T { return (*dq)[pos]; });
     }
 
-    const_reference operator[](size_type pos) const
+    T operator[](size_type pos) const
     {
-        return _lr.apply_read([pos](const auto* dq) -> const_reference { return (*dq)[pos]; });
+        return _lr.apply_read([pos](const auto* dq) -> T { return (*dq)[pos]; });
     }
 
-    reference front()
+    T front()
     {
-        return _lr.apply_read([](auto* dq) -> reference { return dq->front(); });
+        return _lr.apply_read([](auto* dq) -> T { return dq->front(); });
     }
 
-    const_reference front() const
+    T front() const
     {
-        return _lr.apply_read([](const auto* dq) -> const_reference { return dq->front(); });
+        return _lr.apply_read([](const auto* dq) -> T { return dq->front(); });
     }
 
-    reference back()
+    T back()
     {
-        return _lr.apply_read([](auto* dq) -> reference { return dq->back(); });
+        return _lr.apply_read([](auto* dq) -> T { return dq->back(); });
     }
 
-    const_reference back() const
+    T back() const
     {
-        return _lr.apply_read([](const auto* dq) -> const_reference { return dq->back(); });
+        return _lr.apply_read([](const auto* dq) -> T { return dq->back(); });
     }
 
     // 修改操作
@@ -120,27 +120,6 @@ public:
     void clear()
     {
         _lr.apply_write([](auto* dq) { dq->clear(); });
-    }
-
-    // 迭代器
-    auto begin()
-    {
-        return _lr.apply_read([](auto* dq) { return dq->begin(); });
-    }
-
-    auto end()
-    {
-        return _lr.apply_read([](auto* dq) { return dq->end(); });
-    }
-
-    auto cbegin() const
-    {
-        return _lr.apply_read([](const auto* dq) { return dq->cbegin(); });
-    }
-
-    auto cend() const
-    {
-        return _lr.apply_read([](const auto* dq) { return dq->cend(); });
     }
 
 private:

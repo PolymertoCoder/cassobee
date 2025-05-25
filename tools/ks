@@ -24,7 +24,7 @@ waiting_counter=0
 while true; do
     running=$(pgrep -af $procpath/$process_name | grep -v pgrep | grep -v gdb)
 
-    if [ -z $running ]; then
+    if [ -z "$running "]; then
         echo "$process_name have exited."
         break
     fi

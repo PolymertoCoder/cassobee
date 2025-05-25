@@ -13,8 +13,8 @@ namespace bee
 
 enum LEFT_RIGHT
 {
-    LEFT  = 0,
-    RIGHT = 1,
+    READS_LEFT  = 0,
+    READS_RIGHT = 1,
 };
 
 class read_indicator
@@ -132,7 +132,7 @@ public:
     auto apply_read(Fn&& func, Args&&... args)
     {
         const int vi = arrive();
-        T* inst = _left_right.load() == LEFT ? _left_inst : _right_inst;
+        T* inst = _left_right.load() == READS_LEFT ? _left_inst : _right_inst;
         auto ret = std::invoke(std::forward<Fn>(func), inst, std::forward<Args>(args)...);
         depart(vi);
         return ret;
@@ -143,19 +143,19 @@ public:
     auto apply_write(Fn&& func, Args&&... args)
     {
         std::lock_guard<lock_type> lock(_writer_lock);
-        if(_left_right.load(std::memory_order_relaxed) == LEFT)
+        if(_left_right.load(std::memory_order_relaxed) == READS_LEFT)
         {
             std::invoke(std::forward<Fn>(func), _right_inst, std::forward<Args>(args)...);
-            _left_right.store(LEFT);
+            _left_right.store(READS_RIGHT);
             toggle_version_and_wait();
-            return func(_left_inst, std::forward<Args>(args)...);
+            return std::invoke(std::forward<Fn>(func), _left_inst, std::forward<Args>(args)...);
         }
-        else
+        else // WRITE
         {
             std::invoke(std::forward<Fn>(func), _left_inst, std::forward<Args>(args)...);
-            _left_right.store(RIGHT);
+            _left_right.store(READS_LEFT);
             toggle_version_and_wait();
-            return func(_right_inst, std::forward<Args>(args)...);
+            return std::invoke(std::forward<Fn>(func), _right_inst, std::forward<Args>(args)...);
         }
     }
 
@@ -163,38 +163,38 @@ private:
     int arrive()
     {
         const int vi = _version_index.load();
-        _lrc[vi].arrive();
+        _read_indic[vi].arrive();
         return vi;
     }
 
     void depart(int vi)
     {
-        _lrc[vi].depart();
+        _read_indic[vi].depart();
     }
 
     void toggle_version_and_wait()
     {
-        const int vi  = _version_index.load();
-        const int pvi = (int)(vi & 0x1);
-        const int nvi = (int)((vi + 1) & 0x1);
+        const int local_vi  = _version_index.load();
+        const int pre_vi = (int)(local_vi & 0x1);
+        const int next_vi = (int)((local_vi + 1) & 0x1);
         // wait for readers from next version
-        while(!_lrc[pvi].is_empty())
+        while(!_read_indic[next_vi].is_empty())
         {
             std::this_thread::yield();
         }
         // toggle the version index variable
-        _version_index.store(nvi);
+        _version_index.store(next_vi);
         // wait for readers from previous version
-        while(!_lrc[nvi].is_empty())
+        while(!_read_indic[pre_vi].is_empty())
         {
             std::this_thread::yield();
         }
     }
 
 private:
-    lrc_t _lrc[2];
+    lrc_t _read_indic[2];
     std::atomic<int> _version_index = 0;
-    std::atomic<int> _left_right = LEFT;
+    std::atomic<int> _left_right = READS_LEFT;
     lock_type _writer_lock;
     T* _left_inst  = nullptr;
     T* _right_inst = nullptr;
