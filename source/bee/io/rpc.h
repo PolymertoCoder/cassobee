@@ -27,18 +27,20 @@ public:
     virtual void client(rpcdata* argument, rpcdata* result) {}
     virtual void timeout(rpcdata* argument);
 
-public:
-    TRACEID _traceid = 0;
-    bool _is_server = false;
-    bool _is_proxy = false; // 是否是中转的rpc
-    rpcdata* _argument = nullptr;
-    rpcdata* _result = nullptr;
-
 protected:
-    static void add_rpc_cache(rpc* prpc, bool is_proxy = false);
+    static void set_request(rpc* prpc, bool is_proxy = false);
+    static void clr_request(rpc* prpc, bool is_proxy = false);
+    static void set_timeout_timer(TRACEID traceid, int timeout);
     bool do_server();
     void do_client();
     void do_timeout();
+
+public:
+    TRACEID _traceid = 0;
+    TRACEID _proxy_traceid = 0; // 保留原来的traceid，方便回溯
+    bool _is_server = false;
+    rpcdata* _argument = nullptr;
+    rpcdata* _result = nullptr;
 
 protected:
     static bee::mutex _locker;
@@ -52,6 +54,15 @@ public:
     using client_handler  = std::function<void(rpcdata* argument, rpcdata* result)>;
     using timeout_handler = std::function<void(rpcdata* argument)>;
 
+    rpc_callback(RPC& other)
+    {
+        RPC::_traceid = other._traceid;
+        RPC::_proxy_traceid = other._proxy_traceid;
+        RPC::_is_server = other._is_server;
+        std::swap(RPC::_argument, other._argument); // 获取argument所有权
+        std::swap(RPC::_result, other._result); // 获取result所有权
+    }
+
     virtual void client(rpcdata* argument, rpcdata* result) override
     {
         if(_client_hdl) { _client_hdl(argument, result); }
@@ -59,21 +70,31 @@ public:
 
     virtual void timeout(rpcdata* argument) override
     {
-        _timeout_hdl ? _timeout_hdl(argument) : timeout(argument);
+        _timeout_hdl ? _timeout_hdl(argument) : RPC::timeout(argument);
     }
 
     static rpc* call(const rpcdata& argument, rpc_callback::client_handler client_hdl, rpc_callback::timeout_handler timeout_hdl = {})
     {
-        // rpc* prpc = (rpc*)get_protocol(id);
-        // if(!prpc) return nullptr;
-        // prpc->_is_server = false;
-        // prpc->_argument = argument.dup();
-        // add_rpc_cache(prpc);
-        // return prpc;
-        // rpc* prpc = rpc::call(RPC::get_type(), argument);
-        // if(!prpc) return nullptr;
-        // _client_hdl = client_hdl;
-        // _timeout_hdl = timeout_hdl;
+        rpc* prpc = (rpc*)get_protocol(RPC::TYPE);
+        if(!prpc) return nullptr;
+        prpc->_argument = argument.dup();
+        prpc->_result = nullptr;
+        rpc_callback<RPC>::set_request(prpc);
+
+        auto prpc_callback = new rpc_callback<RPC>(*prpc);
+        prpc_callback->_client_hdl = std::move(client_hdl);
+        if(timeout_hdl) prpc_callback->_timeout_hdl = std::move(timeout_hdl);
+        {
+            bee::mutex::scoped l(rpc::_locker);
+            rpc::_rpcs[RPC::_traceid] = prpc_callback; // 替换指针
+        }
+        return prpc;
+    }
+
+protected:
+    static void set_request(rpc* prpc, bool is_proxy = false)
+    {
+
     }
 
 protected:

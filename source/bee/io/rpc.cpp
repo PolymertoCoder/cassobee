@@ -14,32 +14,20 @@ rpc::rpc(const rpc& other)
     : protocol(other)
 {
     _traceid = other._traceid;
+    _proxy_traceid = other._proxy_traceid;
     _is_server = other._is_server;
-    if(other._argument)
-    {
-        _argument = other._argument->dup();
-    }
-    if(other._result)
-    {
-        _result = other._result->dup();
-    }
+    _argument = other._argument; // 浅拷贝
+    _result = other._result; // 浅拷贝
 }
 
 rpc::rpc(rpc&& other)
     : protocol(other)
 {
     _traceid = other._traceid;
+    _proxy_traceid = other._proxy_traceid;
     _is_server = other._is_server;
-    if(other._argument)
-    {
-        _argument = other._argument;
-        other._argument = nullptr;
-    }
-    if(other._result)
-    {
-        _result = other._result;
-        other._result = nullptr;
-    }
+    std::swap(_argument, other._argument);
+    std::swap(_result, other._result);
 }
 
 rpc& rpc::operator=(const rpc& rhs)
@@ -48,6 +36,7 @@ rpc& rpc::operator=(const rpc& rhs)
     {
         protocol::operator=(rhs);
         _traceid = rhs._traceid;
+        _proxy_traceid = rhs._proxy_traceid;
         _is_server = rhs._is_server;
         if(_argument) delete _argument;
         if(_result) delete _result;
@@ -73,9 +62,7 @@ void rpc::run()
         }
         else // 继续投递
         {
-            this->_is_server = false; // 转换身份
-            this->_is_proxy = true; // 标记为中转的rpc
-            add_rpc_cache(this, true);
+            set_request(this, true); // 标记为中转的rpc
         }
     }
     else // client
@@ -92,9 +79,9 @@ void rpc::run()
         if(prpc)
         {
             std::swap(prpc->_result, this->_result);
-            if(prpc->_is_proxy) // 是中转的rpc，开始回溯寻找调用方client
+            if(prpc->_proxy_traceid > 0) // 是中转的rpc，开始回溯寻找调用方client
             {
-                prpc->_is_server = true; // 回溯时，转换回原身份
+                clr_request(prpc, true);
                 prpc->_manager->send_protocol(prpc->_sid, *prpc);
                 return;
             }
@@ -109,23 +96,30 @@ void rpc::run()
 
 octetsstream& rpc::pack(octetsstream& os) const
 {
-    os << _traceid;
-    os << !_is_server; // 发出时需要转换身份
-    os << *_argument;
+    os << _traceid << _is_server;
     if(_is_server) // server
     {
         os << *_result;
+    }
+    else // client
+    {
+        os << *_argument;
     }
     return os;
 }
 
 octetsstream& rpc::unpack(octetsstream& os)
 {
-    os >> _traceid;
-    os >> _is_server;
-    os >> *_argument;
-    if(!_is_server) // client
+    os >> _traceid >> _is_server;
+    _is_server = !_is_server; // 身份反转
+    if(_is_server) // server
     {
+        _argument = _argument->dup();
+        os >> *_argument;
+    }
+    else // client
+    {   
+        _result = _result->dup();
         os >> *_result;
     }
     return os;
@@ -143,32 +137,52 @@ rpc* rpc::call(PROTOCOLID id, const rpcdata& argument)
 {
     rpc* prpc = (rpc*)get_protocol(id);
     if(!prpc) return nullptr;
-    prpc->_is_server = false;
     prpc->_argument = argument.dup();
-    add_rpc_cache(prpc);
+    prpc->_result = nullptr;
+    set_request(prpc);
     return prpc;
 }
 
-void rpc::add_rpc_cache(rpc* prpc, bool is_proxy)
+void rpc::set_request(rpc* prpc, bool is_proxy)
 {
     if(!prpc) return;
-    bee::mutex::scoped l(_locker);
-    static TRACEID next_traceid = 0;
-    ++next_traceid;
 
-    // 如果不是中转暂存的，则需要分配一个新的traceid
-    // 如果是中转的rpc，则需要保留原来的traceid，方便回溯
-    if(!is_proxy)
+    if(is_proxy) // 如果是中转的rpc
     {
-        prpc->_traceid = next_traceid;
+        prpc->_proxy_traceid = prpc->_traceid; // 保留原来的traceid
     }
-    _rpcs.emplace(next_traceid, prpc);
+
+    {
+        bee::mutex::scoped l(_locker);
+        static TRACEID next_traceid = 0;
+        prpc->_traceid = ++next_traceid;
+        prpc->_is_server = false; // 设置client身份
+        _rpcs.emplace(prpc->_traceid, prpc);
+    }
 
     // 设置超时定时器
-    add_timer(prpc->get_timeout() * 1000, [traceid = next_traceid]()
+    TIMETYPE timeout = prpc->get_timeout();
+    set_timeout_timer(timeout > 0 ? timeout : 30, prpc->_traceid);
+}
+
+void rpc::clr_request(rpc* prpc, bool is_proxy)
+{
+    if(!prpc) return;
+    prpc->_is_server = true;
+    if(is_proxy)
+    {
+        prpc->_traceid = 0;
+        std::swap(prpc->_traceid, prpc->_proxy_traceid);
+    }
+}
+
+void rpc::set_timeout_timer(TRACEID traceid, int timeout)
+{
+    add_timer(timeout * 1000, [traceid]()
     {
         rpc* prpc = nullptr;
         {
+            bee::mutex::scoped l(_locker);
             if(auto iter = _rpcs.find(traceid); iter != _rpcs.end())
             {
                 prpc = iter->second;

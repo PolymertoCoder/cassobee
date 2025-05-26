@@ -11,6 +11,7 @@
 #include "marshal.h"
 #include "reactor.h"
 #include "remotelog.h"
+#include "rpc.h"
 #include "stringfy.h"
 #include "address.h"
 #include "threadpool.h"
@@ -238,6 +239,21 @@ int main(int argc, char* argv[])
 
     ExampleRPC rpc;
     auto rpc2 = rpc;
+
+    rpc_callback<ExampleRPC>::call(ExampleRpcData{0.5, {}},
+        [](rpcdata* argument, rpcdata* result)
+        {
+            auto arg = (ExampleRpcData*)argument;
+            auto res = (EmptyRpcData2*)result;
+
+            local_log("rpc callback received: value=%f, text=%d", arg->fieldA, res->code);
+        },
+        [](rpcdata* argument)
+        {
+            auto arg = (ExampleRpcData*)argument;
+            local_log("rpc timeout for value=%f", arg->fieldA);
+        }
+    );
 
     looper->run();
     timer_thread.join();
