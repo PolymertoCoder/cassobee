@@ -237,23 +237,24 @@ int main(int argc, char* argv[])
     // test_http_encode_decode("%1"); // 不完整的百分比编码
     // test_http_encode_decode("%%20"); // 双重%开头
 
-    ExampleRPC rpc;
-    auto rpc2 = rpc;
+    {
+        auto rpc = rpc_callback<ExampleRPC>::call(ExampleRpcData{0.5, {}},
+            [](rpcdata* argument, rpcdata* result)
+            {
+                auto arg = (ExampleRpcData*)argument;
+                auto res = (EmptyRpcData2*)result;
 
-    rpc_callback<ExampleRPC>::call(ExampleRpcData{0.5, {}},
-        [](rpcdata* argument, rpcdata* result)
-        {
-            auto arg = (ExampleRpcData*)argument;
-            auto res = (EmptyRpcData2*)result;
-
-            local_log("rpc callback received: value=%f, text=%d", arg->fieldA, res->code);
-        },
-        [](rpcdata* argument)
-        {
-            auto arg = (ExampleRpcData*)argument;
-            local_log("rpc timeout for value=%f", arg->fieldA);
-        }
-    );
+                local_log("rpc callback received: value=%f, text=%d", arg->fieldA, res->code);
+            },
+            [](rpcdata* argument)
+            {
+                auto arg = (ExampleRpcData*)argument;
+                local_log("rpc timeout for value=%f", arg->fieldA);
+            }
+        );
+        logservermgr->send(*rpc);
+    }
+    
 
     looper->run();
     timer_thread.join();

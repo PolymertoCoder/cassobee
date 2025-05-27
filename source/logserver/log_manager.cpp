@@ -4,7 +4,7 @@
 #include "config.h"
 #include "remotelog.h"
 #include "glog.h"
-#include "glog.h"
+#include "ExampleRPC.h"
 
 namespace bee
 {
@@ -66,6 +66,14 @@ bool log_manager::del_logger(std::string name)
 void remotelog::run()
 {
     log_manager::get_instance()->log((LOG_LEVEL)loglevel, logevent);
+}
+
+bool ExampleRPC::server(rpcdata* argument, rpcdata* result)
+{
+    auto arg = (ExampleRpcData*)argument;
+    auto res = (ExampleRpcData*)result;
+    DEBUGLOG("ExampleRPC::server run argument:%p result:%p", arg, res);
+    return false;
 }
 
 } // namespace bee
