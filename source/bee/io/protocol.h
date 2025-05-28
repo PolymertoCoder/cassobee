@@ -24,6 +24,7 @@ public:
     void init_session(session* ses);
 
     virtual PROTOCOLID get_type() const = 0;
+    virtual const char* get_name() const = 0;
     virtual size_t maxsize() const = 0;
     virtual protocol* dup() const = 0;
     virtual void run() = 0;

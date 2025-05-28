@@ -289,12 +289,15 @@ class XMLProcessor:
         """Generate virtual methods for the class."""
         virtual_methods = ""
         if protocol.base_class == "protocol":
-            virtual_methods = f"    virtual PROTOCOLID get_type() const override {{ return TYPE; }}\n"
+            virtual_methods += f"    virtual PROTOCOLID get_type() const override {{ return TYPE; }}\n"
+            virtual_methods += f"    virtual const char* get_name() const override {{ return \"{protocol.name}\"; }}\n"
             virtual_methods += f"    virtual size_t maxsize() const override {{ return {protocol.maxsize}; }}\n"
             virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
             virtual_methods += "    virtual void run() override;\n"
+            virtual_methods += f"    virtual ostringstream& dump(ostringstream& out) const override;\n\n"
         elif protocol.base_class == "rpc":
-            virtual_methods = f"    virtual PROTOCOLID get_type() const override {{ return TYPE; }}\n"
+            virtual_methods += f"    virtual PROTOCOLID get_type() const override {{ return TYPE; }}\n"
+            virtual_methods += f"    virtual const char* get_name() const override {{ return \"{protocol.name}\"; }}\n"
             virtual_methods += f"    virtual size_t maxsize() const override {{ return {protocol.maxsize}; }}\n"
             virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
             virtual_methods += f"    virtual bool server(rpcdata* argument, rpcdata* result) override;\n"
@@ -302,7 +305,7 @@ class XMLProcessor:
             virtual_methods += f"    virtual void timeout(rpcdata* argument) override;\n"
         elif protocol.base_class == "rpcdata":
             virtual_methods += f"    virtual {protocol.base_class}* dup() const override {{ return new {protocol.name}(*this); }}\n"
-        virtual_methods += f"    virtual ostringstream& dump(ostringstream& out) const override;\n\n"
+            virtual_methods += f"    virtual ostringstream& dump(ostringstream& out) const override;\n\n"
         return virtual_methods
 
     def _generate_codefield_methods(self, protocol):
@@ -410,7 +413,8 @@ class XMLProcessor:
         lines.append(self._generate_operator_overloads(protocol))
         lines.append(f"    virtual ~{protocol.name}() override = default;\n\n")
     
-        lines.append(self._generate_pack_unpack_methods(protocol))
+        if protocol.base_class != "rpc":
+            lines.append(self._generate_pack_unpack_methods(protocol))
         lines.append(self._generate_virtual_methods(protocol))
 
         if protocol.base_class == "rpc":
@@ -430,19 +434,19 @@ class XMLProcessor:
         lines.append(f'#include "{protocol.name}.h"\n\n')
         lines.append("namespace bee\n{\n\n")
         
-        # 打包/解包方法
-        lines.append(self._generate_pack_method(protocol))
-        lines.append(self._generate_unpack_method(protocol))
-
-        # dump方法
-        lines.append(self._generate_dump_method(protocol))
-        
         if protocol.base_class == "protocol":
+            lines.append(self._generate_pack_method(protocol))
+            lines.append(self._generate_unpack_method(protocol))
+            lines.append(self._generate_dump_method(protocol))
             lines.append(f"\n__attribute__((weak)) void {protocol.name}::run() {{}}\n")
         elif protocol.base_class == "rpc":
             lines.append(f"\n__attribute__((weak)) bool {protocol.name}::server(rpcdata* argument, rpcdata* result) {{ return false; }}")
             lines.append(f"\n__attribute__((weak)) void {protocol.name}::client(rpcdata* argument, rpcdata* result) {{}}")
             lines.append(f"\n__attribute__((weak)) void {protocol.name}::timeout(rpcdata* argument) {{}}\n")
+        elif protocol.base_class == "rpcdata":
+            lines.append(self._generate_pack_method(protocol))
+            lines.append(self._generate_unpack_method(protocol))
+            lines.append(self._generate_dump_method(protocol))
         
         lines.append("\n} // namespace bee")
         return "".join(lines)

@@ -94,6 +94,25 @@ void rpc::run()
     }
 }
 
+ostringstream& rpc::dump(ostringstream& out) const
+{
+    out << "rpc " << get_type() << " traceid=" << _traceid << " is_server=" << _is_server;
+    out << " result=";
+    if(_result) {
+        _result->dump(out);
+    } else {
+        out << "nullptr";
+    }
+
+    out << " argument=";
+    if(_argument) {
+        _argument->dump(out);
+    } else {
+        out << "nullptr";
+    }
+    return out;
+}
+
 octetsstream& rpc::pack(octetsstream& os) const
 {
     os << _traceid << _is_server;

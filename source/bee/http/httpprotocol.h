@@ -86,6 +86,7 @@ public:
     virtual ~httprequest() = default;
 
     virtual PROTOCOLID get_type() const override { return TYPE; }
+    virtual const char* get_name() const override { return "httprequest"; }
     virtual size_t maxsize() const override;
     virtual httprequest* dup() const override { return new httprequest(*this); }
     virtual void run() override;
@@ -161,6 +162,7 @@ public:
     virtual ~httpresponse() = default;
 
     virtual PROTOCOLID get_type() const override { return TYPE; }
+    virtual const char* get_name() const override { return "httpresponse"; }
     virtual size_t maxsize() const override;
     virtual httpresponse* dup() const override { return new httpresponse(*this); }
     virtual void run() override;

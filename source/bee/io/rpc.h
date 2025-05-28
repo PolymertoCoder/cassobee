@@ -18,6 +18,7 @@ public:
 
     virtual int get_timeout() const { return 30; } // 默认30s超时
     virtual void run() override;
+    virtual ostringstream& dump(ostringstream& out) const override;
     virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;
 
