@@ -1,3 +1,6 @@
+# libbee excluded source files
+set(LIBBEE_EXCLUDE_SRC "")
+
 # security module
 set(SECURITY_LINK_LIB ${LIBCRYPTOPP_PATH})
 set(SECURITY_INCLUDE ${THIRDPARTY_PATH}/cryptopp)
@@ -11,8 +14,26 @@ set(CLI_INCLUDE ${THIRDPARTY_PATH}/readline
 # database module
 set(CMYSQL_LINK_LIB mysqlcppconn)
 
+# meta module
+if(${CASSOBEE_REFLECTION_ENABLE})
+    # 查找LLVM和Clang
+    find_package(LLVM REQUIRED CONFIG)
+    find_package(Clang REQUIRED CONFIG)
+
+    find_library(LIBCLANG REQUIRED
+                 NAMES clang libclang
+                 PATHS /usr/lib/x86_64-linux-gnu
+    )
+    set(META_LINK_LIB ${LIBCLANG})
+else()
+    # 排除反射相关的源文件
+    file(GLOB META_SRC "${SOURCE_PATH}/bee/meta/*.cpp")
+    list(APPEND LIBBEE_EXCLUDE_SRC ${META_SRC})
+endif()
+
 # libbee
 file(GLOB_RECURSE LIBBEE_SRC ${SOURCE_PATH}/bee/*.cpp)
+list(REMOVE_ITEM LIBBEE_SRC ${LIBBEE_EXCLUDE_SRC})
 
 add_library(bee SHARED ${LIBBEE_SRC})
 
@@ -32,17 +53,21 @@ set(BEE_PUBLIC_INCLUDES ${SOURCE_PATH}/bee/common
                         ${SOURCE_PATH}/bee/database/sqlite
                         ${SOURCE_PATH}/bee/http
                         ${SOURCE_PATH}/bee/http/servlets
+                        ${SOURCE_PATH}/bee/meta
                         ${SOURCE_PATH}/protocol
                         ${SOURCE_PATH}/protocol/include
 )
 
 set(BEE_PRIVATE_INCLUDES ${CLI_INCLUDE}
                          ${SECURITY_INCLUDE}
+                         ${LLVM_INCLUDE_DIRS}
+                         ${CLANG_INCLUDE_DIRS}
 )
 
 set(BEE_LINK_LIBS ${CLI_LINK_LIB}
                   ${SECURITY_LINK_LIB}
                   ${CMYSQL_LINK_LIB}
+                  ${META_LINK_LIB}
 )
 
 target_include_directories(bee   PUBLIC ${BEE_PUBLIC_INCLUDES} PRIVATE ${BEE_PRIVATE_INCLUDES})
