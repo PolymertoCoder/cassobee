@@ -19,8 +19,8 @@ make static -j8 CXXFLAGS="-O2 -DNDEBUG -fPIC" || { echo "Make failed"; exit 1; }
 # 移动静态库
 mv libcryptopp.a ${debugpath}/cryptopp/lib
 
+# 创建符号链接
 cd ${debugpath}/libs
-
 ln -sf ${debugpath}/cryptopp/lib/libcryptopp.a
 
-echo "cryptopp library has been successfully built and installed to ${debugpath}/cryptopp"
+add_color "cryptopp library has been successfully built and installed to ${debugpath}/cryptopp" green

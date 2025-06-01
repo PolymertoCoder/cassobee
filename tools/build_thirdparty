@@ -9,3 +9,5 @@ sh build_readline.sh
 sh build_cryptopp.sh
 
 sh build_mysql-connector-cpp.sh
+
+sh build_jemalloc.sh

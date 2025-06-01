@@ -2,7 +2,9 @@
 
 file(GLOB_RECURSE CASSOBEE_SRC ${SOURCE_PATH}/casso/*.cpp)
 
-add_executable(cassobee ${CASSOBEE_SRC})
+add_executable(cassobee ${CASSOBEE_SRC}
+                        ${SOURCE_PATH}/protocol/state/state_clientserver.cpp
+)
 
 target_include_directories(cassobee
                            PRIVATE

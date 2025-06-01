@@ -32,4 +32,4 @@ make install || { echo "Make install failed"; exit 1; }
 cd ${debugpath}/libs
 ln -sf ${debugpath}/mysql-connector-cpp/lib64/libmysqlcppconn.so
 
-echo "mysql-connector-cpp library has been successfully built and installed to ${debugpath}/mysql-connector-cpp"
+add_color "mysql-connector-cpp library has been successfully built and installed to ${debugpath}/mysql-connector-cpp" green

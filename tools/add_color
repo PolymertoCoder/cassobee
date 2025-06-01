@@ -1,16 +1,14 @@
 #!/bin/bash
 
-source bash_color
+source bash_color  # 假设这里定义了 ADD_COLOR 函数
 
-echo $#
-
-i=0
-while [ $i -le $# ]; do
-    ADD_COLOR $1 $2
-
+while [ $# -ge 2 ]; do
+    ADD_COLOR "$1" "$2"
     shift 2
-    i=$((i+2))
-    echo $i
 done
 
-echo $i
+# 如果参数个数是奇数，提醒用户
+if [ $# -ne 0 ]; then
+    echo "⚠️ Warning: Odd number of arguments. Last argument \"$1\" ignored." >&2
+fi
+

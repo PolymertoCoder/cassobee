@@ -13,8 +13,13 @@ public:
         return "server";
     }
 
-private:
+    virtual void on_add_session(SID sid) override;
+    virtual void on_del_session(SID sid) override;
 
+    void send(const protocol& prot);
+
+private:
+    SID _localsid = 0;
 };
 
 } // namespace bee

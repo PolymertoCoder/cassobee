@@ -208,8 +208,11 @@ void rpc::set_timeout_timer(TRACEID traceid, int timeout)
                 _rpcs.erase(iter);
             }
         }
-        prpc->do_timeout();
-        delete prpc;
+        if(prpc)
+        {
+            prpc->do_timeout();
+            delete prpc;
+        }
         return false;
     });
 }

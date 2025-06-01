@@ -19,6 +19,10 @@ function(add_common_flags target)
         add_dependencies(${target} run_clang_tidy)
         add_clang_tidy_pre_build(${target})
     endif()
+
+    if(${CASSOBEE_JEMALLOC_ENABLE})
+        target_link_libraries(${target} ${LIBJEMALLOC})
+    endif()
 endfunction()
 
 function(gen_startup_script target)

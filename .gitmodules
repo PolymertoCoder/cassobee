@@ -29,3 +29,7 @@
 [submodule "thirdparty/ClangBuildAnalyzer"]
     path = thirdparty/ClangBuildAnalyzer
     url = https://github.com/aras-p/ClangBuildAnalyzer.git
+
+[submodule "thirdparty/jemalloc"]
+    path = thirdparty/jemalloc
+    url = https://github.com/jemalloc/jemalloc.git

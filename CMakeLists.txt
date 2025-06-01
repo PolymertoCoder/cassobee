@@ -30,6 +30,7 @@ option(CASSOBEE_SENITIZE_ENABLE "enable google sanitizer" ON)
 option(CASSOBEE_CCACHE_ENABLE "enable ccache" ON)
 option(CASSOBEE_CLANG_TIDY_ENABLE "enable clang-tidy" OFF)
 option(CASSOBEE_COMPILE_TIME_REPORT_ENABLE "enable compile time report" OFF)
+option(CASSOBEE_JEMALLOC_ENABLE "enable jemalloc allocator" ON)
 option(CASSOBEE_REFLECTION_ENABLE "enable refletion generation" OFF)
 
 set(CMAKE_BUILD_TYPE Debug)
@@ -127,6 +128,14 @@ if(${CASSOBEE_CLANG_TIDY_ENABLE})
     else()
         message(FATAL_ERROR "Could not find the clang-tidy exe")
     endif()
+endif()
+
+if(${CASSOBEE_JEMALLOC_ENABLE})
+    find_library(LIBJEMALLOC
+                 NAMES jemalloc
+                 PATHS ${LIBRARY_OUTPUT_PATH}
+                 NO_DEFAULT_PATH
+    )
 endif()
 
 # generate protocol

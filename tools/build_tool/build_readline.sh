@@ -26,10 +26,10 @@ make everything || { echo "Make failed"; exit 1; }
 # 安装 readline 库
 make install || { echo "Make install failed"; exit 1; }
 
-echo "Readline library has been successfully built and installed to ${debugpath}/readline"
-
 cd ${debugpath}/libs
 
 for static_lib in ${debugpath}/readline/lib/*.a; do
     ln -sf ${static_lib}
 done
+
+add_color "Readline library has been successfully built and installed to ${debugpath}/readline" green

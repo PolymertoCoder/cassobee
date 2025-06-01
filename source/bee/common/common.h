@@ -21,15 +21,6 @@ struct timeval endtime; \
 gettimeofday(&endtime, NULL); \
 printf("used time: %ld.\n", (endtime.tv_sec*1000 + endtime.tv_usec/1000) - (begintime.tv_sec*1000 + begintime.tv_usec/1000));
 
-template<typename lock_type>
-struct light_object_base
-{
-    void lock()   { _locker.lock();   }
-    void unlock() { _locker.unlock(); }
-    
-    lock_type _locker;
-};
-
 template<typename id_type, typename lock_type>
 requires std::is_base_of_v<bee::lock_support<lock_type>, lock_type>
 struct sequential_id_generator

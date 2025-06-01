@@ -1,11 +1,11 @@
 <application>
     <state name="log">
         <protocol name="remotelog"/>
-        <protocol name="ExampleRPC"/>
     </state>
 
     <state name="clientserver">
         <protocol name="c2s_user_login"/>
         <protocol name="s2c_user_login_re"/>
+        <protocol name="ExampleRPC"/>
     </state>
 </application>

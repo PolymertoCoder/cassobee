@@ -7,7 +7,6 @@
 
 #include "lock.h"
 #include "types.h"
-#include "common.h"
 #include "objectpool.h"
 
 namespace bee

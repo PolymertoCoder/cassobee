@@ -16,6 +16,7 @@
 #include "reactor.h"
 #include "threadpool.h"
 #include "timewheel.h"
+#include "ExampleRPC.h"
 
 using namespace bee;
 
@@ -32,66 +33,41 @@ bool sigusr1_handler(int signum)
     return true;
 }
 
-int main()
+std::thread run_cli()
 {
-#if 0
-    int sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if(sockfd < 0)
-    {
-        perror("socket");
-        return 0;
-    }
-
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(8888);
-    addr.sin_addr.s_addr = inet_addr("192.168.183.128");
-
-    int ret = connect(sockfd, (struct sockaddr*)&addr, sizeof(addr));
-    if(ret < 0)
-    {
-        perror("connect");
-        return 0;
-    }
-
-    while(true)
-    {
-        char buf[1024] = "i am client abcdef";
-        send(sockfd, buf, strlen(buf), 0);
-        printf("send...\n");
-
-        memset(buf, '\0', sizeof(buf));
-        ssize_t recv_size = recv(sockfd, buf, sizeof(buf) - 1, 0);
-        if(recv_size < 0)
-        {
-            perror("recv");
-            continue;
-        }
-        else if(recv_size == 0)
-        {
-            printf("peer close connect\n");
-            close(sockfd);
-            exit(1);
-        }
-
-        printf("%s\n", buf);
-
-        sleep(1);
-    }
-
-    close(sockfd);
-#elif 1
-    auto logclient = bee::logclient::get_instance();
-    logclient->init();
-    logclient->set_process_name("client");
-
     auto cli = bee::command_line::get_instance();
     cli->add_command("config", new bee::config_command("config", "Load config"));
     cli->add_command("connect", new bee::connect_command("connect", "Connect server"));
     auto root_path   = fs::current_path().parent_path();
     auto config_file = root_path/"source/client/.cliinit";
-    cli->execute_file(config_file);
+    cli->execute_file(config_file.c_str());
     auto cli_thread = std::thread([cli](){ cli->run(); });
+    return cli_thread;
+}
+
+int main(int argc, char* argv[])
+{
+    if(argc >= 2 && strcmp(argv[1], "-with-cmd"))
+    {
+        std::thread cli_thread = run_cli();
+        cli_thread.detach();
+    }
+    for(int i = 1; i < argc; ++i)
+    {
+        if(strcmp(argv[i], "--config") == 0)
+        {
+            printf("config filepath:%s\n", argv[i+1]);
+            config::get_instance()->init(argv[++i]);
+        }
+        else
+        {
+            printf("unprocessed arg %s...\n", argv[i]);
+        }
+    }
+
+    auto logclient = bee::logclient::get_instance();
+    logclient->init();
+    logclient->set_process_name("client");
 
     auto* looper = reactor::get_instance();
     looper->init();
@@ -102,12 +78,33 @@ int main()
     logservermgr->init();
     logservermgr->connect();
     logclient->set_logserver(logservermgr);
+
+    auto servermgr = server_manager::get_instance();
+    servermgr->init();
+    servermgr->connect();
+
+    add_timer(1000, [servermgr]()
+    {
+        auto rpc = rpc_callback<ExampleRPC>::call(ExampleRpcData{0.5, {}},
+            [](rpcdata* argument, rpcdata* result)
+            {
+                auto arg = (ExampleRpcData*)argument;
+                auto res = (EmptyRpcData2*)result;
+
+                local_log("rpc callback received: value=%f, text=%d", arg->fieldA, res->code);
+            },
+            [](rpcdata* argument)
+            {
+                auto arg = (ExampleRpcData*)argument;
+                local_log("rpc timeout for value=%f", arg->fieldA);
+            }
+        );
+        servermgr->send(*rpc);
+        return true;
+    });
+
     looper->run();
-
     timer_thread.join();
-    cli_thread.join();
-
-#endif
-
+    local_log("process client exit normally...");
     return 0;
 }

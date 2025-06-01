@@ -2,7 +2,9 @@
 
 file(GLOB_RECURSE CLIENT_SRC ${SOURCE_PATH}/client/*.cpp)
 
-add_executable(client ${CLIENT_SRC})
+add_executable(client ${CLIENT_SRC}
+                      ${SOURCE_PATH}/protocol/state/state_clientserver.cpp
+)
 
 target_include_directories(client
                            PRIVATE
@@ -11,7 +13,7 @@ target_include_directories(client
 
 target_compile_definitions(client PRIVATE -D_REENTRANT)
 
-target_link_libraries(client pthread bee_r logclient)
+target_link_libraries(client pthread bee_r logclient_r prot)
 
 add_common_flags(client)
 

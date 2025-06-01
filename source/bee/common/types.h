@@ -59,6 +59,15 @@ do { \
 
 #define UNUSE(x) ((void)(x))
 
+template<typename lock_type>
+struct light_object_base
+{
+    void lock()   { _locker.lock();   }
+    void unlock() { _locker.unlock(); }
+    
+    lock_type _locker;
+};
+
 template<typename T>
 class singleton_support
 {
