@@ -37,7 +37,7 @@ set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
 #set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -std=c++23 -Wall -Wno-deprecated -Wno-unused-function")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} $ENV{CXXFLAGS} -std=c++23 -Wall -Wno-deprecated -Wno-unused-function")
 
 # debug or release
 if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
@@ -136,6 +136,11 @@ if(${CASSOBEE_JEMALLOC_ENABLE})
                  PATHS ${LIBRARY_OUTPUT_PATH}
                  NO_DEFAULT_PATH
     )
+    if(LIBJEMALLOC)
+        message(STATUS "Found jemalloc library: ${LIBJEMALLOC}")
+    else()
+        message(FATAL_ERROR "Could not find the jemalloc library")
+    endif()
 endif()
 
 # generate protocol

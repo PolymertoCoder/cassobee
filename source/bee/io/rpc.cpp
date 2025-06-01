@@ -213,6 +213,7 @@ void rpc::set_timeout_timer(TRACEID traceid, int timeout)
             prpc->do_timeout();
             delete prpc;
         }
+        local_log("rpc timeout timer run.");
         return false;
     });
 }

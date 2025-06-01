@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
     servermgr->init();
     servermgr->connect();
 
-    add_timer(1000, [servermgr]()
+    int timerid = add_timer(1000, [servermgr]()
     {
         auto rpc = rpc_callback<ExampleRPC>::call(ExampleRpcData{0.5, {}},
             [](rpcdata* argument, rpcdata* result)
@@ -102,6 +102,7 @@ int main(int argc, char* argv[])
         servermgr->send(*rpc);
         return true;
     });
+    local_log("timerid: %d", timerid);
 
     looper->run();
     timer_thread.join();

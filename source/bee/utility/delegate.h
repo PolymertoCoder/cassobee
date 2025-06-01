@@ -84,7 +84,7 @@ public:
     return_type execute(param_types... params)
     {
         lock();
-        assert(_executor);
+        ASSERT(_executor);
         auto tmp_executor = _executor;
         unlock();
         return tmp_executor(params...);

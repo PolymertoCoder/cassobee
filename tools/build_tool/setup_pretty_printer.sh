@@ -13,9 +13,8 @@ python
 import sys
 import os
 
-# 自动检测GCC版本
 gcc_version = '${GCC_VERSION}'
-libstdcxx_path = f'/usr/local/gcc-{gcc_version}/share/gcc-{gcc_version}/python'
+libstdcxx_path = '/usr/share/gcc/python'
 
 sys.path.insert(0, libstdcxx_path)
 from libstdcxx.v6.printers import register_libstdcxx_printers

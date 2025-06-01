@@ -37,13 +37,13 @@ bool protocol::check_policy(PROTOCOLID type, size_t size, session_manager* manag
     if(!size_policy(type, size))
     {
         local_log("protocol %d check size policy failed, size:%zu.", type, size);
-        assert(false);
+        ASSERT(false);
         return false;
     }
     if(manager->check_protocol(type))
     {
         local_log("protocol %d is forbidden by %s.", type, manager->identity());
-        assert(false);
+        ASSERT(false);
         return false;
     }
     return true;

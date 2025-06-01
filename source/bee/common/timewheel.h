@@ -59,17 +59,14 @@ struct timerlist
     {
         if(head)
         {
-            assert(head->_prev != nullptr);
+            ASSERT(head->_prev != nullptr);
             t->_prev = head->_prev;
-            assert(head != nullptr);
             t->_next = head;
-            assert(t);
             head->_prev->_next = t;
             head->_prev = t;
         }
         else
         {
-            assert(t);
             t->_prev = t;
             t->_next = t;
             head = t;
@@ -78,20 +75,20 @@ struct timerlist
     }
     void pop(timer_node* t)
     {
-        assert(head);
+        ASSERT(head);
         if(t == head && count == 1)
         {
             head = nullptr;
             count = 0;
             return;
         }
-        assert(t->_prev);
+        ASSERT(t->_next);
         t->_next->_prev = t->_prev;
-        assert(t->_next);
+        ASSERT(t->_prev);
         t->_prev->_next = t->_next;
         if(t == head)
         {
-            assert(t->_next);
+            ASSERT(t->_next);
             head = t->_next;
         }
         t->_prev = nullptr;
@@ -150,7 +147,7 @@ private:
     bool _frontidx = 0;
     timerlist _changelist[2];
 
-    lockfree_objectpool<timer_node> _timerpool;
+    objectpool<timer_node> _timerpool;
 };
 
 } // namespace bee

@@ -374,6 +374,7 @@ class XMLProcessor:
     def _generate_dump_method(self, protocol):
         """Generate the dump method for the class."""
         dump_method = f"ostringstream& {protocol.name}::dump(ostringstream& out) const\n{{\n"
+        dump_method += f"    {protocol.base_class}::dump(out);\n"
         if protocol.codefield:
             dump_method += f"    out << \"code: \" << code;\n"
         for field_name, _, _ in protocol.fields:
@@ -410,7 +411,8 @@ class XMLProcessor:
 
         lines.append(self._generate_constructors(protocol))
 
-        lines.append(self._generate_operator_overloads(protocol))
+        if protocol.base_class != "rpc":
+            lines.append(self._generate_operator_overloads(protocol))
         lines.append(f"    virtual ~{protocol.name}() override = default;\n\n")
     
         if protocol.base_class != "rpc":

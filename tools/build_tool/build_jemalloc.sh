@@ -30,5 +30,6 @@ make install || { echo "Make install failed"; exit 1; }
 # 创建符号链接
 cd ${debugpath}/libs
 ln -sf ${debugpath}/jemalloc/lib/libjemalloc.so
+ln -sf ${debugpath}/jemalloc/lib/libjemalloc.so.2
 
 add_color "jemalloc library has been successfully built and installed to ${debugpath}/jemalloc" green

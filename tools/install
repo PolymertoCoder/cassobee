@@ -6,20 +6,30 @@ echo ${rootpath}
 
 mkdir ${rootpath}/bin
 
-echo export PATH=$PATH:${rootpath}/tools          > ~/.cassobee_config
-echo export PATH=$PATH:${rootpath}/build_tool	  > ~/.cassobee_config
-echo ''                                          >> ~/.cassobee_config
-echo alias ca=\"cd ${rootpath}\"                 >> ~/.cassobee_config
-echo alias tt=\"cd ${rootpath}/tools\"           >> ~/.cassobee_config
-echo alias cfg=\"cd ${rootpath}/config\"         >> ~/.cassobee_config
-echo alias ss=\"cd ${rootpath}/source\"          >> ~/.cassobee_config
-echo alias uu=\"cd ${rootpath}/source/bee/\"	 >> ~/.cassobee_config
-echo alias dd=\"cd ${rootpath}/debug\"           >> ~/.cassobee_config
-echo alias bb=\"cd ${rootpath}/build\"           >> ~/.cassobee_config
-echo alias pp=\"cd ${rootpath}/progen\"          >> ~/.cassobee_config
-echo alias trace=\"cd ${rootpath}/debug/logdir\" >> ~/.cassobee_config
-echo alias third=\"cd ${rootpath}/thirdparty\"   >> ~/.cassobee_config
-echo ''                                          >> ~/.cassobee_config
+PROJECT_PATH="${rootpath}/tools:${rootpath}/build_tool"
+PROJECT_LD_LIBRARY_PATH="${rootpath}/debug/libs"
+
+# 生成配置文件
+cat > ~/.cassobee_config <<EOF
+export PATH=${PATH}:${PROJECT_PATH}
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PROJECT_LD_LIBRARY_PATH}
+
+alias ca="cd ${rootpath}"
+alias tt="cd ${rootpath}/tools"
+alias cfg="cd ${rootpath}/config"
+alias ss="cd ${rootpath}/source"
+alias uu="cd ${rootpath}/source/bee/"
+alias dd="cd ${rootpath}/debug"
+alias bb="cd ${rootpath}/build"
+alias pp="cd ${rootpath}/progen"
+alias trace="cd ${rootpath}/debug/logdir"
+alias third="cd ${rootpath}/thirdparty"
+
+source ${rootpath}/tools/completions
+complete -F process_name_completions rs
+complete -F process_name_completions ks
+complete -F process_name_completions mk
+EOF
 
 echo source ${rootpath}/tools/completions   	 >> ~/.cassobee_config
 echo complete -F process_name_completions rs     >> ~/.cassobee_config

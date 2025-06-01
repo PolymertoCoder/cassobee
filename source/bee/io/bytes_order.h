@@ -6,26 +6,20 @@
 
 inline uint64_t htonll(uint64_t host)
 {
-    if (htonl(1) != 1)  // 检查系统的字节序
-    {
-        return ((uint64_t)htonl(host & 0xFFFFFFFF) << 32) | htonl(host >> 32);
-    }
-    else
-    {
-        return host;
-    }
+#if BYTE_ORDER == LITTLE_ENDIAN
+    return ((uint64_t)htonl(host & 0xFFFFFFFF) << 32) | htonl(host >> 32);
+#else
+    return host;
+#endif
 }
 
 inline uint64_t ntohll(uint64_t net)
 {
-    if (ntohl(1) != 1)  // 检查系统的字节序
-    {
+#if BYTE_ORDER == LITTLE_ENDIAN
         return ((uint64_t)ntohl(net & 0xFFFFFFFF) << 32) | ntohl(net >> 32);
-    }
-    else
-    {
+#else
         return net;
-    }
+#endif
 }
 
 template<typename T>
@@ -149,19 +143,19 @@ inline int16_t networkToHost<int16_t>(int16_t host16)
 template<>
 inline uint8_t networkToHost<uint8_t>(uint8_t host8)
 {
-    return ntohs(host8);
+    return host8;
 }
 
 template<>
 inline int8_t networkToHost<int8_t>(int8_t host8)
 {
-    return ntohs(host8);
+    return host8;
 }
 
 template<>
 inline bool networkToHost<bool>(bool host8)
 {
-    return ntohs(host8);
+    return host8;
 }
 
 template<>
