@@ -57,7 +57,7 @@ void timewheel::readd_timer(timer_node* t)
     if(t->_nexttime - _tickcount >= NEAR_SLOTS)
     {
         _hanging_slots.push_back(t);
-        local_log("readd_timer %lu _timeout=%ld _nexttime=%ld in _hanging_slots, _tickcount=%ld", t->_id, t->_timeout, t->_nexttime, _tickcount);
+        // local_log("readd_timer %lu _timeout=%ld _nexttime=%ld in _hanging_slots, _tickcount=%ld", t->_id, t->_timeout, t->_nexttime, _tickcount);
     }
     else
     {
@@ -65,7 +65,7 @@ void timewheel::readd_timer(timer_node* t)
         if(t->_nexttime - _tickcount > 0)
             offset = t->_nexttime % NEAR_SLOTS;
         _near_slots[offset].push_back(t);
-        local_log("readd_timer %lu  _timeout=%ld _nexttime=%ld in _near_slots %d, _tickcount=%ld", t->_id, t->_timeout, t->_nexttime, offset, _tickcount);
+        // local_log("readd_timer %lu  _timeout=%ld _nexttime=%ld in _near_slots %d, _tickcount=%ld", t->_id, t->_timeout, t->_nexttime, offset, _tickcount);
     }
     t->_state = TIMER_STATE_ACTIVE;
 }

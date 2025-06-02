@@ -153,7 +153,7 @@ protected:
     #ifdef _REENTRANT
         bee::spinlock::scoped l(_locker);
     #endif
-        if(objidx > _cap) return nullptr;
+        if(objidx >= _cap) return nullptr;
         return _pool + objidx;
     }
 
@@ -190,8 +190,8 @@ private:
 
     struct ALIGN_CACHELINE_SIZE head_ptr
     {
-        memory_block* node = nullptr;
-        uint64_t counter;
+        node_type* node = nullptr;
+        uint64_t counter = 0;
     };
 
 public:
@@ -277,7 +277,7 @@ public:
         head_ptr new_head;
         do
         {
-            node->next.store(node, std::memory_order_relaxed);
+            node->next.store(old_head.node, std::memory_order_relaxed);
 
             new_head.node = node;
             new_head.counter = old_head.counter + 1;
@@ -294,7 +294,7 @@ public:
         head_ptr new_head;
         do
         {
-            node->next.store(node, std::memory_order_relaxed);
+            node->next.store(old_head.node, std::memory_order_relaxed);
 
             new_head.node = node;
             new_head.counter = old_head.counter + 1;
@@ -304,7 +304,7 @@ public:
 
     T* find_object(size_t objidx)
     {
-        if(objidx > _cap) return nullptr;
+        if(objidx >= _cap) return nullptr;
         return &(_pool + objidx)->obj;
     }
 

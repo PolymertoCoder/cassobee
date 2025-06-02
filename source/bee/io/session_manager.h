@@ -36,7 +36,7 @@ public:
     FORCE_INLINE int socktype() { return _socktype; }
     FORCE_INLINE int family() { return _family; }
 
-    FORCE_INLINE bool check_protocol(PROTOCOLID type) { return _state._permited_protocols.test(type); }
+    FORCE_INLINE bool check_protocol(PROTOCOLID type) { return !_state._forbidden_protocols.test(type); }
 
     virtual void connect(); // as client
     virtual void listen();  // as server
@@ -67,7 +67,7 @@ protected:
     friend class session;
     struct state
     {
-        std::bitset<MAXPROTOCOLID> _permited_protocols;
+        std::bitset<MAXPROTOCOLID + 1> _forbidden_protocols;
     } _state;
 
     char _session_type = SESSION_TYPE_NONE;

@@ -40,7 +40,7 @@ bool protocol::check_policy(PROTOCOLID type, size_t size, session_manager* manag
         ASSERT(false);
         return false;
     }
-    if(manager->check_protocol(type))
+    if(!manager->check_protocol(type))
     {
         local_log("protocol %d is forbidden by %s.", type, manager->identity());
         ASSERT(false);

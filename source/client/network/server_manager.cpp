@@ -16,6 +16,7 @@ void server_manager::on_del_session(SID sid)
     if(sid == _localsid)
     {
         _localsid = 0;
+        reconnect();
     }
 }
 

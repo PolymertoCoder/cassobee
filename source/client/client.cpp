@@ -47,10 +47,10 @@ std::thread run_cli()
 
 int main(int argc, char* argv[])
 {
-    if(argc >= 2 && strcmp(argv[1], "-with-cmd"))
+    std::thread cli_thread;
+    if(argc >= 2 && strcmp(argv[1], "-with-cmd") == 0)
     {
-        std::thread cli_thread = run_cli();
-        cli_thread.detach();
+        cli_thread = run_cli();
     }
     for(int i = 1; i < argc; ++i)
     {
@@ -106,6 +106,7 @@ int main(int argc, char* argv[])
 
     looper->run();
     timer_thread.join();
+    if(cli_thread.joinable()) cli_thread.join();
     local_log("process client exit normally...");
     return 0;
 }

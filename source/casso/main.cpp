@@ -74,6 +74,14 @@ void stress_test()
     local_log("Stress test completed");
 }
 
+bool ExampleRPC::server(rpcdata* argument, rpcdata* result)
+{
+    auto arg = (ExampleRpcData*)argument;
+    auto res = (ExampleRpcData*)result;
+    DEBUGLOG("ExampleRPC::server run argument:%p result:%p", arg, res);
+    return false;
+}
+
 int main(int argc, char* argv[])
 {
     if(argc < 3)
@@ -241,12 +249,4 @@ int main(int argc, char* argv[])
     timer_thread.join();
     local_log("process casso exit normally...\n");
     return 0;
-}
-
-bool ExampleRPC::server(rpcdata* argument, rpcdata* result)
-{
-    auto arg = (ExampleRpcData*)argument;
-    auto res = (ExampleRpcData*)result;
-    DEBUGLOG("ExampleRPC::server run argument:%p result:%p", arg, res);
-    return false;
 }

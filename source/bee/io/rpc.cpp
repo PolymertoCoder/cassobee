@@ -135,9 +135,11 @@ octetsstream& rpc::unpack(octetsstream& os)
     {
         _argument = _argument->dup();
         os >> *_argument;
+        _result = _result->dup();
     }
     else // client
-    {   
+    {
+        _argument = nullptr;
         _result = _result->dup();
         os >> *_result;
     }

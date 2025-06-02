@@ -147,7 +147,7 @@ private:
     bool _frontidx = 0;
     timerlist _changelist[2];
 
-    objectpool<timer_node> _timerpool;
+    lockfree_objectpool<timer_node> _timerpool;
 };
 
 } // namespace bee

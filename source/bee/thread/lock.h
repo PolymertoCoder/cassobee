@@ -145,8 +145,8 @@ class ticket_spinlock : public lock_support<ticket_spinlock>
 public:
     void lock() noexcept
     {
-        const auto ticket = m_next_ticket.fetch_add(1, std::memory_order_relaxed);
-        while(m_serving.load(std::memory_order_acquire) != ticket)
+        const auto ticket = _next_ticket.fetch_add(1, std::memory_order_relaxed);
+        while(_serving.load(std::memory_order_acquire) != ticket)
         {
         #if defined(__x86_64__) || defined(__i386__)
             __builtin_ia32_pause();
@@ -157,12 +157,12 @@ public:
     }
     void unlock() noexcept
     {
-        m_serving.fetch_add(1, std::memory_order_release);
+        _serving.fetch_add(1, std::memory_order_release);
     }
     bool try_lock() noexcept
     {
-        const auto ticket = m_next_ticket.load(std::memory_order_relaxed);
-        if(m_serving.load(std::memory_order_acquire) == ticket)
+        const auto ticket = _next_ticket.load(std::memory_order_relaxed);
+        if(_serving.load(std::memory_order_acquire) == ticket)
         {
             return true;
         }
@@ -170,8 +170,8 @@ public:
     }
 
 private:
-    std::atomic<unsigned> m_serving{0};
-    std::atomic<unsigned> m_next_ticket{0};
+    std::atomic<unsigned> _serving{0};
+    std::atomic<unsigned> _next_ticket{0};
 };
 
 class mutex : public lock_support<mutex>
