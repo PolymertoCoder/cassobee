@@ -56,13 +56,13 @@ void rpc::run()
 {
     if(_is_server) // server
     {
-        if(do_server())
-        {
-            _manager->send_protocol(_sid, *this);
-        }
-        else // 继续投递
+        if(do_server()) // 继续投递
         {
             set_request(this, true); // 标记为中转的rpc
+        }
+        else 
+        {
+            _manager->send_protocol(_sid, *this);
         }
     }
     else // client

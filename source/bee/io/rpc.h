@@ -24,7 +24,7 @@ public:
 
     static rpc* call(PROTOCOLID id, const rpcdata& argument);
 
-    virtual bool server(rpcdata* argument, rpcdata* result) = 0; // 返回false表示继续投递
+    virtual bool server(rpcdata* argument, rpcdata* result) = 0; // 返回true表示继续投递
     virtual void client(rpcdata* argument, rpcdata* result) {}
     virtual void timeout(rpcdata* argument);
 
@@ -67,7 +67,7 @@ public:
         _timeout_hdl ? _timeout_hdl(argument) : RPC::timeout(argument);
     }
 
-    static rpc* call(const rpcdata& argument, rpc_callback::client_handler client_hdl, rpc_callback::timeout_handler timeout_hdl = {})
+    static rpc* call(const RPC::argument_type& argument, client_handler client_hdl, timeout_handler timeout_hdl = {})
     {
         rpc_callback<RPC>* prpc_callback = nullptr;
         {

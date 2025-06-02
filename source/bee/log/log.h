@@ -23,7 +23,7 @@ enum LOG_LEVEL : unsigned char
 };
 
 #define local_log  GLOG(LOG_OUTPUT::CONSOLE, LOG_LEVEL::TRACE, __FILENAME__, __LINE__)
-#define local_log_f(fmt, ...) GLOGF(LOG_OUTPUT::CONSOLE, LOG_LEVEL::TRACE, __FILENAME__, __LINE__, fmt, ##__VA_ARGS__)
+#define local_log_f(fmt, ...) GLOGF(LOG_OUTPUT::CONSOLE, LOG_LEVEL::TRACE, fmt, ##__VA_ARGS__)
 
 // printf风格的格式化
 #define TRACELOG GLOG(LOG_OUTPUT::LOGFILE, LOG_LEVEL::TRACE, __FILENAME__, __LINE__)

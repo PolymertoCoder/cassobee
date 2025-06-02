@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <csignal>
 #include <arpa/inet.h>
+#include <format.h>
 #include "app_commands.h"
 #include "app_command.h"
 #include "command_line.h"
@@ -85,18 +86,18 @@ int main(int argc, char* argv[])
 
     int timerid = add_timer(1000, [servermgr]()
     {
-        auto rpc = rpc_callback<ExampleRPC>::call(ExampleRpcData{0.5, {}},
+        auto rpc = rpc_callback<ExampleRPC>::call({1, 2},
             [](rpcdata* argument, rpcdata* result)
             {
-                auto arg = (ExampleRpcData*)argument;
-                auto res = (EmptyRpcData2*)result;
+                auto arg = (ExampleRPCArg*)argument;
+                auto res = (EmptyRpcRes*)result;
 
-                local_log("rpc callback received: value=%f, text=%d", arg->fieldA, res->code);
+                local_log_f("rpc callback received: param1:{} param2:{}, result:{}", arg->param1, arg->param2, res->sum);
             },
             [](rpcdata* argument)
             {
-                auto arg = (ExampleRpcData*)argument;
-                local_log("rpc timeout for value=%f", arg->fieldA);
+                auto arg = (ExampleRPCArg*)argument;
+                local_log_f("rpc timeout for: param1:{} param2:{}", arg->param1, arg->param2);
             }
         );
         servermgr->send(*rpc);

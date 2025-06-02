@@ -246,7 +246,7 @@ class XMLProcessor:
             initializers = ", ".join([f"{field_name}(_{field_name})" for field_name, _, _ in protocol.fields])
             constructor_content += f"    {protocol.name}({params}) : "
             if protocol.codefield:
-                constructor_content += f"code({protocol.default_code}), "
+                constructor_content += f"code(ALLFIELDS), "
             constructor_content += f"{initializers}\n    {{}}\n"
 
             # Generate constructors with && parameters
@@ -255,7 +255,7 @@ class XMLProcessor:
                 initializers = ", ".join([f"{field_name}(std::move(_{field_name}))" if field_type not in basic_types else f"{field_name}(_{field_name})" for field_name, field_type, _ in protocol.fields])
                 constructor_content += f"    {protocol.name}({params}) : "
                 if protocol.codefield:
-                    constructor_content += f"code({protocol.default_code}), "
+                    constructor_content += f"code(ALLFIELDS), "
                 constructor_content += f"{initializers}\n    {{}}\n"
 
             return constructor_content

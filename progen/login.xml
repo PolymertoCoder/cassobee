@@ -16,7 +16,6 @@
     <protocol name="c2s_user_login" type="104" maxsize="1024">
         <field name="username" type="std::string" default="std::string()"/>
         <field name="password" type="std::string" default="std::string()"/>
-        <field name="payload" type="EmptyRpcData2" default="EmptyRpcData2()"/>
     </protocol>
 
     <protocol name="s2c_user_login_re" type="105" maxsize="1024">
@@ -24,17 +23,18 @@
         <field name="retcode" type="int" default="0"/>
     </protocol>
 
-    <rpcdata name="ExampleRpcData" codefield="uint32_t">
-        <field name="fieldA" type="double" default="0.0"/>
-        <field name="fieldB" type="std::map&lt;int, std::string&gt;" default="std::map&lt;int, std::string&gt;()"/>
+    <rpcdata name="ExampleRPCArg" codefield="uint32_t">
+        <field name="param1" type="int" default="0"/>
+        <field name="param2" type="int" default="0"/>
     </rpcdata>
 
-    <rpcdata name="EmptyRpcData2" codefield="uint32_t">
+    <rpcdata name="EmptyRpcRes" codefield="uint32_t">
+        <field name="sum" type="int" default="0"/>
     </rpcdata>
 
     <rpc name="ExampleRPC" type="106" maxsize="1024">
-        <argument type="ExampleRpcData" default="ExampleRpcData()"/>
-        <result type="EmptyRpcData2" default="EmptyRpcData2"/>
+        <argument type="ExampleRPCArg" default="ExampleRPCArg()"/>
+        <result type="EmptyRpcRes" default="EmptyRpcRes()"/>
     </rpc>
 
 </application>
