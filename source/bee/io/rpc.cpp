@@ -10,24 +10,14 @@ namespace bee
 bee::mutex rpc::_locker;
 std::map<TRACEID, rpc*> rpc::_rpcs;
 
-rpc::rpc(const rpc& other)
-    : protocol(other)
-{
-    _traceid = other._traceid;
-    _proxy_traceid = other._proxy_traceid;
-    _is_server = other._is_server;
-    _argument = other._argument; // 浅拷贝
-    _result = other._result; // 浅拷贝
-}
-
 rpc::rpc(rpc&& other)
-    : protocol(other)
+    : protocol(std::move(other)),  _traceid(other._traceid), _proxy_traceid(other._proxy_traceid)
+    , _is_server(other._is_server)
 {
-    _traceid = other._traceid;
-    _proxy_traceid = other._proxy_traceid;
-    _is_server = other._is_server;
-    std::swap(_argument, other._argument);
-    std::swap(_result, other._result);
+    _argument = other._argument;
+    other._argument = nullptr;
+    _result = other._result;
+    other._result = nullptr;
 }
 
 rpc& rpc::operator=(const rpc& rhs)
@@ -82,8 +72,10 @@ void rpc::run()
             if(prpc->_proxy_traceid > 0) // 是中转的rpc，开始回溯寻找调用方client
             {
                 clr_request(prpc, true);
-                prpc->_manager->send_protocol(prpc->_sid, *prpc);
-                return;
+                if(prpc->_manager && prpc->_sid > 0)
+                {
+                    prpc->_manager->send_protocol(prpc->_sid, *prpc);
+                }
             }
             else
             {

@@ -11,7 +11,7 @@ class rpc : public protocol
 public:
     rpc() = default;
     rpc(PROTOCOLID type) : protocol(type) {}
-    rpc(const rpc& other);
+    rpc(const rpc& other) = default; // 浅拷贝
     rpc(rpc&& other);
     rpc& operator=(const rpc& rhs);
     virtual ~rpc() override;

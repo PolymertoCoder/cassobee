@@ -22,6 +22,7 @@ set(REPORT_PATH             ${CASSOBEE_ROOT_PATH}/debug)
 set(BINARY_PATH             ${CASSOBEE_ROOT_PATH}/bin)
 set(TOOLS_PATH              ${CASSOBEE_ROOT_PATH}/tools)
 set(PROTOCOL_PATH           ${CASSOBEE_ROOT_PATH}/source/protocol)
+set(CMAKE_PATH              ${CASSOBEE_ROOT_PATH}/cmake)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(CASSOBEE_BENCHMARK_ENABLE "enable benchmark test" OFF)
@@ -32,11 +33,16 @@ option(CASSOBEE_CLANG_TIDY_ENABLE "enable clang-tidy" OFF)
 option(CASSOBEE_COMPILE_TIME_REPORT_ENABLE "enable compile time report" OFF)
 option(CASSOBEE_JEMALLOC_ENABLE "enable jemalloc allocator" ON)
 option(CASSOBEE_REFLECTION_ENABLE "enable refletion generation" OFF)
+option(CASSOBEE_GEN_FASTBUILD_BFF_ENABLE "enable generate fastbuild bff" ON)
 
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
 #set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
+# 自定义cmake模块目录
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_PATH})
+
+# 设置通用的编译选项
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} $ENV{CXXFLAGS} -std=c++23 -Wall -Wno-deprecated -Wno-unused-function")
 
 # debug or release
@@ -210,3 +216,29 @@ else()
 endif()
 
 add_subdirectory(source)
+
+cmake_language(DEFER CALL _execute_after_all_targets ${CMAKE_PATH})
+
+function(_execute_after_all_targets module_path)
+    message(STATUS "Executing deferred FastBuild generation")
+    list(APPEND CMAKE_MODULE_PATH ${module_path})
+    include(fastbuild_gen)
+    generate_fastbuild_config()
+endfunction()
+
+# 根据cmake规则生成fastbuild bff文件，必须放在最后
+if(${CASSOBEE_GEN_FASTBUILD_BFF_ENABLE})
+    message(STATUS "=== FASTBUILD GENERATION START ===")
+    
+    # 打印当前定义的目标
+    get_property(TARGET_NAMES DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    message(STATUS "Detected targets: ${TARGET_NAMES}")
+    
+    # 包含模块
+    include(fastbuild_gen)
+    
+    # 生成配置
+    generate_fastbuild_config()
+    
+    message(STATUS "=== FASTBUILD GENERATION COMPLETE ===")
+endif()

@@ -36,7 +36,6 @@ file(GLOB_RECURSE LIBBEE_SRC ${SOURCE_PATH}/bee/*.cpp)
 list(REMOVE_ITEM LIBBEE_SRC ${LIBBEE_EXCLUDE_SRC})
 
 add_library(bee SHARED ${LIBBEE_SRC})
-
 add_library(bee_r SHARED ${LIBBEE_SRC})
 
 set(BEE_PUBLIC_INCLUDES ${SOURCE_PATH}/bee/common
