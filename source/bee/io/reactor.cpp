@@ -2,6 +2,7 @@
 
 #include <map>
 #include <utility>
+#include <sys/signal.h>
 
 #include "glog.h"
 #include "event.h"
@@ -50,6 +51,7 @@ void reactor::init()
         _timeout = cfg->get<int>("reactor", "timeout");
     }
 
+    set_signal(SIGPIPE, SIG_IGN);
     add_event(new sigio_event());
     add_event(new control_event());
 }

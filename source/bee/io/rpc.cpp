@@ -160,6 +160,11 @@ rpc* rpc::call(PROTOCOLID id, const rpcdata& argument)
     if(!prpc) return nullptr;
     prpc->_argument = argument.dup();
     prpc->_result = nullptr;
+    return call(prpc);
+}
+
+rpc* rpc::call(rpc* prpc)
+{
     set_request(prpc);
     return prpc;
 }

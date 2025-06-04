@@ -23,6 +23,7 @@ public:
     virtual octetsstream& unpack(octetsstream& os) override;
 
     static rpc* call(PROTOCOLID id, const rpcdata& argument);
+    static rpc* call(rpc* prpc);
 
     virtual bool server(rpcdata* argument, rpcdata* result) = 0; // 返回true表示继续投递
     virtual void client(rpcdata* argument, rpcdata* result) {}
@@ -55,8 +56,6 @@ public:
     using client_handler  = std::function<void(rpcdata* argument, rpcdata* result)>;
     using timeout_handler = std::function<void(rpcdata* argument)>;
 
-    rpc_callback(RPC&& other) : RPC(std::move(other)) {}
-
     virtual void client(rpcdata* argument, rpcdata* result) override
     {
         if(_client_hdl) { _client_hdl(argument, result); }
@@ -69,20 +68,12 @@ public:
 
     static rpc* call(const RPC::argument_type& argument, client_handler client_hdl, timeout_handler timeout_hdl = {})
     {
-        rpc_callback<RPC>* prpc_callback = nullptr;
-        {
-            RPC* prpc = (RPC*)rpc::get_protocol(RPC::TYPE);
-            if(!prpc) return nullptr;
-            prpc->_argument = argument.dup();
-            prpc->_result = nullptr;
-            prpc_callback = new rpc_callback<RPC>(std::move(*prpc));
-            delete prpc; // 释放原来的rpc对象
-        }
-
+        rpc_callback<RPC>* prpc_callback = new rpc_callback<RPC>;
+        prpc_callback->_argument = argument.dup();
+        prpc_callback->_result = nullptr;
         prpc_callback->_client_hdl = std::move(client_hdl);
         if(timeout_hdl) prpc_callback->_timeout_hdl = std::move(timeout_hdl);
-        rpc::set_request(prpc_callback);
-        return prpc_callback;
+        return rpc::call(prpc_callback);
     }
 
 protected:
