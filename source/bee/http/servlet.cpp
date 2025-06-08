@@ -9,9 +9,9 @@ namespace bee
 function_servlet::function_servlet(callback cbk)
     : servlet("function_servlet"), _cbk(std::move(cbk)) {}
 
-int function_servlet::handle(httprequest* req, httpresponse* rsp, httpsession* ses)
+int function_servlet::handle(httprequest* req, httpresponse* rsp)
 {
-    return _cbk(req, rsp, ses);
+    return _cbk(req, rsp);
 }
 
 function_servlet* function_servlet::dup() const
@@ -40,11 +40,11 @@ servlet_dispatcher::~servlet_dispatcher()
     _glob_servlets.clear();
 }
 
-int servlet_dispatcher::handle(httprequest* req, httpresponse* rsp, httpsession* ses)
+int servlet_dispatcher::handle(httprequest* req, httpresponse* rsp)
 {
     if(servlet* srv = get_matched_servlet(req->get_path()))
     {
-        srv->handle(req, rsp, ses);
+        srv->handle(req, rsp);
     }
     return 0;
 }
@@ -151,7 +151,7 @@ not_found_servlet::not_found_servlet(const std::string& name)
                 "</html>";
 }
 
-int not_found_servlet::handle(httprequest* req, httpresponse* rsp, httpsession* ses)
+int not_found_servlet::handle(httprequest* req, httpresponse* rsp)
 {
     rsp->set_status(HTTP_STATUS_NOT_FOUND);
     rsp->set_header("Server", "cassobee/1.0.0");

@@ -29,6 +29,19 @@ httpsession* httpsession_manager::create_session()
     return ses;
 }
 
+void httpsession_manager::init()
+{
+    session_manager::init();
+    if(ssl_enabled())
+    {
+        _session_type = SESSION_TYPE_HTTPS;
+    }
+    else
+    {
+        _session_type = SESSION_TYPE_HTTP;
+    }
+}
+
 httpsession* httpsession_manager::find_session(SID sid)
 {
     bee::rwlock::rdscoped l(_locker);
@@ -71,11 +84,6 @@ bool httpsession_manager::check_headers(const httpprotocol* req)
         if(!ALLOWED_HEADERS.contains(key)) return false;
     }
     return true;
-}
-
-void httpsession_manager::check_timeouts()
-{
-
 }
 
 void httpsession_manager::send_request(SID sid, const httprequest& req, httprequest::callback cbk)
@@ -137,10 +145,10 @@ httpclient_manager::~httpclient_manager()
 
 void httpclient_manager::init()
 {
-    session_manager::init();
+    httpsession_manager::init();
     auto cfg = config::get_instance();
-    _max_requests = cfg->get<int>(identity(), "max_requests");
-    _request_timeout = cfg->get<int>(identity(), "request_timeout");
+    _max_requests = cfg->get<size_t>(identity(), "max_requests");
+    _request_timeout = cfg->get<size_t>(identity(), "request_timeout");
 }
 
 void httpclient_manager::on_add_session(SID sid)
@@ -224,17 +232,13 @@ http_result httpclient_manager::send_request(httprequest* req, const uri& uri, h
     }
 
     //_pending_requests.emplace_back(req, timeout, cbk);
+
 }
 
 httprequest* httpclient_manager::find_httprequest(REQUESTID requestid)
 {
     auto iter = _requests_cache.find(requestid);
     return iter != _requests_cache.end() ? iter->second : nullptr;
-}
-
-httprequest* httpclient_manager::find_httprequest_by_sid(SID sid)
-{
-    
 }
 
 auto httpclient_manager::get_new_requestid() -> httprequest::REQUESTID
@@ -269,12 +273,12 @@ httpserver_manager::~httpserver_manager()
 
 void httpserver_manager::init()
 {
-    session_manager::init();
+    httpsession_manager::init();
     _dispatcher = new servlet_dispatcher;
     _dispatcher->add_servlet("/_/config", new config_servlet);
 }
 
-void httpserver_manager::send_response()
+http_result httpserver_manager::send_response()
 {
 
 }

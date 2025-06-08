@@ -7,6 +7,7 @@
 #include "httpsession_manager.h"
 #include "log.h"
 #include "marshal.h"
+#include "servlet.h"
 #include "systemtime.h"
 #include "util.h"
 #include <cctype>
@@ -278,7 +279,19 @@ size_t httprequest::maxsize() const
 
 void httprequest::run()
 {
-    
+    auto* httpserver = dynamic_cast<httpserver_manager*>(_manager);
+    if(!httpserver) return;
+    servlet* servlet = httpserver->get_dispatcher()->get_matched_servlet(_path);
+    if(!servlet)
+    {
+        local_log("httprequest::run, cant found %s servlet.", _path.data());
+        return;
+    }
+
+    httpresponse* rsp = get_response();
+    rsp->set_version(_version);
+    rsp->set_header("server", httpserver->identity());
+    servlet->handle(this, rsp);
 }
 
 ostringstream& httprequest::dump(ostringstream& out) const
@@ -437,7 +450,22 @@ size_t httpresponse::maxsize() const
 
 void httpresponse::run()
 {
-    // _manager->find_request(_sid);
+    auto* httpclient = dynamic_cast<httpclient_manager*>(_manager);
+    if(!httpclient) return;
+    auto requestid_str = get_header("x-request-id");
+    if(requestid_str.empty())
+    {
+        local_log("httpresponse::run, requestid not set.");
+        return;
+    }
+
+    int requestid = std::atoi(requestid_str.data());
+    httprequest* req = httpclient->find_httprequest(requestid);
+    if(!req) return;
+    if(auto handler = req->get_callback())
+    {
+        handler(this);
+    }
 }
 
 ostringstream& httpresponse::dump(ostringstream& out) const

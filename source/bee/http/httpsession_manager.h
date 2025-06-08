@@ -45,11 +45,11 @@ public:
     httpsession_manager();
     virtual const char* identity() const override { return "httpsession_manager"; }
 
+    virtual void init() override;
     virtual httpsession* create_session() override;
     virtual httpsession* find_session(SID sid) override;
 
     bool check_headers(const httpprotocol* req);
-    void check_timeouts();
 
     void send_request(SID sid, const httprequest& req, httprequest::callback cbk);
     void send_response(SID sid, const httpresponse& rsp);
@@ -73,7 +73,6 @@ public:
     http_result send_request(httprequest* req, const uri& uri, callback cbk = {}, TIMETYPE timeout = 30000/*ms*/);
 
     httprequest* find_httprequest(REQUESTID requestid);
-    httprequest* find_httprequest_by_sid(SID sid);
 
 protected:
     auto get_new_requestid() -> REQUESTID;
@@ -84,10 +83,10 @@ protected:
     struct
     {
         std::string host;
-        int32_t port;
+        int32_t port = 0;
     } _dns;
-    int _max_requests = 0;
-    int _request_timeout = 0;
+    size_t _max_requests = 0;
+    size_t _request_timeout = 0;
     std::set<SID> _idle_connections; // 还未发送请求的连接
     std::map<SID, REQUESTID> _busy_connections; // 已发送请求，等待回应中的连接
     std::list<REQUESTID> _waiting_requests; // 未发送的请求
@@ -102,7 +101,9 @@ public:
 
     virtual void init() override;
 
-    void send_response();
+    FORCE_INLINE servlet_dispatcher* get_dispatcher() { return _dispatcher; }
+
+    http_result send_response();
 
 protected:
     servlet_dispatcher* _dispatcher = nullptr;

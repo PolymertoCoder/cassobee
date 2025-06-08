@@ -1,6 +1,5 @@
 #pragma once
 #include "httpprotocol.h"
-#include "httpsession.h"
 #include <string>
 
 namespace bee
@@ -11,7 +10,7 @@ class servlet
 public:
     servlet(const std::string& name) : _name(name) {}
     virtual ~servlet() = default;
-    virtual int handle(httprequest* req, httpresponse* rsp, httpsession* ses) = 0;
+    virtual int handle(httprequest* req, httpresponse* rsp) = 0;
     virtual servlet* dup() const = 0;
     const std::string& get_name() const { return _name; }
 
@@ -22,9 +21,9 @@ private:
 class function_servlet : public servlet
 {
 public:
-    using callback = std::function<int(httprequest*, httpresponse*, httpsession*)>;
+    using callback = std::function<int(httprequest*, httpresponse*)>;
     function_servlet(callback cbk);
-    virtual int handle(httprequest* req, httpresponse* rsp, httpsession* ses) override;
+    virtual int handle(httprequest* req, httpresponse* rsp) override;
     virtual function_servlet* dup() const override;
 
 private:
@@ -36,7 +35,7 @@ class servlet_dispatcher : public servlet
 public:
     servlet_dispatcher();
     ~servlet_dispatcher();
-    virtual int handle(httprequest* req, httpresponse* rsp, httpsession* ses) override;
+    virtual int handle(httprequest* req, httpresponse* rsp) override;
     virtual servlet_dispatcher* dup() const override;
 
     void add_servlet(const std::string& uri, servlet* srv);
@@ -65,7 +64,7 @@ class not_found_servlet : public servlet
 {
 public:
     not_found_servlet(const std::string& name);
-    virtual int handle(httprequest* req, httpresponse* rsp, httpsession* ses) override;
+    virtual int handle(httprequest* req, httpresponse* rsp) override;
     virtual not_found_servlet* dup() const override;
 
 private:

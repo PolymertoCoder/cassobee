@@ -2,6 +2,7 @@
 #include "address.h"
 #include "glog.h"
 #include "httpprotocol.h"
+#include "log.h"
 #include "threadpool.h"
 #include "httpsession_manager.h"
 #include "session.h"
@@ -73,6 +74,13 @@ void httpsession::on_recv(size_t len)
     #else
         prot->run();
     #endif
+
+        if(!prot->is_keepalive())
+        {
+            this->set_close();
+            local_log("%s %lu session, httpprotocol handle finished, not keep-alive, close connection.", _manager->identity(), _sid);
+            break;
+        }
     }
     _reados.try_shrink();
 }

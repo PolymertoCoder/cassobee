@@ -4,7 +4,7 @@
 namespace bee
 {
 
-int config_servlet::handle(httprequest* req, httpresponse* rsp, httpsession* ses)
+int config_servlet::handle(httprequest* req, httpresponse* rsp)
 {
     auto cfg = config::get_instance();
     std::string section = req->get_param("section");

@@ -113,6 +113,7 @@ void session::on_recv(size_t len)
 
 void session::on_send(size_t len)
 {
+    activate();
     local_log("session::on_send len=%zu.", len);
     set_state(SESSION_STATE_SENDING);
 }
@@ -196,7 +197,7 @@ void session::activate()
 
 bool session::is_timeout(TIMETYPE timeout) const
 {
-    return (systemtime::get_millseconds() - _last_active) > timeout;
+    return (systemtime::get_time() - _last_active) > timeout;
 }
 
 } // namespace bee

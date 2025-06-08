@@ -11,7 +11,7 @@ public:
     config_servlet() : servlet("config") {}
     ~config_servlet() override = default;
 
-    virtual int handle(httprequest* req, httpresponse* rsp, httpsession* ses) override;
+    virtual int handle(httprequest* req, httpresponse* rsp) override;
     virtual config_servlet* dup() const override;
 };
 

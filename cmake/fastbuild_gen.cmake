@@ -1,6 +1,6 @@
 # ========================================================================
 # FastBuild Configuration Generator
-# Version: 1.1
+# Version: 1.2
 # Description: Converts CMake targets to FastBuild BFF configuration
 # ========================================================================
 
@@ -33,9 +33,11 @@ macro(fb_init)
     set(FB_LINKER_CONFIG "// Linker configuration\nLinker('GlobalLinker')\n{\n")
     set(FB_LINKER_CONFIG "${FB_LINKER_CONFIG} \t.Executable = '${CMAKE_LINKER}'\n")
     
-    # 添加链接器选项
+    # 添加链接器类型
     if(MSVC)
-        set(FB_LINKER_CONFIG "${FB_LINKER_CONFIG} \t.Executable = '${CMAKE_LINKER}'\n")
+        set(FB_LINKER_CONFIG "${FB_LINKER_CONFIG} \t.LinkerType = 'msvc'\n")
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(FB_LINKER_CONFIG "${FB_LINKER_CONFIG} \t.LinkerType = 'clang'\n")
     else()
         set(FB_LINKER_CONFIG "${FB_LINKER_CONFIG} \t.LinkerType = 'gcc'\n")
     endif()
@@ -301,6 +303,7 @@ function(convert_target_to_fb TARGET_NAME)
     set(TARGET_BFF "${TARGET_BFF}}\n\n")
     
     # 调试信息
+    list(LENGTH SOURCES SOURCES_COUNT)
     message(STATUS "  - Type: ${TARGET_TYPE}")
     message(STATUS "  - Output: ${NATIVE_OUTPUT_PATH}")
     message(STATUS "  - Source count: ${SOURCES_COUNT}")
@@ -313,34 +316,37 @@ endfunction()
 
 # 生成BFF文件
 function(fb_generate_bff FILE_PATH)
+    # 获取当前时间戳
+    string(TIMESTAMP TIMESTAMP "%Y-%m-%d %H:%M:%S")
+    
     # 生成配置开关 - 使用正确的Switch语法
-    set(CONFIG_SWITCH "Switch\n{\n")
-    set(CONFIG_SWITCH "${CONFIG_SWITCH} \t.Name = \"Config\"\n")
-    set(CONFIG_SWITCH "${CONFIG_SWITCH} \t.Values = { \"Debug\", \"Release\" }\n")
-    set(CONFIG_SWITCH "${CONFIG_SWITCH} \t.Default = \"${CMAKE_BUILD_TYPE}\"\n}\n\n")
+    set(CONFIG_SWITCH "// Configuration switch\n")
+    set(CONFIG_SWITCH "${CONFIG_SWITCH}.Config = {\n")
+    set(CONFIG_SWITCH "${CONFIG_SWITCH} \t.Options = [ 'Debug', 'Release' ]\n")
+    set(CONFIG_SWITCH "${CONFIG_SWITCH} \t.Default = '${CMAKE_BUILD_TYPE}'\n}\n\n")
     
     # 生成环境设置
-    set(ENV_SETUP "// Environment setup\nSettings\n{\n")
+    set(ENV_SETUP "// Environment setup\n.Settings = {\n")
     set(ENV_SETUP "${ENV_SETUP} \t.Environment = {\n")
     
     # 通用环境变量
-    set(ENV_SETUP "${ENV_SETUP} \t\t\"PATH=$ENV{PATH}\",\n")
+    set(ENV_SETUP "${ENV_SETUP} \t\t'PATH=$ENV{PATH}',\n")
     
     # 平台特定环境变量
     if(WIN32)
-        set(ENV_SETUP "${ENV_SETUP} \t\t\"INCLUDE=$ENV{INCLUDE}\",\n")
-        set(ENV_SETUP "${ENV_SETUP} \t\t\"LIB=$ENV{LIB}\",\n")
-        set(ENV_SETUP "${ENV_SETUP} \t\t\"LIBPATH=$ENV{LIBPATH}\",\n")
+        set(ENV_SETUP "${ENV_SETUP} \t\t'INCLUDE=$ENV{INCLUDE}',\n")
+        set(ENV_SETUP "${ENV_SETUP} \t\t'LIB=$ENV{LIB}',\n")
+        set(ENV_SETUP "${ENV_SETUP} \t\t'LIBPATH=$ENV{LIBPATH}',\n")
     else()
-        set(ENV_SETUP "${ENV_SETUP} \t\t\"LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}\",\n")
-        set(ENV_SETUP "${ENV_SETUP} \t\t\"C_INCLUDE_PATH=$ENV{C_INCLUDE_PATH}\",\n")
-        set(ENV_SETUP "${ENV_SETUP} \t\t\"CPLUS_INCLUDE_PATH=$ENV{CPLUS_INCLUDE_PATH}\",\n")
-        set(ENV_SETUP "${ENV_SETUP} \t\t\"LIBRARY_PATH=$ENV{LIBRARY_PATH}\",\n")
+        set(ENV_SETUP "${ENV_SETUP} \t\t'LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}',\n")
+        set(ENV_SETUP "${ENV_SETUP} \t\t'C_INCLUDE_PATH=$ENV{C_INCLUDE_PATH}',\n")
+        set(ENV_SETUP "${ENV_SETUP} \t\t'CPLUS_INCLUDE_PATH=$ENV{CPLUS_INCLUDE_PATH}',\n")
+        set(ENV_SETUP "${ENV_SETUP} \t\t'LIBRARY_PATH=$ENV{LIBRARY_PATH}',\n")
     endif()
     
     # 添加CMake特定变量
-    set(ENV_SETUP "${ENV_SETUP} \t\t\"CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}\",\n")
-    set(ENV_SETUP "${ENV_SETUP} \t\t\"CMAKE_SOURCE_DIR=${CMAKE_SOURCE_DIR}\"\n")
+    set(ENV_SETUP "${ENV_SETUP} \t\t'CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}',\n")
+    set(ENV_SETUP "${ENV_SETUP} \t\t'CMAKE_SOURCE_DIR=${CMAKE_SOURCE_DIR}'\n")
     
     set(ENV_SETUP "${ENV_SETUP} \t}\n}\n\n")
     
@@ -357,11 +363,12 @@ function(fb_generate_bff FILE_PATH)
     
     # 添加别名目标
     if(FB_TARGETS)
-        set(FULL_BFF "${FULL_BFF}Alias('all')\n{\n \t.Targets = { ")
+        set(FULL_BFF "${FULL_BFF}// Default build target\n")
+        set(FULL_BFF "${FULL_BFF}Alias('all')\n{\n \t.Targets = [ ")
         foreach(TARGET ${FB_TARGETS})
             set(FULL_BFF "${FULL_BFF} '${TARGET}',")
         endforeach()
-        set(FULL_BFF "${FULL_BFF} }\n}\n")
+        set(FULL_BFF "${FULL_BFF} ]\n}\n")
     else()
         set(FULL_BFF "${FULL_BFF}// No targets found for alias 'all'\n")
     endif()
@@ -418,9 +425,6 @@ endfunction()
 
 # 主入口：转换所有目标
 function(generate_fastbuild_config)
-    # 获取当前时间戳
-    string(TIMESTAMP TIMESTAMP "%Y-%m-%d %H:%M:%S")
-    
     # 重置已处理目录列表
     set_property(GLOBAL PROPERTY FB_PROCESSED_DIRECTORIES "")
     
