@@ -139,4 +139,21 @@ HTTP_STATUS string_to_http_status(const std::string& status);
 std::string http_version_to_string(HTTP_VERSION version);
 HTTP_VERSION string_to_http_version(const std::string& version);
 
+enum HTTP_RESULT
+{
+    OK,
+    SEND_ASYNC,
+    INVALID_URL,
+    INVALUE_HOST,
+    CONNECT_FAIL,
+    SEND_CLOSE_BY_PEER,
+    WAIT_CLOSE_BY_PEER,
+    SEND_SOCKET_ERROR,
+    TIMEOUT,
+    SSL_NOT_ENABLED,
+    CREATE_SOCKET_ERROR,
+    POOL_GET_CONNECTION_ERROR,
+    POOL_INVALID_CONNECTION,
+};
+
 } // namespace bee

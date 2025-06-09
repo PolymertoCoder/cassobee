@@ -398,6 +398,14 @@ const std::string& httprequest::get_cookie(const std::string& key)
     return iter != _cookies.end() ? iter->second : empty;
 }
 
+void httprequest::handle_response(int result, httpresponse* rsp)
+{
+    if(_callback)
+    {
+        _callback(result, this, rsp);
+    }
+}
+
 void httprequest::parse_param(const std::string& str, MAP_TYPE& params, const char* flag, trim_func_type trim_func)
 {
     for(const std::string& keyval : bee::split(str, flag))
@@ -460,11 +468,9 @@ void httpresponse::run()
     }
 
     int requestid = std::atoi(requestid_str.data());
-    httprequest* req = httpclient->find_httprequest(requestid);
-    if(!req) return;
-    if(auto handler = req->get_callback())
+    if(httprequest* req = httpclient->find_httprequest(requestid))
     {
-        handler(this);
+        req->handle_response(HTTP_RESULT::OK, this);
     }
 }
 

@@ -38,6 +38,7 @@ public:
 
     FORCE_INLINE bool check_connection_count() { return _config.max_connections ? _sessions.size() < _config.max_connections : true; }
     FORCE_INLINE bool check_protocol(PROTOCOLID type) { return !_config.forbidden_protocols.test(type); }
+    void check_timeouts();
 
     virtual void connect(); // as client
     virtual void listen();  // as server
@@ -79,7 +80,7 @@ protected:
     address* _addr = nullptr;
     size_t _read_buffer_size = 0;
     size_t _write_buffer_size = 0;
-    size_t _keepalive_timeout = 0; // 会话保活超时时间
+    short  _keepalive_timeout = 0; // 会话保活超时时间
 
     bee::rwlock _locker;
     std::unordered_map<SID, session*> _sessions;

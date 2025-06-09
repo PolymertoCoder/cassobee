@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <openssl/ssl.h>
 #include "session_manager.h"
 #include "address.h"
@@ -32,6 +33,76 @@ session_manager::~session_manager()
     {
         SSL_CTX_set_quiet_shutdown(_ssl_ctx, 1);
         SSL_CTX_free(_ssl_ctx);
+    }
+}
+
+void session_manager::init()
+{
+    auto cfg = config::get_instance();
+    _config.max_connections = cfg->get<size_t>(identity(), "max_connections");
+
+    std::string socktype = cfg->get(identity(), "socktype");
+    if(socktype == "tcp")
+    {
+        _session_type = SESSION_TYPE_TCP;
+        _socktype = SOCK_STREAM;
+        int version = cfg->get<int>(identity(), "version");
+        auto address = cfg->get(identity(), "address");
+        int port = cfg->get<int>(identity(), "port");
+        local_log("version:%d address:%s port:%d.", version, address.data(), port);
+        if(version == 4)
+        {
+            _family = AF_INET;
+            _addr = address_factory::create2<"ipv4_address">(address.data(), port);
+        }
+        else if(version == 6)
+        {
+            _family = AF_INET6;
+            _addr = address_factory::create2<"ipv6_address">(address.data(), port);
+        }
+        else
+        {
+            assert(false);
+        }
+        assert(_addr != nullptr);
+    }
+    else if(socktype == "udp")
+    {
+        _session_type = SESSION_TYPE_UDP;
+        _socktype = SOCK_DGRAM;
+        // TODO
+    }
+
+    _read_buffer_size  = cfg->get<size_t>(identity(), "read_buffer_size");
+    _write_buffer_size = cfg->get<size_t>(identity(), "write_buffer_size");
+    _keepalive_timeout = cfg->get<short>(identity(), "keepalive_timeout");
+    if(_keepalive_timeout > 0)
+    {
+        add_timer(1000, [this](){ this->check_timeouts(); return true; });
+    }
+
+    // ssl
+    if(cfg->get<bool>(identity(), "ssl_enabled", false))
+    {
+        _ssl_server = cfg->get<bool>(identity(), "ssl_server", false);
+        assert(init_ssl(_ssl_server));
+    }
+    else
+    {
+        local_log("SSL is disabled for %s", identity());
+    }
+}
+
+void session_manager::check_timeouts()
+{
+    bee::rwlock::rdscoped l(_locker);
+    for(const auto& [sid, ses] : _sessions)
+    {
+        if(ses->is_timeout(_keepalive_timeout))
+        {
+            ses->set_close();
+            local_log("%s session %lu keepalive timeout, close connection.", identity(), sid);
+        }
     }
 }
 
@@ -90,57 +161,6 @@ SID session_manager::get_next_sessionid()
 {
     static sequential_id_generator<SID, bee::spinlock> sid_generator;
     return sid_generator.gen();
-}
-
-void session_manager::init()
-{
-    auto cfg = config::get_instance();
-    std::string socktype = cfg->get(identity(), "socktype");
-    if(socktype == "tcp")
-    {
-        _session_type = SESSION_TYPE_TCP;
-        _socktype = SOCK_STREAM;
-        int version = cfg->get<int>(identity(), "version");
-        auto address = cfg->get(identity(), "address");
-        int port = cfg->get<int>(identity(), "port");
-        local_log("version:%d address:%s port:%d.", version, address.data(), port);
-        if(version == 4)
-        {
-            _family = AF_INET;
-            _addr = address_factory::create2<"ipv4_address">(address.data(), port);
-        }
-        else if(version == 6)
-        {
-            _family = AF_INET6;
-            _addr = address_factory::create2<"ipv6_address">(address.data(), port);
-        }
-        else
-        {
-            assert(false);
-        }
-        assert(_addr != nullptr);
-    }
-    else if(socktype == "udp")
-    {
-        _session_type = SESSION_TYPE_UDP;
-        _socktype = SOCK_DGRAM;
-        // TODO
-    }
-
-    _read_buffer_size  = cfg->get<size_t>(identity(), "read_buffer_size");
-    _write_buffer_size = cfg->get<size_t>(identity(), "write_buffer_size");
-    _keepalive_timeout = cfg->get<TIMETYPE>(identity(), "keepalive_timeout", 30000);
-
-    // ssl
-    if(cfg->get<bool>(identity(), "ssl_enabled", false))
-    {
-        _ssl_server = cfg->get<bool>(identity(), "ssl_server", false);
-        assert(init_ssl(_ssl_server));
-    }
-    else
-    {
-        local_log("SSL is disabled for %s", identity());
-    }
 }
 
 void session_manager::add_session(SID sid, session* ses)

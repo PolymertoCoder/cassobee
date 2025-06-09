@@ -80,7 +80,7 @@ class httprequest : public httpprotocol
 public:
     static constexpr PROTOCOLID TYPE = PROTOCOL_TYPE_HTTPREQUEST;
     using REQUESTID = int64_t;
-    using callback = std::function<void(httpresponse*)>;
+    using callback = std::function<void(int, httprequest*, httpresponse*)>;
 
     httprequest() = default;
     virtual ~httprequest() = default;
@@ -125,6 +125,8 @@ public:
 
     void set_callback(callback cbk) { _callback = cbk; }
     callback get_callback() const { return _callback; }
+
+    void handle_response(int result, httpresponse* rsp);
 
 protected:
     enum
