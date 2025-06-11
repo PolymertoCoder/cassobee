@@ -53,11 +53,11 @@ public:
         return iter != get_map().end() ? iter->second->dup() : nullptr;
     }
 
-protected:
-    PROTOCOLID _type;
-    uint32_t _priority;    
-    SID _sid;
-    session_manager* _manager;
+public:
+    PROTOCOLID _type = 0;
+    uint32_t _priority = 0;
+    SID _sid = 0;
+    session_manager* _manager = nullptr;
 };
 
 ostringstream& operator<<(ostringstream& oss, const protocol& prot);

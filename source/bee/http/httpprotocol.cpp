@@ -182,34 +182,34 @@ httpprotocol* httpprotocol::decode(octetsstream& os, httpsession* httpses)
     if(!os.data_ready(1)) return nullptr;
     try
     {
-        httpprotocol* prot = httpses->get_unfinished_protocol();
-        if(!prot) // new protocol
+        httpprotocol* temp = httpses->get_unfinished_protocol();
+        if(!temp) // new protocol
         {
             os >> octetsstream::BEGIN;
             std::string start_line;
             getline(os, start_line);
             if(start_line.starts_with("HTTP/"))
             {
-                prot = get_response();
+                temp = get_response();
             }
             else
             {
-                prot = get_request();
+                temp = get_request();
             }
             os >> octetsstream::ROLLBACK;
         }
 
-        prot->unpack(os);
+        temp->unpack(os);
 
-        if(prot->_parse_state == HTTP_PARSE_STATE_COMPLETE) // 解析完成了
+        if(temp->_parse_state == HTTP_PARSE_STATE_COMPLETE) // 解析完成了
         {
-            prot->init_session(httpses);
+            temp->init_session(httpses);
             httpses->set_unfinished_protocol(nullptr);
-            return prot;
+            return temp;
         }
         else
         {
-            httpses->set_unfinished_protocol(prot);
+            httpses->set_unfinished_protocol(temp);
             return nullptr;
         }
     }
@@ -281,17 +281,13 @@ void httprequest::run()
 {
     auto* httpserver = dynamic_cast<httpserver_manager*>(_manager);
     if(!httpserver) return;
-    servlet* servlet = httpserver->get_dispatcher()->get_matched_servlet(_path);
-    if(!servlet)
+    if(auto* dispatcher = httpserver->get_dispatcher())
     {
-        local_log("httprequest::run, cant found %s servlet.", _path.data());
-        return;
+        httpresponse* rsp = get_response();
+        rsp->set_version(_version);
+        rsp->set_header("server", httpserver->identity());
+        dispatcher->handle(this, rsp);
     }
-
-    httpresponse* rsp = get_response();
-    rsp->set_version(_version);
-    rsp->set_header("server", httpserver->identity());
-    servlet->handle(this, rsp);
 }
 
 ostringstream& httprequest::dump(ostringstream& out) const
@@ -306,10 +302,6 @@ ostringstream& httprequest::dump(ostringstream& out) const
         << http_version_to_string(_version)
         << "\r\n";
 
-    if(_requestid != 0)
-    {
-        out << "x-request-id: " << _requestid << "\r\n";
-    }
     if(!_is_websocket)
     {
         out << "connection: " << (_is_keepalive? "keep-alive" : "close") << "\r\n";
@@ -460,18 +452,7 @@ void httpresponse::run()
 {
     auto* httpclient = dynamic_cast<httpclient_manager*>(_manager);
     if(!httpclient) return;
-    auto requestid_str = get_header("x-request-id");
-    if(requestid_str.empty())
-    {
-        local_log("httpresponse::run, requestid not set.");
-        return;
-    }
-
-    int requestid = std::atoi(requestid_str.data());
-    if(httprequest* req = httpclient->find_httprequest(requestid))
-    {
-        req->handle_response(HTTP_RESULT::OK, this);
-    }
+    httpclient->handle_response(HTTP_RESULT::OK, this);
 }
 
 ostringstream& httpresponse::dump(ostringstream& out) const

@@ -69,12 +69,6 @@ protected:
     MAP_TYPE _headers;
 };
 
-struct http_callback
-{
-    int on_handle(httprequest* req, httpresponse* rsp) { return 0; }
-    int on_timeout(httprequest* req) { return 0; }
-};
-
 class httprequest : public httpprotocol
 {
 public:
@@ -144,6 +138,7 @@ protected:
     void init_cookies();
 
 private:
+    friend class http_callback;
     friend class httpclient_manager;
     HTTP_METHOD _method;    // HTTP方法
     std::string _path;      // 请求路径

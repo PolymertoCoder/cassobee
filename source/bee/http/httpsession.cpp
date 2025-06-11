@@ -65,22 +65,7 @@ void httpsession::on_recv(size_t len)
 
     while(httpprotocol* prot = httpprotocol::decode(_reados, this))
     {
-    #ifdef _REENTRANT
-        threadpool::get_instance()->add_task(prot->thread_group_idx(), [prot]()
-        {
-            prot->run();
-            delete prot;
-        });
-    #else
-        prot->run();
-    #endif
-
-        if(!prot->is_keepalive())
-        {
-            this->set_close();
-            local_log("%s %lu session, httpprotocol handle finished, not keep-alive, close connection.", _manager->identity(), _sid);
-            break;
-        }
+        ((httpsession_manager*)_manager)->handle_protocol(prot);
     }
     _reados.try_shrink();
 }

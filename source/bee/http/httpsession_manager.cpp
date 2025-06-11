@@ -3,6 +3,7 @@
 #include <openssl/ssl.h>
 #include "httpsession_manager.h"
 #include "address.h"
+#include "http.h"
 #include "httpsession.h"
 #include "config.h"
 #include "lock.h"
@@ -13,10 +14,48 @@
 #include "glog.h"
 #include "httpprotocol.h"
 #include "systemtime.h"
+#include "threadpool.h"
 #include "uri.h"
 
 namespace bee
 {
+
+class http_callback : public runnable
+{
+public:
+    http_callback(int result, httprequest* req, httpresponse* rsp)
+        : _result(result), _req(req), _rsp(rsp) {}
+
+    virtual void run() override
+    {
+        if(_req->_callback)
+        {
+            _req->_callback(_result, _req, _rsp);
+        }
+
+        // 如果请求和响应都不是长连接，则关闭会话
+        if(!_req->is_keepalive() || !_rsp->is_keepalive())
+        {
+            if(auto* ses = _rsp->_manager->find_session(_rsp->_sid))
+            {
+                ses->close();
+                local_log("%s %lu session, httpprotocol handle finished, not keep-alive, close connection.", _rsp->_manager->identity(), _rsp->_sid);
+            }
+        }
+    }
+
+    virtual void destroy() override
+    {
+        delete _req;
+        delete _rsp;
+        runnable::destroy();
+    }
+
+protected:
+    int _result = HTTP_RESULT::OK;
+    httprequest*  _req = nullptr;
+    httpresponse* _rsp = nullptr;
+};
 
 httpsession_manager::httpsession_manager()
     : session_manager()
@@ -88,56 +127,42 @@ bool httpsession_manager::check_headers(const httpprotocol* req)
     return true;
 }
 
-void httpsession_manager::send_request(SID sid, const httprequest& req, httprequest::callback cbk)
+void httpsession_manager::send_request_nolock(session* ses, const httprequest& req)
 {
-    bee::rwlock::rdscoped l(_locker);
-    if(session* ses = find_session_nolock(sid))
+    if(!ses) return;
+
+    thread_local octetsstream os;
+    os.clear();
+    req.encode(os);
+
+    bee::rwlock::wrscoped sesl(ses->_locker);
+    if(os.size() > ses->_writeos.data().free_space())
     {
-        thread_local octetsstream os;
-        os.clear();
-        req.encode(os);
-
-        bee::rwlock::wrscoped sesl(ses->_locker);
-        if(os.size() > ses->_writeos.data().free_space())
-        {
-            local_log("session_manager %s, session %lu write buffer is fulled.", identity(), sid);
-            return;
-        }
-
-        ses->_writeos.data().append(os.data(), os.size());
-        ses->permit_send();
-
-        // _pending_requests.emplace_back(req.dup(), cbk, systemtime::get_time() + _request_timeout);
+        local_log("httpsession_manager %s, session %lu write buffer is fulled.", identity(), ses->get_sid());
+        return;
     }
-    else
-    {
-        local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
-    }    
+
+    ses->_writeos.data().append(os.data(), os.size());
+    ses->permit_send();
 }
 
-void httpsession_manager::send_response(SID sid, const httpresponse& rsp)
+void httpsession_manager::send_response_nolock(session* ses, const httpresponse& rsp)
 {
-    bee::rwlock::rdscoped l(_locker);
-    if(session* ses = find_session_nolock(sid))
+    if(!ses) return;
+
+    thread_local octetsstream os;
+    os.clear();
+    rsp.encode(os);
+
+    bee::rwlock::wrscoped sesl(ses->_locker);
+    if(os.size() > ses->_writeos.data().free_space())
     {
-        thread_local octetsstream os;
-        os.clear();
-        rsp.encode(os);
-
-        bee::rwlock::wrscoped sesl(ses->_locker);
-        if(os.size() > ses->_writeos.data().free_space())
-        {
-            local_log("session_manager %s, session %lu write buffer is fulled.", identity(), sid);
-            return;
-        }
-
-        ses->_writeos.data().append(os.data(), os.size());
-        ses->permit_send();
+        local_log("httpsession_manager %s, session %lu write buffer is fulled.", identity(), ses->get_sid());
+        return;
     }
-    else
-    {
-        local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
-    }   
+
+    ses->_writeos.data().append(os.data(), os.size());
+    ses->permit_send();
 }
 
 httpclient_manager::~httpclient_manager()
@@ -162,21 +187,36 @@ void httpclient_manager::init()
 void httpclient_manager::on_add_session(SID sid)
 {
     session_manager::on_add_session(sid);
+
+    bee::rwlock::wrscoped l(_locker);
     _idle_connections.insert(sid);
+    advance_all();
 }
 
 void httpclient_manager::on_del_session(SID sid)
 {
     session_manager::on_del_session(sid);
+
+    bee::rwlock::wrscoped l(_locker);
     _idle_connections.erase(sid);
-    if(auto iter = _busy_connections.find(sid); iter != _busy_connections.end())
+    if(auto b_iter = _busy_connections.find(sid); b_iter != _busy_connections.end())
     {
-        REQUESTID requestid = iter->second;
+        REQUESTID requestid = b_iter->second;
         if(auto req_iter = _requests_cache.find(requestid); req_iter != _requests_cache.end())
         {
             req_iter->second->handle_response(HTTP_RESULT::WAIT_CLOSE_BY_PEER, nullptr);
             _requests_cache.erase(req_iter);
         }
+    }
+}
+
+void httpclient_manager::handle_protocol(httpprotocol* protocol)
+{
+    if(!protocol) return;
+    if(protocol->get_type() != httpresponse::TYPE) return;
+    if(auto* rsp = dynamic_cast<httpresponse*>(protocol))
+    {
+        handle_response(HTTP_RESULT::OK, rsp);
     }
 }
 
@@ -263,24 +303,96 @@ httprequest* httpclient_manager::find_httprequest(REQUESTID requestid)
     return iter != _requests_cache.end() ? iter->second : nullptr;
 }
 
+httprequest* httpclient_manager::find_httprequest_by_sid(SID sid)
+{
+    return nullptr;
+}
+
+void httpclient_manager::handle_response(int result, httpresponse* rsp)
+{
+    bee::rwlock::wrscoped l(_locker);
+    if(!rsp || rsp->_manager != this || rsp->_sid <= 0) return;
+
+    auto b_iter = _busy_connections.find(rsp->_sid);
+    if(b_iter == _busy_connections.end())
+    {
+        local_log("httpclient_manager %s handle_response failed, sid %lu not found in busy connections", identity(), rsp->_sid);
+        return;
+    }
+
+    auto r_iter = _requests_cache.find(b_iter->second);
+    if(r_iter == _requests_cache.end())
+    {
+        local_log("httpclient_manager %s handle_response failed, request not found for sid %lu", identity(), rsp->_sid);
+        return;
+    }
+
+    httprequest* req = r_iter->second;
+    if(!req)
+    {
+        local_log("httpclient_manager %s handle_response failed, request not found for sid %lu", identity(), rsp->_sid);
+        return;
+    }
+
+    auto* task = new http_callback(HTTP_RESULT::OK, req, rsp);
+#ifdef _REENTRANT
+    threadpool::get_instance()->add_task(rsp->thread_group_idx(), task);
+#else
+    task->run();
+    task->destroy();
+#endif
+}
+
+void httpclient_manager::check_timeouts()
+{
+    bee::rwlock::wrscoped l(_locker);
+    TIMETYPE now = systemtime::get_time();
+    
+    // 检查等待队列中的请求超时
+    for(auto it = _waiting_requests.begin(); it != _waiting_requests.end(); )
+    {
+        if(auto req_iter = _requests_cache.find(*it); req_iter != _requests_cache.end())
+        {
+            if(req_iter->second->get_timeout() < now)
+            {
+                if(req_iter->second->_callback)
+                {
+                    req_iter->second->_callback(HTTP_RESULT::TIMEOUT, req_iter->second, nullptr);
+                }
+                _requests_cache.erase(req_iter);
+                it = _waiting_requests.erase(it);
+                continue;
+            }
+        }
+        ++it;
+    }
+    
+    // 检查已发送但未响应的请求超时
+    for(auto& [sid, requestid] : _busy_connections)
+    {
+        if (auto req_iter = _requests_cache.find(requestid); req_iter != _requests_cache.end())
+        {
+            if (req_iter->second->get_timeout() < now)
+            {
+                if (req_iter->second->_callback)
+                {
+                    req_iter->second->_callback(HTTP_RESULT::TIMEOUT, req_iter->second, nullptr);
+                }
+                _requests_cache.erase(req_iter);
+            }
+        }
+    }
+}
+
 auto httpclient_manager::get_new_requestid() -> httprequest::REQUESTID
 {
     static httprequest::REQUESTID requestid = 0;
     return requestid++;
 }
 
-void httpclient_manager::try_new_connection(const uri& uri)
+void httpclient_manager::try_new_connection()
 {
-    std::string host = _dns.host.empty() ? uri.get_host() : _dns.host;
-    int32_t port = (_dns.port == 0) ? uri.get_port() : _dns.port;
-
-    address* addr = address::lookup_any(host, AF_INET, SOCK_STREAM);
-    if(!addr)
-    {
-        local_log("session_manager %s cant find address %s", identity(), host.data());
-        return;
-    }
-    addr->set_port(port);
+    connect();
 }
 
 bool httpclient_manager::refresh_dns(const std::string& uri_str)
@@ -313,11 +425,41 @@ bool httpclient_manager::refresh_dns(const std::string& uri_str)
 
 void httpclient_manager::advance_all()
 {
-    while(_waiting_requests.size())
+    while(!_waiting_requests.empty() && !_idle_connections.empty())
     {
+        // 获取等待的请求和空闲连接
         REQUESTID requestid = _waiting_requests.front();
         _waiting_requests.pop_front();
         
+        SID sid = *_idle_connections.begin();
+        _idle_connections.erase(sid);
+        
+        auto req_iter = _requests_cache.find(requestid);
+        if(req_iter == _requests_cache.end()) continue;
+
+        httprequest* req = req_iter->second;
+        if(!req) continue;
+
+        // 发送请求
+        if(session* ses = find_session_nolock(sid))
+        {
+            // 设置请求的会话ID
+            req->init_session(ses);
+            send_request_nolock(ses, *req);
+
+            // 将连接标记为忙碌
+            _busy_connections[sid] = requestid;
+        }
+        else
+        {
+            local_log("session_manager %s cant find session %lu on sending protocol", identity(), sid);
+        }
+    }
+
+    // 如果还有等待的请求但没有空闲连接，尝试创建新连接
+    if(!_waiting_requests.empty() && _idle_connections.empty())
+    {
+        try_new_connection();
     }
 }
 
@@ -331,6 +473,16 @@ void httpserver_manager::init()
     httpsession_manager::init();
     _dispatcher = new servlet_dispatcher;
     _dispatcher->add_servlet("/_/config", new config_servlet);
+}
+
+void httpserver_manager::handle_protocol(httpprotocol* protocol)
+{
+    if(!protocol) return;
+    if(protocol->get_type() != httprequest::TYPE) return;
+    if(auto* req = dynamic_cast<httprequest*>(protocol))
+    {
+        
+    }
 }
 
 int httpserver_manager::send_response()
