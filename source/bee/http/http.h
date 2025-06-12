@@ -66,6 +66,21 @@ class ostringstream;
     X(505, HTTP_VERSION_NOT_SUPPORTED, "HTTP Version Not Supported") \
     X(511, NETWORK_AUTHENTICATION_REQUIRED, "Network Authentication Required") \
 
+// 内部错误码定义（负数）
+#define HTTP_RESULT_MAP \
+    X( 0, OK, "OK") \
+    X(-1, TIMEOUT, "Timeout") \
+    X(-2, INVALID_URL, "Invalid URL") \
+    X(-3, INVALID_HOST, "Invalid host") \
+    X(-4, CONNECT_FAIL, "Connection failed") \
+    X(-5, SEND_CLOSE_BY_PEER, "Send closed by peer") \
+    X(-6, WAIT_CLOSE_BY_PEER, "Wait closed by peer") \
+    X(-7, SEND_SOCKET_ERROR, "Send socket error") \
+    X(-8, SSL_NOT_ENABLED, "SSL not enabled") \
+    X(-9, CREATE_SOCKET_ERROR, "Create socket error") \
+    X(-10, POOL_GET_CONNECTION_ERROR, "Get connection from pool error") \
+    X(-11, POOL_INVALID_CONNECTION, "Invalid connection from pool")
+
 #define HTTP_HEADER_MAP \
     X(0, UNKNOWN, "Unknown") \
     X(1, CONTENT_LENGTH, "Content-Length") \
@@ -110,6 +125,13 @@ enum HTTP_STATUS
 #undef X
 };
 
+enum HTTP_RESULT
+{
+#define X(code, name, desc) HTTP_RESULT_##name = code, // NOLINT
+    HTTP_RESULT_MAP
+#undef X
+};
+
 enum HTTP_VERSION
 {
 #define X(code, name, desc) HTTP_VERSION_##name = code, // NOLINT
@@ -136,24 +158,10 @@ HTTP_METHOD string_to_http_method(const std::string& method);
 std::string http_status_to_string(HTTP_STATUS status);
 HTTP_STATUS string_to_http_status(const std::string& status);
 
+std::string http_result_to_string(HTTP_RESULT result);
+HTTP_RESULT string_to_http_result(const std::string& result);
+
 std::string http_version_to_string(HTTP_VERSION version);
 HTTP_VERSION string_to_http_version(const std::string& version);
-
-enum HTTP_RESULT
-{
-    OK,
-    SEND_ASYNC,
-    INVALID_URL,
-    INVALUE_HOST,
-    CONNECT_FAIL,
-    SEND_CLOSE_BY_PEER,
-    WAIT_CLOSE_BY_PEER,
-    SEND_SOCKET_ERROR,
-    TIMEOUT,
-    SSL_NOT_ENABLED,
-    CREATE_SOCKET_ERROR,
-    POOL_GET_CONNECTION_ERROR,
-    POOL_INVALID_CONNECTION,
-};
 
 } // namespace bee
