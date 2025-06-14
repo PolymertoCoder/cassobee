@@ -27,6 +27,7 @@ public:
 
     static bool getline(octetsstream& os, std::string& str, char declm = '\n');
 
+    virtual void run() override {}
     virtual octetsstream& unpack(octetsstream& os) override;
     virtual void encode(octetsstream& os) const override;
     static httpprotocol* decode(octetsstream& os, httpsession* httpses);
@@ -83,7 +84,6 @@ public:
     virtual const char* get_name() const override { return "httprequest"; }
     virtual size_t maxsize() const override;
     virtual httprequest* dup() const override { return new httprequest(*this); }
-    virtual void run() override;
     virtual ostringstream& dump(ostringstream& out) const override;
     virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;
@@ -158,7 +158,6 @@ public:
     virtual const char* get_name() const override { return "httpresponse"; }
     virtual size_t maxsize() const override;
     virtual httpresponse* dup() const override { return new httpresponse(*this); }
-    virtual void run() override;
     virtual ostringstream& dump(ostringstream& out) const override;
     virtual octetsstream& pack(octetsstream& os) const override;
     virtual octetsstream& unpack(octetsstream& os) override;

@@ -52,17 +52,12 @@ public:
     virtual void handle_protocol(httpprotocol* protocol) override;
     virtual void add_http_task(int status, httprequest* req, httpresponse* rsp) override;
 
-    int send_request(HTTP_METHOD method, const std::string& url, callback cbk = {}, TIMETYPE timeout = 30000/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
-    int send_request(HTTP_METHOD method, const uri& uri, callback cbk = {}, TIMETYPE timeout = 30000/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
-    int send_request(httprequest* req, const uri& uri, callback cbk = {}, TIMETYPE timeout = 30000/*ms*/);
-
-    httprequest* find_httprequest(REQUESTID requestid);
-    httprequest* find_httprequest_by_sid(SID sid);
-
-    void handle_response(int status, httpresponse* rsp);
+    int send_request(HTTP_METHOD method, const std::string& url, callback cbk = {}, TIMETYPE timeout = 0, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
+    int send_request(HTTP_METHOD method, const uri& uri, callback cbk = {}, TIMETYPE timeout = 0, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
+    int send_request(httprequest* req, const uri& uri, callback cbk = {}, TIMETYPE timeout = 0);
 
 protected:
-    auto get_new_requestid() -> REQUESTID;
+    void handle_response(httpresponse* rsp);
     void try_new_connection();
     bool refresh_dns(const std::string& uri_str = {});
     void check_timeouts();
@@ -77,9 +72,10 @@ protected:
     uri _uri;
     size_t _max_requests = 0;
     size_t _request_timeout = 0;
-    std::set<SID> _idle_connections; // 还未发送请求的连接
+    REQUESTID _next_requestid = 0; // 下一个请求ID
+    std::set<SID> _idle_connections; // 空闲的连接
     std::map<SID, REQUESTID> _busy_connections; // 已发送请求，等待回应中的连接
-    std::deque<REQUESTID> _waiting_requests; // 未发送的请求
+    std::deque<REQUESTID> _waiting_requests; // 待发送的请求
     std::multimap<TIMETYPE, REQUESTID> _request_timeouts; // 请求超时列表
     std::unordered_map<REQUESTID, httprequest*> _requests_cache; // 未完成的请求，包括已发送和未发送的
 };
@@ -92,10 +88,16 @@ public:
 
     virtual void init() override;
     virtual void handle_protocol(httpprotocol* protocol) override;
+    virtual void add_http_task(int status, httprequest* req, httpresponse* rsp) override;
 
     FORCE_INLINE servlet_dispatcher* get_dispatcher() { return _dispatcher; }
 
-    int send_response();
+    int send_response(HTTP_METHOD method, const std::string& url,TIMETYPE timeout = 30000/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
+    int send_response(HTTP_METHOD method, const uri& uri, TIMETYPE timeout = 30000/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
+    int send_response(httpresponse* req, const uri& uri, TIMETYPE timeout = 30000/*ms*/);
+
+protected:
+    void handle_request(httprequest* req);
 
 protected:
     servlet_dispatcher* _dispatcher = nullptr;

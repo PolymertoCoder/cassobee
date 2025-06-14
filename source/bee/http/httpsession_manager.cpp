@@ -152,7 +152,6 @@ void httpsession_manager::send_request_nolock(session* ses, const httprequest& r
     os.clear();
     req.encode(os);
 
-    bee::rwlock::wrscoped sesl(ses->_locker);
     if(os.size() > ses->_writeos.data().free_space())
     {
         local_log("httpsession_manager %s, session %lu write buffer is fulled.", identity(), ses->get_sid());
@@ -171,7 +170,6 @@ void httpsession_manager::send_response_nolock(session* ses, const httpresponse&
     os.clear();
     rsp.encode(os);
 
-    bee::rwlock::wrscoped sesl(ses->_locker);
     if(os.size() > ses->_writeos.data().free_space())
     {
         local_log("httpsession_manager %s, session %lu write buffer is fulled.", identity(), ses->get_sid());
@@ -195,7 +193,7 @@ void httpclient_manager::init()
     httpsession_manager::init();
     auto cfg = config::get_instance();
     _max_requests = cfg->get<size_t>(identity(), "max_requests");
-    _request_timeout = cfg->get<size_t>(identity(), "request_timeout");
+    _request_timeout = cfg->get<size_t>(identity(), "request_timeout", 30);
     _uri = uri(cfg->get(identity(), "uri"));
     assert(_uri.is_valid());
     if(!refresh_dns()) assert(false);
@@ -218,29 +216,27 @@ void httpclient_manager::on_del_session(SID sid)
     _idle_connections.erase(sid);
     if(auto busy_iter = _busy_connections.find(sid); busy_iter != _busy_connections.end())
     {
-        REQUESTID requestid = busy_iter->second;
-        if(auto req_iter = _requests_cache.find(requestid); req_iter != _requests_cache.end())
-        {
-
-            req_iter->second->handle_response(HTTP_RESULT_WAIT_CLOSE_BY_PEER, nullptr);
-            _requests_cache.erase(req_iter);
-        }
+        local_log("httpclient_manager %s on_del_session, sid %lu found in busy connections, requestid %ld, remove it.", identity(), sid, busy_iter->second);
+        _busy_connections.erase(busy_iter);
     }
+    advance_all();
 }
 
 void httpclient_manager::handle_protocol(httpprotocol* protocol)
 {
     if(!protocol) return;
     if(protocol->get_type() != httpresponse::TYPE) return;
+
     if(auto* rsp = static_cast<httpresponse*>(protocol))
     {
-        handle_response(rsp->get_status(), rsp);
+        handle_response(rsp);
     }
 }
 
 void httpclient_manager::add_http_task(int status, httprequest* req, httpresponse* rsp)
 {
     auto* task = new http_callback_task(++_next_http_taskid, req, rsp, status);
+
     #ifdef _REENTRANT
         threadpool::get_instance()->add_task(rsp->thread_group_idx(), task);
     #else
@@ -256,7 +252,7 @@ int httpclient_manager::send_request(HTTP_METHOD method, const std::string& url,
     {
         return HTTP_RESULT_INVALID_URL;
     }
-    
+
     return send_request(method, uri, std::move(cbk), timeout, headers, body);
 }
 
@@ -269,7 +265,7 @@ int httpclient_manager::send_request(HTTP_METHOD method, const uri& uri, callbac
     req->set_query(uri.get_query());
     req->set_fragment(uri.get_fragment());
     req->set_body(body);
-    req->set_requestid(get_new_requestid());
+    req->set_requestid(++_next_requestid);
 
     bool has_host = false;
     for(auto& [key, value] : headers)
@@ -310,41 +306,54 @@ int httpclient_manager::send_request(httprequest* req, const uri& uri, httpreque
 
     int requestid = req->get_requestid();
     TIMETYPE now = systemtime::get_time();
+
+    bee::rwlock::wrscoped l(_locker);
+    if(requestid == 0)
     {
-        bee::rwlock::wrscoped l(_locker);
-        if(requestid == 0)
-        {
-            requestid = get_new_requestid();
-            req->set_requestid(requestid);
-        }
-
-        _requests_cache.emplace(requestid, req);
-        _waiting_requests.emplace_back(requestid);
-        _request_timeouts.emplace(now + timeout, requestid);
-
-        advance_all();
+        requestid = ++_next_requestid;
+        req->set_requestid(requestid);
     }
+
+    _requests_cache.emplace(requestid, req);
+    _waiting_requests.emplace_back(requestid);
+    _request_timeouts.emplace(now + (timeout > 0 ? timeout : _request_timeout), requestid);
+
+    advance_all();
     
     return HTTP_RESULT_OK;
 }
 
-httprequest* httpclient_manager::find_httprequest(REQUESTID requestid)
+void httpclient_manager::handle_response(httpresponse* rsp)
 {
-    auto iter = _requests_cache.find(requestid);
-    return iter != _requests_cache.end() ? iter->second : nullptr;
-}
+    if(!rsp)
+    {
+        local_log("httpclient_manager %s handle_response got null response", identity());
+        return;
+    }
 
-httprequest* httpclient_manager::find_httprequest_by_sid(SID sid)
-{
-    return nullptr;
-}
+    const SID sid = rsp->_sid;
 
-void httpclient_manager::handle_response(int result, httpresponse* rsp)
-{
+    auto recycle_connection = [this, sid](bool is_keepalive)
+    {
+        if(is_keepalive)
+        {
+            // 如果响应是长连接，则将连接标记为空闲
+            _idle_connections.insert(sid);
+            local_log("%s %lu session, httpprotocol handle finished, keep-alive, add to idle connections.", identity(), sid);
+        }
+        else
+        {
+            // 如果响应不是长连接，则关闭会话
+            if(auto* ses = find_session_nolock(sid))
+            {
+                ses->close();
+                local_log("%s %lu session, httpprotocol handle finished, not keep-alive, close connection.", identity(), sid);
+            }
+        }
+    };
+
     bee::rwlock::wrscoped l(_locker);
-
-    SID sid = rsp->_sid;
-
+    
     auto busy_iter = _busy_connections.find(sid);
     if(busy_iter == _busy_connections.end())
     {
@@ -352,59 +361,36 @@ void httpclient_manager::handle_response(int result, httpresponse* rsp)
         return;
     }
 
-    auto req_iter = _requests_cache.find(busy_iter->second);
+    REQUESTID requestid = busy_iter->second;
+    auto req_iter = _requests_cache.find(requestid);
     if(req_iter == _requests_cache.end())
     {
         _busy_connections.erase(busy_iter);
-        if(!rsp->is_keepalive())
-        {
-            // 如果响应不是长连接，则关闭会话
-            if(auto* ses = find_session_nolock(sid))
-            {
-                ses->close();
-                local_log("%s %lu session, httpprotocol handle finished, not keep-alive, close connection.", rsp->_manager->identity(), sid);
-            }
-        }
-        else
-        {
-            // 如果响应是长连接，则将连接标记为空闲
-            _idle_connections.insert(sid);
-            local_log("%s %lu session, httpprotocol handle finished, keep-alive, add to idle connections.", rsp->_manager->identity(), sid);
-        }
-
+        recycle_connection(rsp->is_keepalive());
         local_log("httpclient_manager %s handle_response failed, request not found for sid %lu, maybe request is timeout.", identity(), sid);
         return;
     }
 
     httprequest* req = req_iter->second;
-    ASSERT(req);
+    if(!req)
+    {
+        _busy_connections.erase(busy_iter);
+        _requests_cache.erase(req_iter);
+        recycle_connection(rsp->is_keepalive());
+        local_log("httpclient_manager %s handle_response failed, request is null for sid %lu", identity(), sid);
+        return;
+    }
+
+    recycle_connection(req->is_keepalive() && rsp->is_keepalive());
+
     add_http_task(rsp->get_status(), req, rsp);
+
+    // 清理状态
     _busy_connections.erase(busy_iter);
     _requests_cache.erase(req_iter);
 
-    if(!req->is_keepalive() || !rsp->is_keepalive())
-    {
-        // 如果请求和响应都不是长连接，则关闭会话
-        if(auto* ses = find_session_nolock(sid))
-        {
-            ses->close();
-            local_log("%s %lu session, httpprotocol handle finished, not keep-alive, close connection.", rsp->_manager->identity(), sid);
-        }
-    }
-    else
-    {
-        // 如果是长连接，将连接标记为空闲
-        _idle_connections.insert(sid);
-        local_log("%s %lu session, httpprotocol handle finished, keep-alive, add to idle connections.", rsp->_manager->identity(), sid);
-    }
-
+    // 如果有等待的请求和空闲连接，继续处理
     advance_all();
-}
-
-auto httpclient_manager::get_new_requestid() -> httprequest::REQUESTID
-{
-    static httprequest::REQUESTID requestid = 0;
-    return requestid++;
 }
 
 void httpclient_manager::try_new_connection()
@@ -455,7 +441,7 @@ void httpclient_manager::check_timeouts()
             {
                 if(httprequest* req = req_iter->second)
                 {
-                    add_http_task(HTTP_RESULT_TIMEOUT, req, nullptr);
+                    add_http_task(HTTP_STATUS_REQUEST_TIMEOUT, req, nullptr);
                     _requests_cache.erase(req_iter);
                 }
             }
@@ -479,7 +465,7 @@ void httpclient_manager::advance_all()
         REQUESTID requestid = _waiting_requests.front();
         _waiting_requests.pop_front();
         
-        SID sid = *_idle_connections.begin();
+        const SID sid = *_idle_connections.begin();
         _idle_connections.erase(sid);
         
         auto req_iter = _requests_cache.find(requestid);
@@ -493,6 +479,8 @@ void httpclient_manager::advance_all()
         {
             // 设置请求的会话ID
             req->init_session(ses);
+
+            // 发送请求
             send_request_nolock(ses, *req);
 
             // 将连接标记为忙碌
@@ -527,13 +515,26 @@ void httpserver_manager::handle_protocol(httpprotocol* protocol)
 {
     if(!protocol) return;
     if(protocol->get_type() != httprequest::TYPE) return;
+
     if(auto* req = dynamic_cast<httprequest*>(protocol))
     {
-        
+        handle_request(req);
     }
 }
 
-int httpserver_manager::send_response()
+void httpserver_manager::add_http_task(int status, httprequest* req, httpresponse* rsp)
+{
+    auto* task = new http_servlet_task(++_next_http_taskid, req, rsp);
+    
+#ifdef _REENTRANT
+    threadpool::get_instance()->add_task(rsp->thread_group_idx(), task);
+#else
+    task->run();
+    task->destroy();
+#endif
+}
+
+void httpserver_manager::handle_request(httprequest* req)
 {
 
 }

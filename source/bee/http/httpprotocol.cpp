@@ -284,19 +284,6 @@ size_t httprequest::maxsize() const
     return config::get_instance()->get<size_t>("http", "max_request_size", 1024 * 1024);
 }
 
-void httprequest::run()
-{
-    auto* httpserver = dynamic_cast<httpserver_manager*>(_manager);
-    if(!httpserver) return;
-    if(auto* dispatcher = httpserver->get_dispatcher())
-    {
-        httpresponse* rsp = get_response();
-        rsp->set_version(_version);
-        rsp->set_header("server", httpserver->identity());
-        dispatcher->handle(this, rsp);
-    }
-}
-
 ostringstream& httprequest::dump(ostringstream& out) const
 {
     out << http_method_to_string(_method) << " "
@@ -453,13 +440,6 @@ void httprequest::init_cookies()
 size_t httpresponse::maxsize() const
 {
     return config::get_instance()->get<size_t>("http", "max_response_size", 1024 * 1024);
-}
-
-void httpresponse::run()
-{
-    auto* httpclient = dynamic_cast<httpclient_manager*>(_manager);
-    if(!httpclient) return;
-    httpclient->handle_response(HTTP_RESULT_OK, this);
 }
 
 ostringstream& httpresponse::dump(ostringstream& out) const
