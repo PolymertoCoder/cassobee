@@ -163,6 +163,11 @@ int reactor::add_event_inner(event* ev)
     else if(events & EVENT_TIMER)
     {
         timer_event* tm = dynamic_cast<timer_event*>(ev);
+        if(tm == nullptr)
+        {
+            ERRORLOG("reactor add_event EVENT_TIMER is not timer_event.");
+            return -1;
+        }
         TIMETYPE nowtime = systemtime::get_millseconds();
         TIMETYPE expiretime = tm->_delay ? (nowtime + tm->_timeout) : nowtime;
         tm->_delay = true;
@@ -218,7 +223,7 @@ void reactor::handle_timer_event()
         //local_log("handle_timer_event expiretime=%ld nowtime=%ld end", iter->first, nowtime);
         auto [expiretime, ev] = *(_timer_events.begin());
         _timer_events.erase(_timer_events.begin());
-        timer_event* tm = dynamic_cast<timer_event*>(ev);
+        timer_event* tm = static_cast<timer_event*>(ev);
         if(expiretime <= nowtime) break;
         if(tm->handle_event(EVENT_TIMER))
         {

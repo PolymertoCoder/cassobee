@@ -174,7 +174,14 @@ octetsstream& httpprotocol::unpack(octetsstream& os)
 
 void httpprotocol::encode(octetsstream& os) const
 {
-    
+    try
+    {
+        pack(os);
+    }
+    catch(...)
+    {
+        local_log("httpprotocol decode failed, id=%d.", _type);
+    }
 }
 
 httpprotocol* httpprotocol::decode(octetsstream& os, httpsession* httpses)
@@ -452,7 +459,7 @@ void httpresponse::run()
 {
     auto* httpclient = dynamic_cast<httpclient_manager*>(_manager);
     if(!httpclient) return;
-    httpclient->handle_response(HTTP_RESULT::OK, this);
+    httpclient->handle_response(HTTP_RESULT_OK, this);
 }
 
 ostringstream& httpresponse::dump(ostringstream& out) const

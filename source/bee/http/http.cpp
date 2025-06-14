@@ -47,6 +47,18 @@ HTTP_STATUS string_to_http_status(const std::string& status)
     return HTTP_STATUS::HTTP_STATUS_UNKNOWN;
 }
 
+std::string http_result_to_string(HTTP_RESULT result)
+{
+#define X(code, name, msg) \
+    case HTTP_RESULT_##name: return #msg;
+    switch(result)
+    {
+        HTTP_RESULT_MAP
+        default: return "Unknown error";
+    }
+#undef X
+}
+
 std::string http_version_to_string(HTTP_VERSION version)
 {
 #define X(code, name, string) \

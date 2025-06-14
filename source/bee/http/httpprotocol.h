@@ -114,9 +114,6 @@ public:
     void set_requestid(int64_t requestid) { _requestid = requestid; }
     int64_t get_requestid() const { return _requestid; }
 
-    void set_timeout(TIMETYPE timeout) { _timeout = timeout; }
-    TIMETYPE get_timeout() const { return _timeout; }
-
     void set_callback(callback cbk) { _callback = cbk; }
     callback get_callback() const { return _callback; }
 
@@ -138,7 +135,7 @@ protected:
     void init_cookies();
 
 private:
-    friend class http_callback;
+    friend class http_callback_task;
     friend class httpclient_manager;
     HTTP_METHOD _method;    // HTTP方法
     std::string _path;      // 请求路径
@@ -147,7 +144,6 @@ private:
     MAP_TYPE    _params;    // 请求参数map
     MAP_TYPE    _cookies;   // 请求cookie
     REQUESTID   _requestid; // 请求ID
-    TIMETYPE    _timeout;   // 超时时间
     callback    _callback;  // 回调函数 
 };
 

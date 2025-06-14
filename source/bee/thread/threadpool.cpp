@@ -7,7 +7,7 @@
 #include "threadpool.h"
 #include "glog.h"
 #include "config.h"
-#include "common.h"
+#include "randgen.h"
 
 namespace bee
 {
@@ -237,7 +237,7 @@ void threadpool::add_essential_task(std::function<void()>&& task)
 void threadpool::try_steal_one(int current_idx, runnable*& task)
 {
     int group_size = _groups.size();
-    int offset = rand(0, group_size - 1);
+    int offset = random::range(0, group_size - 1);
     for(auto i = 0; i < group_size; ++i)
     {
         size_t idx = (offset + i) % group_size;

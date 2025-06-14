@@ -159,7 +159,6 @@ std::string http_status_to_string(HTTP_STATUS status);
 HTTP_STATUS string_to_http_status(const std::string& status);
 
 std::string http_result_to_string(HTTP_RESULT result);
-HTTP_RESULT string_to_http_result(const std::string& result);
 
 std::string http_version_to_string(HTTP_VERSION version);
 HTTP_VERSION string_to_http_version(const std::string& version);

@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <openssl/types.h>
 
+#include "id_gen.h"
 #include "lock.h"
 #include "types.h"
 #include "prot_define.h"
@@ -28,7 +29,7 @@ enum SESSION_TYPE
 class session_manager
 {
 public:
-    session_manager();
+    session_manager() = default;
     virtual ~session_manager();
     virtual void init();
     FORCE_INLINE virtual const char* identity() const { return "session_manager"; }
@@ -83,6 +84,7 @@ protected:
     short  _keepalive_timeout = 0; // 会话保活超时时间
 
     bee::rwlock _locker;
+    SID _next_sessionid = 0;
     std::unordered_map<SID, session*> _sessions;
 
     // ssl

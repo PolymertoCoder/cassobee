@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <openssl/ssl.h>
 #include "session_manager.h"
 #include "address.h"
@@ -12,13 +11,10 @@
 #include "config.h"
 #include "protocol.h"
 #include "session.h"
+#include "id_gen.h"
 
 namespace bee
 {
-
-session_manager::session_manager()
-{
-}
 
 session_manager::~session_manager()
 {
@@ -159,8 +155,8 @@ session* session_manager::create_session()
 
 SID session_manager::get_next_sessionid()
 {
-    static sequential_id_generator<SID, bee::spinlock> sid_generator;
-    return sid_generator.gen();
+    bee::rwlock::wrscoped l(_locker);
+    return ++_next_sessionid;
 }
 
 void session_manager::add_session(SID sid, session* ses)

@@ -1,7 +1,9 @@
 #pragma once
+#include "lock.h"
 #include "protocol.h"
 #include "types.h"
 #include <concepts>
+#include <functional>
 
 namespace bee
 {

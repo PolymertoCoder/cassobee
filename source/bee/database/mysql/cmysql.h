@@ -1,5 +1,4 @@
 #pragma once
-#include "common.h"
 #include "lock.h"
 #include "objectpool.h"
 #include "traits.h"

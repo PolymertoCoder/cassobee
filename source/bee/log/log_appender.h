@@ -2,7 +2,6 @@
 #include <stddef.h>
 #include <condition_variable>
 #include <fstream>
-#include <mutex>
 #include <string>
 #include <thread>
 #ifdef _REENTRANT
@@ -12,6 +11,7 @@
 #include "glog.h"
 #include "ring_buffer.h"
 #include "types.h"
+#include "lock.h"
 
 
 namespace bee

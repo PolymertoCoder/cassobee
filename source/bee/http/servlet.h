@@ -1,5 +1,6 @@
 #pragma once
 #include "httpprotocol.h"
+#include "lock.h"
 #include <string>
 
 namespace bee

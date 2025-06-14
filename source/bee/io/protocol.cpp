@@ -65,7 +65,7 @@ void protocol::encode(octetsstream& os) const
     }
     catch(...)
     {
-        local_log("protocol decode failed, id=%d size=%zu.", id, size);
+        local_log("protocol encode failed, id=%d size=%zu.", id, size);
     }
 }
 
