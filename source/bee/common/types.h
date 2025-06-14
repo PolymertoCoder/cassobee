@@ -11,6 +11,7 @@ using TIMETYPE = int64_t;
 using SID = uint64_t;
 using PROTOCOLID = uint32_t;
 using TRACEID = uint64_t;
+using HTTP_TASKID = uint64_t;
 using SIG_HANDLER = void(*)(int);
 
 #define PREDICT_TRUE(x)  __builtin_expect(!!(x), 1)
