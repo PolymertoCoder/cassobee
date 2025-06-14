@@ -63,23 +63,24 @@ set(BEE_PRIVATE_INCLUDES ${CLI_INCLUDE}
                          ${CLANG_INCLUDE_DIRS}
 )
 
-set(BEE_LINK_LIBS ${CLI_LINK_LIB}
-                  ${SECURITY_LINK_LIB}
-                  ${CMYSQL_LINK_LIB}
-                  ${META_LINK_LIB}
+set(BEE_LINK_PUBLIC_LIBS ${CLI_LINK_LIB}
+                         ${SECURITY_LINK_LIB}
+                         ${CMYSQL_LINK_LIB}
+                         ${META_LINK_LIB}
 )
 
 target_include_directories(bee   PUBLIC ${BEE_PUBLIC_INCLUDES} PRIVATE ${BEE_PRIVATE_INCLUDES})
 target_include_directories(bee_r PUBLIC ${BEE_PUBLIC_INCLUDES} PRIVATE ${BEE_PRIVATE_INCLUDES})
 
-target_link_libraries(bee   ${BEE_LINK_LIBS})
-target_link_libraries(bee_r ${BEE_LINK_LIBS} atomic)
+target_link_libraries(bee   PUBLIC ${BEE_LINK_PUBLIC_LIBS})
+target_link_libraries(bee_r PUBLIC ${BEE_LINK_PUBLIC_LIBS} atomic)
 
 target_compile_definitions(bee_r PRIVATE -D_REENTRANT)
 
 if(${CASSOBEE_BENCHMARK_ENABLE})
-    target_link_libraries(bee benchmark benchmark_main)
-    target_link_libraries(bee_r benchmark benchmark_main)
+    target_link_libraries(bee   PUBLIC benchmark benchmark_main)
+    target_link_libraries(bee_r PUBLIC benchmark benchmark_main)
 endif()
 
 add_common_flags(bee)
+add_common_flags(bee_r)

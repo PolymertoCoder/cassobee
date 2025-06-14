@@ -13,7 +13,7 @@ target_include_directories(cassobee
 
 target_compile_definitions(cassobee PRIVATE -D_REENTRANT)
 
-target_link_libraries(cassobee pthread bee_r logclient_r prot)
+target_link_libraries(cassobee PUBLIC pthread bee_r logclient_r prot_r)
 
 add_common_flags(cassobee)
 

@@ -13,7 +13,7 @@ target_include_directories(client
 
 target_compile_definitions(client PRIVATE -D_REENTRANT)
 
-target_link_libraries(client pthread bee_r logclient_r prot)
+target_link_libraries(client PUBLIC pthread bee_r logclient_r prot_r)
 
 add_common_flags(client)
 

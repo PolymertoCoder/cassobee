@@ -21,7 +21,7 @@ function(add_common_flags target)
     endif()
 
     if(${CASSOBEE_JEMALLOC_ENABLE})
-        target_link_libraries(${target} ${LIBJEMALLOC})
+        target_link_libraries(${target} PRIVATE ${LIBJEMALLOC})
     endif()
 endfunction()
 
@@ -42,17 +42,22 @@ endfunction()
 
 function(add_sanitize_flag target)
     target_compile_options(${target} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
-    target_link_libraries(${target} -fsanitize=address)
+    target_link_options(${target} PRIVATE -fsanitize=address)
 endfunction()
 
 # libprot
 file(GLOB LIBPROT_SRC ${SOURCE_PATH}/protocol/source/*.cpp)
-add_library(prot SHARED ${LIBPROT_SRC})
-set(LIBPROT_DEPEND_LIB bee)
-add_dependencies(prot ${LIBPROT_DEPEND_LIB})
-add_dependencies(prot generate_protocol)
-target_link_libraries(prot ${LIBPROT_DEPEND_LIB})
-target_include_directories(prot PUBLIC ./protocol/include)
+set(LIBPROT_LINK_LIBS bee)
+set(LIBPROT_INCLUDES ${SOURCE_PATH}/protocol/include)
+add_library(prot   SHARED ${LIBPROT_SRC})
+add_library(prot_r SHARED ${LIBPROT_SRC})
+add_dependencies(prot   generate_protocol)
+add_dependencies(prot_r generate_protocol)
+target_link_libraries(prot   PRIVATE bee)
+target_link_libraries(prot_r PRIVATE bee_r)
+target_include_directories(prot   PUBLIC ${LIBPROT_INCLUDES})
+target_include_directories(prot_r PUBLIC ${LIBPROT_INCLUDES})
+target_compile_definitions(prot_r PRIVATE -D_REENTRANT)
 
 # libbee
 add_subdirectory(bee)

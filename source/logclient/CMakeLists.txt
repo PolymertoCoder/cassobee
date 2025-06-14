@@ -23,4 +23,5 @@ target_link_libraries(logclient_r PRIVATE bee_r)
 
 target_compile_definitions(logclient_r PRIVATE -D_REENTRANT)
 
-#add_common_flags(logclient)
+add_common_flags(logclient)
+add_common_flags(logclient_r)

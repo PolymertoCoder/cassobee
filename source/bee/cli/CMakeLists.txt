@@ -17,6 +17,6 @@ target_include_directories(cli
                            ${SOURCE_PATH}/protocol
                            ${SOURCE_PATH}/protocol/include
 )
-target_link_libraries(cli ${LIBREADLINE_PATH} ncurses)
+target_link_libraries(cli PUBLIC ${LIBREADLINE_PATH} ncurses)
 
 add_common_flags(cli)

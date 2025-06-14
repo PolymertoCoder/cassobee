@@ -33,7 +33,7 @@ option(CASSOBEE_CLANG_TIDY_ENABLE "enable clang-tidy" OFF)
 option(CASSOBEE_COMPILE_TIME_REPORT_ENABLE "enable compile time report" OFF)
 option(CASSOBEE_JEMALLOC_ENABLE "enable jemalloc allocator" ON)
 option(CASSOBEE_REFLECTION_ENABLE "enable refletion generation" OFF)
-option(CASSOBEE_GEN_FASTBUILD_BFF_ENABLE "enable generate fastbuild bff" ON)
+option(CASSOBEE_GEN_FASTBUILD_BFF_ENABLE "enable generate fastbuild bff" OFF)
 
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
