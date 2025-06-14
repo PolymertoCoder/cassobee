@@ -3,7 +3,6 @@
 #include "glog.h"
 #include "httpprotocol.h"
 #include "log.h"
-#include "threadpool.h"
 #include "httpsession_manager.h"
 #include "session.h"
 #include "systemtime.h"
@@ -65,7 +64,7 @@ void httpsession::on_recv(size_t len)
 
     while(httpprotocol* prot = httpprotocol::decode(_reados, this))
     {
-        ((httpsession_manager*)_manager)->handle_protocol(prot);
+        static_cast<httpsession_manager*>(_manager)->handle_protocol(prot);
     }
     _reados.try_shrink();
 }

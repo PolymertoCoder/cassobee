@@ -7,7 +7,6 @@
 #include "httpsession_manager.h"
 #include "log.h"
 #include "marshal.h"
-#include "servlet.h"
 #include "systemtime.h"
 #include "util.h"
 #include <cctype>

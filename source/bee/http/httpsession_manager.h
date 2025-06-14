@@ -70,7 +70,6 @@ protected:
         int32_t port = 0;
     } _dns;
     uri _uri;
-    size_t _max_requests = 0;
     size_t _request_timeout = 0;
     REQUESTID _next_requestid = 0; // 下一个请求ID
     std::set<SID> _idle_connections; // 空闲的连接

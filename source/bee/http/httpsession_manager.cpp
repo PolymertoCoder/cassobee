@@ -15,7 +15,6 @@
 #include "httpprotocol.h"
 #include "systemtime.h"
 #include "threadpool.h"
-#include "id_gen.h"
 #include "uri.h"
 
 namespace bee
@@ -192,7 +191,6 @@ void httpclient_manager::init()
 {
     httpsession_manager::init();
     auto cfg = config::get_instance();
-    _max_requests = cfg->get<size_t>(identity(), "max_requests");
     _request_timeout = cfg->get<size_t>(identity(), "request_timeout", 30);
     _uri = uri(cfg->get(identity(), "uri"));
     assert(_uri.is_valid());
@@ -395,6 +393,7 @@ void httpclient_manager::handle_response(httpresponse* rsp)
 
 void httpclient_manager::try_new_connection()
 {
+    if(!check_connection_count()) return;
     connect();
 }
 

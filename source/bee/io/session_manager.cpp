@@ -11,7 +11,6 @@
 #include "config.h"
 #include "protocol.h"
 #include "session.h"
-#include "id_gen.h"
 
 namespace bee
 {
