@@ -21,10 +21,7 @@ class random
 {
 public:
     // 初始化（可指定种子）
-    static void init_seed(uint64_t seed = std::random_device{}())
-    {
-        get_instance().initialize(seed);
-    }
+    static void init_seed(uint64_t seed = std::random_device{}());
 
     // 基础随机数生成（简化模板特化）
     template<typename T>
@@ -84,20 +81,12 @@ public:
     }
 
     // 泊松分布
-    static int poisson(double mean)
-    {
-        std::poisson_distribution<int> dist(mean);
-        return dist(get_instance()._engine);
-    }
+    static int poisson(double mean);
 
     // 伯努利分布
-    static bool bernoulli(double p = 0.5)
-    {
-        std::bernoulli_distribution dist(p);
-        return dist(get_instance()._engine);
-    }
+    static bool bernoulli(double p = 0.5);
 
-    // 从容器中随机选择一个元素（简化实现）
+    // 从容器中随机选择一个元素
     template<typename Container>
     static auto choice(const Container& container) -> typename Container::value_type
     {
@@ -130,6 +119,46 @@ public:
         return array[dist(get_instance()._engine)];
     }
 
+    // 从容器中随机选择指定数量的元素
+    template<typename Container>
+    static auto select(const Container& container, size_t count) 
+        -> std::vector<typename Container::value_type>
+    {
+        if(count == 0 || container.empty())
+        {
+            return {};
+        }
+        
+        auto& inst = get_instance();
+        std::vector<typename Container::value_type> result;
+        std::sample(std::begin(container), std::end(container), 
+                    std::back_inserter(result), count, inst._engine);
+        return result;
+    }
+
+    // 从初始化列表中随机选择指定数量的元素
+    template<typename T>
+    static T select(std::initializer_list<T> list, size_t count)
+    {
+        return select(std::vector<T>(list), count);
+    }
+
+    // 从C风格数组中随机选择指定数量的元素
+    template<typename T, size_t N>
+    static T select(T (&array)[N], size_t count)
+    {
+        if(count == 0 || N == 0)
+        {
+            return {};
+        }
+        
+        auto& inst = get_instance();
+        std::vector<T> result;
+        std::sample(array, array + N, std::back_inserter(result), 
+                    count, inst._engine);
+        return result;
+    }
+
     // 打乱容器元素顺序
     template<typename Container>
     static void shuffle(Container& container)
@@ -138,115 +167,35 @@ public:
                      get_instance()._engine);
     }
 
-    // 生成随机字符串
-    static std::string random_string(
-        size_t length, 
-        bool include_upper = true, 
-        bool include_lower = true,
-        bool include_digits = true, 
-        bool include_special = false)
+    // 返回打乱后的新容器
+    template<typename Container>
+    static Container shuffled(const Container& container)
     {
-        static const char* upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        static const char* lower = "abcdefghijklmnopqrstuvwxyz";
-        static const char* digits = "0123456789";
-        static const char* special = "!@#$%^&*()_+-=[]{}|;:,.<>?";
-        
-        std::string charset;
-        if(include_upper) charset.append(upper);
-        if(include_lower) charset.append(lower);
-        if(include_digits) charset.append(digits);
-        if(include_special) charset.append(special);
-        
-        if(charset.empty())
-        {
-            return ""; // 如果没有指定字符集，返回空字符串
-        }
-        
-        return generate_string(length, charset);
+        Container copy = container;
+        shuffle(copy);
+        return copy;
     }
+
+    // 生成随机字符串
+    static std::string random_string(size_t length, bool include_upper = true, bool include_lower = true, bool include_digits = true, bool include_special = false);
 
     // 生成随机文件名
-    static std::string random_filename(size_t length = 12, const std::string& extension = "")
-    {
-        static const char safe_chars[] = "abcdefghijklmnopqrstuvwxyz0123456789";
-        std::string name = generate_string(length, safe_chars);
-        return extension.empty() ? name : name + "." + extension;
-    }
+    static std::string random_filename(size_t length = 12, const std::string& extension = "");
 
     // 生成随机颜色（RGB格式）
-    static std::tuple<uint8_t, uint8_t, uint8_t> random_color()
-    {
-        auto& eng = get_instance()._engine;
-        std::uniform_int_distribution<uint16_t> dist(0, 255);
-        return {static_cast<uint8_t>(dist(eng)),
-                static_cast<uint8_t>(dist(eng)),
-                static_cast<uint8_t>(dist(eng))};
-    }
+    static std::tuple<uint8_t, uint8_t, uint8_t> random_color();
 
     // 生成随机日期（范围：1900-01-01 到 2100-12-31）
-    static std::tuple<int, int, int> random_date()
-    {
-        auto& eng = get_instance()._engine;
-        std::uniform_int_distribution<int> year_dist(1900, 2100);
-        std::uniform_int_distribution<int> month_dist(1, 12);
-        
-        int year = year_dist(eng);
-        int month = month_dist(eng);
-        
-        // 处理不同月份的天数
-        static constexpr int days_in_month[] = {
-            31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
-        };
-        
-        int day_max = days_in_month[month - 1];
-        if(month == 2 && is_leap_year(year)) {
-            day_max = 29;
-        }
-        
-        std::uniform_int_distribution<int> day_dist(1, day_max);
-        return {year, month, day_dist(eng)};
-    }
+    static std::tuple<int, int, int> random_date();
 
     // 概率判断（返回true的概率为p）
-    static bool probability(double p)
-    {
-        return bernoulli(p);
-    }
+    static bool probability(double p);
 
     // 生成唯一ID（UUID格式）
-    static std::string uuid()
-    {
-        auto& eng = get_instance()._engine;
-        std::uniform_int_distribution<int> hex_dist(0, 15);
-        std::string uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
-        
-        for(char& c : uuid)
-        {
-            if(c == 'x')
-            {
-                c = "0123456789abcdef"[hex_dist(eng)];
-            }
-            else if(c == 'y')
-            {
-                c = "89ab"[hex_dist(eng) & 0x3]; // 8,9,A,B
-            }
-        }
-        return uuid;
-    }
+    static std::string uuid();
 
     // 随机字节序列
-    static std::vector<uint8_t> random_bytes(size_t count)
-    {
-        std::vector<uint8_t> bytes(count);
-        auto& eng = get_instance()._engine;
-        std::uniform_int_distribution<uint16_t> dist(0, 255);
-        
-        for(auto& byte : bytes)
-        {
-            byte = static_cast<uint8_t>(dist(eng));
-        }
-        return bytes;
-    }
+    static std::vector<uint8_t> random_bytes(size_t count);
 
     // 随机权重选择
     template<typename T>
@@ -283,25 +232,15 @@ public:
 private:
     std::mt19937_64 _engine;
 
-    random()
-    {
-        init_seed();
-    }
+    random();
 
-    static random& get_instance()
-    {
-        thread_local random instance;
-        return instance;
-    }
+    static random& get_instance();
 
-    void initialize(uint64_t seed)
-    {
-        _engine.seed(seed);
-    }
+    void initialize(uint64_t seed);
 
     // 统一的基础生成实现
     template<typename T>
-    T generate_impl() const
+    T generate_impl()
     {
         if constexpr(std::is_integral_v<T>)
         {
@@ -317,7 +256,7 @@ private:
 
     // 统一的范围生成实现
     template<typename T>
-    T range_impl(T min, T max) const
+    T range_impl(T min, T max)
     {
         if constexpr(std::is_integral_v<T>)
         {
@@ -332,40 +271,20 @@ private:
     }
 
     // 字符串生成辅助函数
-    static std::string generate_string(size_t length, const std::string& charset)
-    {
-        auto& eng = get_instance()._engine;
-        std::uniform_int_distribution<size_t> dist(0, charset.size() - 1);
-        std::string result;
-        result.reserve(length);
-        
-        for(size_t i = 0; i < length; ++i)
-        {
-            result += charset[dist(eng)];
-        }
-        
-        return result;
-    }
+    static std::string generate_string(size_t length, const std::string& charset);
 
     // 闰年判断
-    static bool is_leap_year(int year)
-    {
-        return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
-    }
+    static bool is_leap_year(int year);
 };
 
 // 独立随机引擎
 class random_engine 
 {
 public:
-    explicit random_engine(uint64_t seed = std::random_device{}()) 
-        : _engine(seed) {}
+    explicit random_engine(uint64_t seed = std::random_device{}());
 
     // 重新播种
-    void seed(uint64_t seed)
-    {
-        _engine.seed(seed);
-    }
+    void seed(uint64_t seed);
 
     // 基础随机数生成
     template<typename T>
