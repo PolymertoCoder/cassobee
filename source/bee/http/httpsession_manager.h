@@ -132,7 +132,7 @@ protected:
 protected:
     servlet_dispatcher* _dispatcher = nullptr;
     TIMETYPE _http_task_timeout = 0; // HTTP任务超时时间
-    std::unordered_map<HTTP_TASKID, http_task*> _http_tasks; // HTTP任务缓存
+    std::unordered_map<HTTP_TASKID, http_servlet_task*> _http_tasks; // HTTP任务缓存
 };
 
 } // namespace bee

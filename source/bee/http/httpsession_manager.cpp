@@ -74,6 +74,8 @@ public:
     http_servlet_task(HTTP_TASKID taskid, httprequest* req, httpresponse* rsp, TIMETYPE timeout)
         : http_task(taskid, req, rsp), _timeout(timeout) {}
 
+    FORCE_INLINE TIMETYPE get_timeout() const { return _timeout; }
+
     virtual void run() override
     {
         if(!_req || !_rsp) return;
@@ -615,11 +617,11 @@ void httpserver_manager::finish_http_task(HTTP_TASKID taskid)
 #endif
 }
 
-void httpserver_manager::start_http_task_nolock(http_task* task)
+void httpserver_manager::start_http_task_nolock(httprequest* req, httpresponse* rsp)
 {
-    if(!task) return;
-    task->set_timeout(systemtime::get_time() + _http_task_timeout);
-    _http_tasks.emplace(task->get_taskid(), task);
+    HTTP_TASKID taskid = ++_next_http_taskid;
+    auto* task = new http_servlet_task(taskid, req, rsp, systemtime::get_time() + _http_task_timeout);
+    _http_tasks.emplace(taskid, task);
 }
 
 void httpserver_manager::finish_http_task_nolock(HTTP_TASKID taskid)
@@ -627,10 +629,10 @@ void httpserver_manager::finish_http_task_nolock(HTTP_TASKID taskid)
     auto iter = _http_tasks.find(taskid);
     if(iter == _http_tasks.end())
     {
-        local_log("httpclient_manager %s finish_http_task failed, taskid %lu not found.", identity(), taskid);
+        local_log("httpserver_manager %s finish_http_task failed, taskid %lu not found.", identity(), taskid);
         return;
     }
-    http_task* task = iter->second;
+    auto* task = iter->second;
     _http_tasks.erase(iter);
 
 #ifdef _REENTRANT
@@ -675,8 +677,8 @@ void httpserver_manager::handle_request(httprequest* req)
     rsp->set_version(req->get_version());
     rsp->set_header("server", identity());
     
-    auto* task = create_http_task(req, rsp);
-    start_http_task_nolock(task);
+    
+    start_http_task(req, rsp);
 }
 
 } // namespace bee

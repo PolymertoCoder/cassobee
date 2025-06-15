@@ -46,6 +46,10 @@ int servlet_dispatcher::handle(httprequest* req, httpresponse* rsp)
     {
         srv->handle(req, rsp);
     }
+    else
+    {
+        _default->handle(req, rsp);
+    }
     return 0;
 }
 
