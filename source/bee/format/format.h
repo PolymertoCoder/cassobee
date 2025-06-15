@@ -32,6 +32,7 @@ public:
     ostringstream& operator<<(const std::string& value);
     ostringstream& operator<<(ostringstream& (*manipulator)(ostringstream&));
 
+    octets& data() { return _buf; }
     size_t size() const { return _buf.size(); }
     bool empty() const { return _buf.empty(); }
     void truncate(size_t size) { if(size < _buf.size()) _buf.fast_resize(size); }

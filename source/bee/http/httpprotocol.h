@@ -55,6 +55,10 @@ public:
     size_t get_header_count() const { return _headers.size(); }
     bool has_header(const std::string& key) const { return _headers.contains(key); }
 
+    // http task id
+    void set_taskid(HTTP_TASKID taskid) { _taskid = taskid; }
+    HTTP_TASKID get_taskid() const { return _taskid; }
+
 protected:
     void on_parse_header_finished();
 
@@ -68,6 +72,8 @@ protected:
     HTTP_VERSION _version;
     std::string  _body;
     MAP_TYPE _headers;
+
+    HTTP_TASKID _taskid = 0; // 关联的http_callback taskid
 };
 
 class httprequest : public httpprotocol
@@ -75,7 +81,7 @@ class httprequest : public httpprotocol
 public:
     static constexpr PROTOCOLID TYPE = PROTOCOL_TYPE_HTTPREQUEST;
     using REQUESTID = int64_t;
-    using callback = std::function<void(HTTP_TASKID/*taskid*/, int/*status*/, httprequest*, httpresponse*)>;
+    using callback = std::function<void(int/*status*/, httprequest*, httpresponse*)>;
 
     httprequest() = default;
     virtual ~httprequest() = default;
@@ -117,9 +123,6 @@ public:
     void set_callback(callback cbk) { _callback = cbk; }
     callback get_callback() const { return _callback; }
 
-    void set_taskid(HTTP_TASKID taskid) { _taskid = taskid; }
-    HTTP_TASKID get_taskid() const { return _taskid; }
-
 protected:
     enum
     {
@@ -146,8 +149,7 @@ private:
     MAP_TYPE    _cookies;   // 请求cookie
 
     REQUESTID   _requestid; // 请求ID
-    callback    _callback;  // 回调函数 
-    HTTP_TASKID _taskid = 0; // 关联的http_callback taskid
+    callback    _callback;  // 回调函数
 };
 
 class httpresponse : public httpprotocol
