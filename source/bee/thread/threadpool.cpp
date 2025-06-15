@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "threadpool.h"
+#include "runnable.h"
 #include "glog.h"
 #include "config.h"
 #include "randgen.h"

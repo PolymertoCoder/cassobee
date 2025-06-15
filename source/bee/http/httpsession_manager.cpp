@@ -14,7 +14,11 @@
 #include "glog.h"
 #include "httpprotocol.h"
 #include "systemtime.h"
+#include "runnable.h"
+#ifdef _REENTRANT
 #include "threadpool.h"
+#endif
+#include "types.h"
 #include "uri.h"
 
 namespace bee
@@ -26,6 +30,7 @@ public:
     http_task(HTTP_TASKID taskid, httprequest* req, httpresponse* rsp)
         : _taskid(taskid), _req(req), _rsp(rsp) {}
 
+    FORCE_INLINE void set_taskid(HTTP_TASKID taskid) { _taskid = taskid; }
     FORCE_INLINE HTTP_TASKID get_taskid() const { return _taskid; }
 
     virtual void destroy() override
@@ -34,6 +39,8 @@ public:
         delete _rsp;
         runnable::destroy();
     }
+
+    
 
 protected:
     HTTP_TASKID _taskid = 0;
@@ -51,7 +58,7 @@ public:
     {
         if(_req->_callback)
         {
-            _req->_callback(_status, _req, _rsp);
+            _req->_callback(_taskid, _status, _req, _rsp);
         }
     }
 
@@ -68,6 +75,8 @@ public:
 
     virtual void run() override
     {
+        if(!_req || !_rsp) return;
+
         auto* httpserver = static_cast<httpserver_manager*>(_req->_manager);
         if(!httpserver) return;
         if(auto* dispatcher = httpserver->get_dispatcher())
@@ -104,6 +113,40 @@ httpsession* httpsession_manager::find_session(SID sid)
     bee::rwlock::rdscoped l(_locker);
     auto iter = _sessions.find(sid);
     return iter != _sessions.end() ? static_cast<httpsession*>(iter->second) : nullptr;
+}
+
+void httpsession_manager::start_http_task(http_task* task)
+{
+    if(!task) return;
+
+    HTTP_TASKID taskid = task->get_taskid();
+    if(taskid == 0)
+    {
+        taskid = ++_next_http_taskid;
+        task->set_taskid(taskid);
+    }
+
+    _http_tasks.emplace(taskid, task);
+}
+
+void httpsession_manager::finish_http_task(HTTP_TASKID taskid)
+{
+    bee::rwlock::wrscoped l(_locker);
+
+    auto iter = _http_tasks.find(taskid);
+    if(iter == _http_tasks.end())
+    {
+        local_log("httpclient_manager %s finish_http_task failed, taskid %lu not found.", identity(), taskid);
+        return;
+    }
+    auto* task = iter->second;
+
+#ifdef _REENTRANT
+    threadpool::get_instance()->add_task(thread_group_idx(), task);
+#else
+    task->run();
+    task->destroy();
+#endif
 }
 
 // 请求头安全检查
@@ -231,16 +274,11 @@ void httpclient_manager::handle_protocol(httpprotocol* protocol)
     }
 }
 
-void httpclient_manager::add_http_task(int status, httprequest* req, httpresponse* rsp)
+auto httpclient_manager::create_http_task(int status, httprequest* req, httpresponse* rsp) -> http_task*
 {
-    auto* task = new http_callback_task(++_next_http_taskid, req, rsp, status);
-
-    #ifdef _REENTRANT
-        threadpool::get_instance()->add_task(rsp->thread_group_idx(), task);
-    #else
-        task->run();
-        task->destroy();
-    #endif
+    HTTP_TASKID taskid = ++_next_http_taskid;
+    auto* task = new http_callback_task(taskid, req, rsp, status);
+    return task;
 }
 
 int httpclient_manager::send_request(HTTP_METHOD method, const std::string& url, callback cbk, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
@@ -381,7 +419,8 @@ void httpclient_manager::handle_response(httpresponse* rsp)
 
     recycle_connection(req->is_keepalive() && rsp->is_keepalive());
 
-    add_http_task(rsp->get_status(), req, rsp);
+    auto* task = create_http_task(rsp->get_status(), req, rsp);
+    start_http_task(task);
 
     // 清理状态
     _busy_connections.erase(busy_iter);
@@ -440,7 +479,8 @@ void httpclient_manager::check_timeouts()
             {
                 if(httprequest* req = req_iter->second)
                 {
-                    add_http_task(HTTP_STATUS_REQUEST_TIMEOUT, req, nullptr);
+                    auto* task = create_http_task(HTTP_STATUS_REQUEST_TIMEOUT, req, nullptr);
+                    start_http_task(task);
                     _requests_cache.erase(req_iter);
                 }
             }
@@ -521,16 +561,49 @@ void httpserver_manager::handle_protocol(httpprotocol* protocol)
     }
 }
 
-void httpserver_manager::add_http_task(int status, httprequest* req, httpresponse* rsp)
+auto httpserver_manager::create_http_task(int status, httprequest* req, httpresponse* rsp) -> http_task*
 {
     auto* task = new http_servlet_task(++_next_http_taskid, req, rsp);
-    
-#ifdef _REENTRANT
-    threadpool::get_instance()->add_task(rsp->thread_group_idx(), task);
-#else
-    task->run();
-    task->destroy();
-#endif
+    return task;
+}
+
+int httpserver_manager::send_response(HTTP_METHOD method, const std::string& url, const httpprotocol::MAP_TYPE& headers, const std::string& body)
+{
+    uri uri(url);
+    if(!uri.is_valid())
+    {
+        return HTTP_RESULT_INVALID_URL;
+    }
+
+    return send_response(method, uri, headers, body);
+}
+
+int httpserver_manager::send_response(HTTP_METHOD method, const uri& uri, const httpprotocol::MAP_TYPE& headers, const std::string& body)
+{   
+    httpresponse* rsp = httpprotocol::get_response();
+    rsp->set_version(HTTP_VERSION_1_1);
+    rsp->set_status(HTTP_STATUS_OK);
+    rsp->set_body(body);
+
+    for(const auto& [key, value] : headers)
+    {
+        if(strcasecmp(key.data(), "connection") == 0)
+        {
+            if(strcasecmp(value.data(), "keep-alive") == 0)
+            {
+                rsp->set_keepalive(true);
+            }
+            continue;
+        }
+        rsp->set_header(key, value);
+    }
+
+    return send_response(rsp, uri); 
+}
+
+int httpserver_manager::send_response(httpresponse* rsp, const uri& uri)
+{
+
 }
 
 void httpserver_manager::handle_request(httprequest* req)

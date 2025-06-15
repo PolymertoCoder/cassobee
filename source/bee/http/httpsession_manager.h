@@ -15,6 +15,7 @@ class httprequest;
 class httpresponse;
 class servlet_dispatcher;
 class http_callback;
+class http_task;
 
 class httpsession_manager : public session_manager
 {
@@ -25,9 +26,12 @@ public:
     virtual void init() override;
     virtual httpsession* create_session() override;
     virtual httpsession* find_session(SID sid) override;
+    virtual size_t thread_group_idx() = 0;
     virtual void handle_protocol(httpprotocol* protocol) = 0;
-    virtual void add_http_task(int status, httprequest* req, httpresponse* rsp) = 0;
+    virtual auto create_http_task(int status, httprequest* req, httpresponse* rsp) -> http_task* = 0;
 
+    void start_http_task(http_task* task);
+    void finish_http_task(HTTP_TASKID taskid);
     bool check_headers(const httpprotocol* req);
 
     void send_request_nolock(session* ses, const httprequest& req);
@@ -35,6 +39,7 @@ public:
 
 protected:
     HTTP_TASKID _next_http_taskid = 0;
+    std::unordered_map<HTTP_TASKID, http_task*> _http_tasks; // HTTP任务缓存
 };
 
 class httpclient_manager : public httpsession_manager
@@ -49,8 +54,9 @@ public:
     virtual void init() override;
     virtual void on_add_session(SID sid) override;
     virtual void on_del_session(SID sid) override;
+    virtual size_t thread_group_idx() override { return 0; }
     virtual void handle_protocol(httpprotocol* protocol) override;
-    virtual void add_http_task(int status, httprequest* req, httpresponse* rsp) override;
+    virtual auto create_http_task(int status, httprequest* req, httpresponse* rsp) -> http_task* override;
 
     int send_request(HTTP_METHOD method, const std::string& url, callback cbk = {}, TIMETYPE timeout = 0, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
     int send_request(HTTP_METHOD method, const uri& uri, callback cbk = {}, TIMETYPE timeout = 0, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
@@ -86,14 +92,15 @@ public:
     virtual const char* identity() const override { return "httpserver_manager"; }
 
     virtual void init() override;
+    virtual size_t thread_group_idx() override { return 0; }
     virtual void handle_protocol(httpprotocol* protocol) override;
-    virtual void add_http_task(int status, httprequest* req, httpresponse* rsp) override;
+    virtual auto create_http_task(int status, httprequest* req, httpresponse* rsp) -> http_task* override;
 
     FORCE_INLINE servlet_dispatcher* get_dispatcher() { return _dispatcher; }
 
-    int send_response(HTTP_METHOD method, const std::string& url,TIMETYPE timeout = 30000/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
-    int send_response(HTTP_METHOD method, const uri& uri, TIMETYPE timeout = 30000/*ms*/, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
-    int send_response(httpresponse* req, const uri& uri, TIMETYPE timeout = 30000/*ms*/);
+    int send_response(HTTP_METHOD method, const std::string& url, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
+    int send_response(HTTP_METHOD method, const uri& uri, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
+    int send_response(httpresponse* rsp, const uri& uri);
 
 protected:
     void handle_request(httprequest* req);
