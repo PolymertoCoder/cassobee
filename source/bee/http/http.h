@@ -1,10 +1,13 @@
 #pragma once
+#include <functional>
 #include <string>
 
 namespace bee
 {
 
 class ostringstream;
+
+using http_callback_func = std::function<void(int/*status*/, class httprequest*, class httpresponse*)>;
 
 #define HTTP_METHOD_MAP \
     X(0, UNKNOWN, "Unknown") \

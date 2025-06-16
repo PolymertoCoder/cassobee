@@ -15,7 +15,8 @@ class httprequest;
 class httpresponse;
 class servlet_dispatcher;
 class http_task;
-class http_callback_task;
+class http_callback;
+class http_functional_callback;
 class http_servlet_task;
 
 class httpsession_manager : public session_manager
@@ -43,7 +44,7 @@ class httpclient_manager : public httpsession_manager
 {
 public:
     using REQUESTID = httprequest::REQUESTID;
-    using callback  = httprequest::callback;
+    using callback  = http_callback_func;
 
     virtual ~httpclient_manager() override;
     virtual const char* identity() const override { return "httpclient_manager"; }
@@ -83,7 +84,7 @@ public:
     int trace(const std::string& url, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
 
 protected:
-    void add_http_task(int status, httprequest* req, httpresponse* rsp);
+    void add_http_task(http_callback* task);
     void handle_response(httpresponse* rsp);
     void recycle_connection(SID sid, bool is_keepalive);
     void try_new_connection();

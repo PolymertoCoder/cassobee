@@ -1,6 +1,7 @@
 #pragma once
 #include "protocol.h"
 #include "http.h"
+#include "runnable.h"
 #include <bitset>
 #include <cstdint>
 #include <string>
@@ -16,6 +17,7 @@ constexpr PROTOCOLID PROTOCOL_TYPE_HTTPRESPONCE = 200002;
 class httpsession;
 class httprequest;
 class httpresponse;
+class http_callback;
 
 class httpprotocol : public protocol
 {
@@ -55,10 +57,6 @@ public:
     size_t get_header_count() const { return _headers.size(); }
     bool has_header(const std::string& key) const { return _headers.contains(key); }
 
-    // http task id
-    void set_taskid(HTTP_TASKID taskid) { _taskid = taskid; }
-    HTTP_TASKID get_taskid() const { return _taskid; }
-
 protected:
     void on_parse_header_finished();
 
@@ -72,8 +70,6 @@ protected:
     HTTP_VERSION _version;
     std::string  _body;
     MAP_TYPE _headers;
-
-    HTTP_TASKID _taskid = 0; // 关联的http_callback taskid
 };
 
 class httprequest : public httpprotocol
@@ -81,7 +77,7 @@ class httprequest : public httpprotocol
 public:
     static constexpr PROTOCOLID TYPE = PROTOCOL_TYPE_HTTPREQUEST;
     using REQUESTID = int64_t;
-    using callback = std::function<void(int/*status*/, httprequest*, httpresponse*)>;
+    using callback = http_callback;
 
     httprequest() = default;
     virtual ~httprequest() = default;
@@ -120,8 +116,8 @@ public:
     void set_requestid(int64_t requestid) { _requestid = requestid; }
     int64_t get_requestid() const { return _requestid; }
 
-    void set_callback(callback cbk) { _callback = cbk; }
-    callback get_callback() const { return _callback; }
+    void set_callback(callback* cbk) { _callback = cbk; }
+    callback* get_callback() const { return _callback; }
 
 protected:
     enum
@@ -149,7 +145,7 @@ private:
     MAP_TYPE    _cookies;   // 请求cookie
 
     REQUESTID   _requestid; // 请求ID
-    callback    _callback;  // 回调函数
+    callback*   _callback;  // http callback
 };
 
 class httpresponse : public httpprotocol

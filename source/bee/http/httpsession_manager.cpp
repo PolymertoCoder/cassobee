@@ -14,7 +14,7 @@
 #include "glog.h"
 #include "httpprotocol.h"
 #include "systemtime.h"
-#include "runnable.h"
+#include "http_task.h"
 #ifdef _REENTRANT
 #include "threadpool.h"
 #endif
@@ -23,74 +23,6 @@
 
 namespace bee
 {
-
-class http_task : public runnable
-{
-public:
-    http_task(HTTP_TASKID taskid, httprequest* req, httpresponse* rsp)
-        : _taskid(taskid), _req(req), _rsp(rsp)
-    {
-        if(_req) req->set_taskid(_taskid);
-        if(_rsp) rsp->set_taskid(_taskid);
-    }
-
-    FORCE_INLINE HTTP_TASKID get_taskid() const { return _taskid; }
-
-    virtual void destroy() override
-    {
-        delete _req;
-        delete _rsp;
-        runnable::destroy();
-    }
-
-protected:
-    HTTP_TASKID _taskid  = 0;
-    httprequest*  _req  = nullptr;
-    httpresponse* _rsp  = nullptr;
-};
-
-class http_callback_task : public http_task
-{
-public:
-    http_callback_task(HTTP_TASKID taskid, httprequest* req, httpresponse* rsp, int status)
-        : http_task(taskid, req, rsp), _status(status) {}
-
-    virtual void run() override
-    {
-        if(_req->_callback)
-        {
-            _req->_callback(_status, _req, _rsp);
-        }
-    }
-
-protected:
-    int _status = HTTP_STATUS_OK;
-};
-
-// 处理请求的task
-class http_servlet_task : public http_task
-{
-public:
-    http_servlet_task(HTTP_TASKID taskid, httprequest* req, httpresponse* rsp, TIMETYPE timeout)
-        : http_task(taskid, req, rsp), _timeout(timeout) {}
-
-    FORCE_INLINE TIMETYPE get_timeout() const { return _timeout; }
-
-    virtual void run() override
-    {
-        if(!_req || !_rsp) return;
-
-        auto* httpserver = static_cast<httpserver_manager*>(_req->_manager);
-        if(!httpserver) return;
-        if(auto* dispatcher = httpserver->get_dispatcher())
-        {
-            dispatcher->handle(_req, _rsp);
-        }
-    }
-
-protected:
-    TIMETYPE _timeout = 0;
-};
 
 httpsession* httpsession_manager::create_session()
 {
@@ -275,7 +207,7 @@ int httpclient_manager::send_request(HTTP_METHOD method, const uri& uri, callbac
     req->set_fragment(uri.get_fragment());
     req->set_body(body);
     req->set_requestid(++_next_requestid);
-    req->set_callback(std::move(cbk));
+    req->set_callback(new http_functional_callback(++_next_http_taskid, req, std::move(cbk)));
 
     bool has_host = false;
     for(auto& [key, value] : headers)
@@ -307,7 +239,7 @@ int httpclient_manager::send_request(HTTP_METHOD method, const uri& uri, callbac
     return send_request(req, cbk, timeout);
 }
 
-int httpclient_manager::send_request(httprequest* req, httprequest::callback cbk, TIMETYPE timeout/*ms*/)
+int httpclient_manager::send_request(httprequest* req, callback cbk, TIMETYPE timeout/*ms*/)
 {
     int requestid = req->get_requestid();
     TIMETYPE now = systemtime::get_time();
@@ -368,11 +300,8 @@ int httpclient_manager::trace(const std::string& url, callback cbk, TIMETYPE tim
     return send_request(HTTP_METHOD_TRACE, url, std::move(cbk), timeout, std::move(headers));
 }
 
-void httpclient_manager::add_http_task(int status, httprequest* req, httpresponse* rsp)
+void httpclient_manager::add_http_task(http_callback* task)
 {
-    HTTP_TASKID taskid = ++_next_http_taskid;
-    auto* task = new http_callback_task(taskid, req, rsp, status);
-
 #ifdef _REENTRANT
     threadpool::get_instance()->add_task(thread_group_idx(), task);
 #else
@@ -415,7 +344,12 @@ void httpclient_manager::handle_response(httpresponse* rsp)
         return;
     }
 
-    add_http_task(rsp->get_status(), req, rsp);
+    if(auto* task = req->get_callback())
+    {
+        task->set_response(rsp);
+        task->set_status(rsp->get_status());
+        add_http_task(task);
+    }
 
     // 清理状态
     _busy_connections.erase(busy_iter);
@@ -494,7 +428,11 @@ void httpclient_manager::check_request_timeouts()
             {
                 if(httprequest* req = req_iter->second)
                 {
-                    add_http_task(HTTP_STATUS_REQUEST_TIMEOUT, req, nullptr);
+                    if(auto* task = req->get_callback())
+                    {
+                        task->set_status(HTTP_STATUS_REQUEST_TIMEOUT);
+                        add_http_task(task);
+                    }
                     _requests_cache.erase(req_iter);
                 }
             }
@@ -650,12 +588,6 @@ void httpserver_manager::check_http_task_timeouts()
 
     for(auto iter = _http_tasks.begin(); iter != _http_tasks.end();)
     {
-        if(iter->second->get_taskid() == 0) // 未设置taskid的任务
-        {
-            ++iter;
-            continue;
-        }
-
         if(now >= iter->second->get_timeout())
         {
             local_log("httpsession_manager %s check_http_task_timeouts, taskid %lu timeout.", identity(), iter->second->get_taskid());
