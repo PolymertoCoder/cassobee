@@ -14,7 +14,9 @@ public:
 
     FORCE_INLINE HTTP_TASKID get_taskid() const { return _taskid; }
     FORCE_INLINE void set_request(httprequest* req) { _req = req; }
+    FORCE_INLINE httprequest* get_request() const { return _req; }
     FORCE_INLINE void set_response(httpresponse* rsp) { _rsp = rsp; }
+    FORCE_INLINE httpresponse* get_response() const { return _rsp; }
 
     virtual void destroy() override
     {
@@ -26,7 +28,7 @@ public:
     }
 
 protected:
-    HTTP_TASKID _taskid  = 0;
+    HTTP_TASKID _taskid = 0;
     httprequest*  _req  = nullptr;
     httpresponse* _rsp  = nullptr;
 };
@@ -38,8 +40,6 @@ public:
         : http_task(taskid, req) {}
 
     FORCE_INLINE void set_status(int status) { _status = status; }
-
-    virtual void run() = 0;
 
 protected:
     int _status = HTTP_STATUS_OK;
@@ -78,6 +78,7 @@ public:
 
         auto* httpserver = static_cast<httpserver_manager*>(_req->_manager);
         if(!httpserver) return;
+
         if(auto* dispatcher = httpserver->get_dispatcher())
         {
             dispatcher->handle(_req, _rsp);

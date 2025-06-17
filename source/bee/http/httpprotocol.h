@@ -1,9 +1,7 @@
 #pragma once
 #include "protocol.h"
 #include "http.h"
-#include "runnable.h"
 #include <bitset>
-#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <functional>
@@ -18,6 +16,7 @@ class httpsession;
 class httprequest;
 class httpresponse;
 class http_callback;
+class http_servlet_task;
 
 class httpprotocol : public protocol
 {
@@ -76,7 +75,6 @@ class httprequest : public httpprotocol
 {
 public:
     static constexpr PROTOCOLID TYPE = PROTOCOL_TYPE_HTTPREQUEST;
-    using REQUESTID = int64_t;
     using callback = http_callback;
 
     httprequest() = default;
@@ -113,9 +111,6 @@ public:
     const std::string& get_cookie(const std::string& key);
     void del_cookie(const std::string& key) { _cookies.erase(key); }
 
-    void set_requestid(int64_t requestid) { _requestid = requestid; }
-    int64_t get_requestid() const { return _requestid; }
-
     void set_callback(callback* cbk) { _callback = cbk; }
     callback* get_callback() const { return _callback; }
 
@@ -144,7 +139,6 @@ private:
     MAP_TYPE    _params;    // 请求参数map
     MAP_TYPE    _cookies;   // 请求cookie
 
-    REQUESTID   _requestid; // 请求ID
     callback*   _callback;  // http callback
 };
 
@@ -152,6 +146,8 @@ class httpresponse : public httpprotocol
 {
 public:
     static constexpr PROTOCOLID TYPE = PROTOCOL_TYPE_HTTPRESPONCE;
+    using task = http_servlet_task;
+
     httpresponse() = default;
     virtual ~httpresponse() = default;
 
@@ -174,6 +170,8 @@ private:
     HTTP_STATUS _status = HTTP_STATUS_OK;
     std::vector<std::string> _cookies;
     std::string _reason;
+
+    task* _task = nullptr; // 处理该响应的任务
 };
 
 } // namespace bee

@@ -43,7 +43,6 @@ protected:
 class httpclient_manager : public httpsession_manager
 {
 public:
-    using REQUESTID = httprequest::REQUESTID;
     using callback  = http_callback_func;
 
     virtual ~httpclient_manager() override;
@@ -84,7 +83,7 @@ public:
     int trace(const std::string& url, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
 
 protected:
-    void add_http_task(http_callback* task);
+    void start_task(http_callback* task);
     void handle_response(httpresponse* rsp);
     void recycle_connection(SID sid, bool is_keepalive);
     void try_new_connection();
@@ -100,12 +99,11 @@ protected:
     } _dns;
     uri _uri;
     size_t _request_timeout = 0;
-    REQUESTID _next_requestid = 0; // 下一个请求ID
     std::set<SID> _idle_connections; // 空闲的连接
-    std::map<SID, REQUESTID> _busy_connections; // 已发送请求，等待回应中的连接
-    std::deque<REQUESTID> _waiting_requests; // 待发送的请求
-    std::multimap<TIMETYPE, REQUESTID> _request_timeouts; // 请求超时列表
-    std::unordered_map<REQUESTID, httprequest*> _requests_cache; // 未完成的请求，包括已发送和未发送的
+    std::map<SID, HTTP_TASKID> _busy_connections; // 已发送请求，等待回应中的连接
+    std::deque<HTTP_TASKID> _waiting_requests; // 待发送的请求
+    std::multimap<TIMETYPE, HTTP_TASKID> _request_timeouts; // 请求超时列表
+    std::unordered_map<HTTP_TASKID, httprequest*> _requests_cache; // 未完成的请求，包括已发送和未发送的
 };
 
 class httpserver_manager : public httpsession_manager
@@ -120,8 +118,8 @@ public:
 
     FORCE_INLINE servlet_dispatcher* get_dispatcher() { return _dispatcher; }
 
-    void start_http_task(httprequest* req, httpresponse* rsp);
-    void finish_http_task(HTTP_TASKID taskid);
+    void start_task(httprequest* req, httpresponse* rsp);
+    void finish_task(HTTP_TASKID taskid);
     void send_response(SID sid, httpresponse* rsp);
 
 protected:

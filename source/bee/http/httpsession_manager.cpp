@@ -206,7 +206,6 @@ int httpclient_manager::send_request(HTTP_METHOD method, const uri& uri, callbac
     req->set_query(uri.get_query());
     req->set_fragment(uri.get_fragment());
     req->set_body(body);
-    req->set_requestid(++_next_requestid);
     req->set_callback(new http_functional_callback(++_next_http_taskid, req, std::move(cbk)));
 
     bool has_host = false;
@@ -241,19 +240,19 @@ int httpclient_manager::send_request(HTTP_METHOD method, const uri& uri, callbac
 
 int httpclient_manager::send_request(httprequest* req, callback cbk, TIMETYPE timeout/*ms*/)
 {
-    int requestid = req->get_requestid();
     TIMETYPE now = systemtime::get_time();
 
     bee::rwlock::wrscoped l(_locker);
-    if(requestid == 0)
+
+    if(!req->get_callback())
     {
-        requestid = ++_next_requestid;
-        req->set_requestid(requestid);
+
     }
 
-    _requests_cache.emplace(requestid, req);
-    _waiting_requests.emplace_back(requestid);
-    _request_timeouts.emplace(now + (timeout > 0 ? timeout : _request_timeout), requestid);
+    HTTP_TASKID taskid = req->get_callback()->get_taskid();
+    _requests_cache.emplace(taskid, req);
+    _waiting_requests.emplace_back(taskid);
+    _request_timeouts.emplace(now + (timeout > 0 ? timeout : _request_timeout), taskid);
 
     advance_all();
     
@@ -300,7 +299,7 @@ int httpclient_manager::trace(const std::string& url, callback cbk, TIMETYPE tim
     return send_request(HTTP_METHOD_TRACE, url, std::move(cbk), timeout, std::move(headers));
 }
 
-void httpclient_manager::add_http_task(http_callback* task)
+void httpclient_manager::start_task(http_callback* task)
 {
 #ifdef _REENTRANT
     threadpool::get_instance()->add_task(thread_group_idx(), task);
@@ -324,8 +323,8 @@ void httpclient_manager::handle_response(httpresponse* rsp)
         return;
     }
 
-    REQUESTID requestid = busy_iter->second;
-    auto req_iter = _requests_cache.find(requestid);
+    HTTP_TASKID taskid = busy_iter->second;
+    auto req_iter = _requests_cache.find(taskid);
     if(req_iter == _requests_cache.end())
     {
         _busy_connections.erase(busy_iter);
@@ -348,7 +347,7 @@ void httpclient_manager::handle_response(httpresponse* rsp)
     {
         task->set_response(rsp);
         task->set_status(rsp->get_status());
-        add_http_task(task);
+        start_task(task);
     }
 
     // 清理状态
@@ -422,8 +421,8 @@ void httpclient_manager::check_request_timeouts()
         if(iter->second <= now)
         {
             // 超时处理
-            REQUESTID requestid = iter->first;
-            auto req_iter = _requests_cache.find(requestid);
+            HTTP_TASKID taskid = iter->first;
+            auto req_iter = _requests_cache.find(taskid);
             if(req_iter != _requests_cache.end())
             {
                 if(httprequest* req = req_iter->second)
@@ -431,7 +430,7 @@ void httpclient_manager::check_request_timeouts()
                     if(auto* task = req->get_callback())
                     {
                         task->set_status(HTTP_STATUS_REQUEST_TIMEOUT);
-                        add_http_task(task);
+                        start_task(task);
                     }
                     _requests_cache.erase(req_iter);
                 }
@@ -450,13 +449,13 @@ void httpclient_manager::advance_all()
     while(!_waiting_requests.empty() && !_idle_connections.empty())
     {
         // 获取等待的请求和空闲连接
-        REQUESTID requestid = _waiting_requests.front();
+        HTTP_TASKID taskid = _waiting_requests.front();
         _waiting_requests.pop_front();
         
         const SID sid = *_idle_connections.begin();
         _idle_connections.erase(sid);
         
-        auto req_iter = _requests_cache.find(requestid);
+        auto req_iter = _requests_cache.find(taskid);
         if(req_iter == _requests_cache.end()) continue;
 
         httprequest* req = req_iter->second;
@@ -472,7 +471,7 @@ void httpclient_manager::advance_all()
             send_request_nolock(ses, *req);
 
             // 将连接标记为忙碌
-            _busy_connections[sid] = requestid;
+            _busy_connections[sid] = taskid;
         }
         else
         {
@@ -522,16 +521,25 @@ void httpserver_manager::send_response(SID sid, httpresponse* rsp)
     }
 }
 
-void httpserver_manager::start_http_task(httprequest* req, httpresponse* rsp)
+void httpserver_manager::start_task(httprequest* req, httpresponse* rsp)
 {
     HTTP_TASKID taskid = ++_next_http_taskid;
     auto* task = new http_servlet_task(taskid, req, rsp, systemtime::get_time() + _http_task_timeout);
 
-    bee::rwlock::wrscoped l(_locker);
-    _http_tasks.emplace(taskid, task);
+    {
+        bee::rwlock::wrscoped l(_locker);
+        _http_tasks.emplace(taskid, task);
+    }
+
+#ifdef _REENTRANT
+    threadpool::get_instance()->add_task(thread_group_idx(), task);
+#else
+    task->run();
+    task->destroy();
+#endif
 }
 
-void httpserver_manager::finish_http_task(HTTP_TASKID taskid)
+void httpserver_manager::finish_task(HTTP_TASKID taskid)
 {
     http_task* task = nullptr;
     {
@@ -546,13 +554,7 @@ void httpserver_manager::finish_http_task(HTTP_TASKID taskid)
         task = iter->second;
         _http_tasks.erase(iter);
     }
-
-#ifdef _REENTRANT
-    threadpool::get_instance()->add_task(thread_group_idx(), task);
-#else
-    task->run();
-    task->destroy();
-#endif
+    delete task;
 }
 
 void httpserver_manager::start_http_task_nolock(httprequest* req, httpresponse* rsp)
@@ -608,9 +610,8 @@ void httpserver_manager::handle_request(httprequest* req)
     // 初始化响应基本信息
     rsp->set_version(req->get_version());
     rsp->set_header("server", identity());
-    
-    
-    start_http_task(req, rsp);
+
+    start_task(req, rsp);
 }
 
 } // namespace bee
