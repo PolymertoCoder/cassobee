@@ -111,9 +111,6 @@ public:
     const std::string& get_cookie(const std::string& key);
     void del_cookie(const std::string& key) { _cookies.erase(key); }
 
-    void set_callback(callback* cbk) { _callback = cbk; }
-    callback* get_callback() const { return _callback; }
-
 protected:
     enum
     {
@@ -131,15 +128,13 @@ protected:
 
 private:
     friend class http_callback_task;
-    friend class httpclient_manager;
+    friend class httpclient;
     HTTP_METHOD _method;    // HTTP方法
     std::string _path;      // 请求路径
     std::string _query;     // 请求参数
     std::string _fragment;  // 请求fragment
     MAP_TYPE    _params;    // 请求参数map
     MAP_TYPE    _cookies;   // 请求cookie
-
-    callback*   _callback;  // http callback
 };
 
 class httpresponse : public httpprotocol
@@ -170,8 +165,6 @@ private:
     HTTP_STATUS _status = HTTP_STATUS_OK;
     std::vector<std::string> _cookies;
     std::string _reason;
-
-    task* _task = nullptr; // 处理该响应的任务
 };
 
 } // namespace bee

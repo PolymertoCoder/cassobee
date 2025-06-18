@@ -1,0 +1,7 @@
+#!/bin/bash
+
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
+cofigpath=$rootpath/config
+toolpath=$rootpath/tools
+
+$toolpath/config_tool/gen_ssl_cert -o $cofigpath/ssl -f

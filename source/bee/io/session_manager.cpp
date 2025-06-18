@@ -308,6 +308,12 @@ bool session_manager::init_ssl(bool is_server)
             return false;
         }
 
+        if(!SSL_CTX_check_private_key(_ssl_ctx))
+        {
+            local_log("session_manager %s private key dismatched with certificate.", identity());
+            return false;
+        }
+
         local_log("server SSL context initialized for %s", identity());
     }
     else // client

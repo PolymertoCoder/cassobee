@@ -6,6 +6,7 @@
 #include <functional>
 #include <thread>
 #include <ranges>
+#include <memory>
 
 #include "config.h"
 #include "marshal.h"
@@ -28,6 +29,7 @@
 #include "format.h"
 #include "util.h"
 #include "ExampleRPC.h"
+#include "httpserver.h"
 
 using namespace bee;
 
@@ -120,6 +122,10 @@ int main(int argc, char* argv[])
     auto clientmgr = client_manager::get_instance();
     clientmgr->init();
     clientmgr->listen();
+
+    auto http_server = std::make_unique<httpserver>();
+    http_server->init();
+    http_server->listen();
 
     local_log("nowtime1=%ld", systemtime::get_microseconds());
     sleep(3);

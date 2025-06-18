@@ -1,7 +1,7 @@
 #pragma once
 #include "runnable.h"
 #include "httpprotocol.h"
-#include "httpsession_manager.h"
+#include "httpserver.h"
 #include "servlet.h"
 
 namespace bee
@@ -10,9 +10,11 @@ namespace bee
 class http_task : public runnable
 {
 public:
-    http_task(HTTP_TASKID taskid, httprequest* req) : _taskid(taskid), _req(req) {}
+    http_task(HTTP_TASKID taskid, httprequest* req, TIMETYPE timeout)
+        : _taskid(taskid), _timeout(timeout), _req(req) {}
 
     FORCE_INLINE HTTP_TASKID get_taskid() const { return _taskid; }
+    FORCE_INLINE TIMETYPE get_timeout() const { return _timeout; }
     FORCE_INLINE void set_request(httprequest* req) { _req = req; }
     FORCE_INLINE httprequest* get_request() const { return _req; }
     FORCE_INLINE void set_response(httpresponse* rsp) { _rsp = rsp; }
@@ -28,7 +30,8 @@ public:
     }
 
 protected:
-    HTTP_TASKID _taskid = 0;
+    HTTP_TASKID _taskid  = 0;
+    TIMETYPE    _timeout = 0;
     httprequest*  _req  = nullptr;
     httpresponse* _rsp  = nullptr;
 };
@@ -36,8 +39,8 @@ protected:
 class http_callback : public http_task
 {
 public:
-    http_callback(HTTP_TASKID taskid, httprequest* req)
-        : http_task(taskid, req) {}
+    http_callback(HTTP_TASKID taskid, httprequest* req, TIMETYPE timeout)
+        : http_task(taskid, req, timeout) {}
 
     FORCE_INLINE void set_status(int status) { _status = status; }
 
@@ -48,8 +51,8 @@ protected:
 class http_functional_callback : public http_callback
 {
 public:
-    http_functional_callback(HTTP_TASKID taskid, httprequest* req, http_callback_func cbk)
-        : http_callback(taskid, req), _callback(std::move(cbk)) {}
+    http_functional_callback(HTTP_TASKID taskid, httprequest* req, TIMETYPE timeout, http_callback_func cbk)
+        : http_callback(taskid, req, timeout), _callback(std::move(cbk)) {}
 
     virtual void run() override
     {
@@ -68,25 +71,20 @@ class http_servlet_task : public http_task
 {
 public:
     http_servlet_task(HTTP_TASKID taskid, httprequest* req, httpresponse* rsp, TIMETYPE timeout)
-        : http_task(taskid, req), _timeout(timeout) {}
-
-    FORCE_INLINE TIMETYPE get_timeout() const { return _timeout; }
+        : http_task(taskid, req, timeout) { _rsp = rsp; }
 
     virtual void run() override
     {
         if(!_req || !_rsp) return;
 
-        auto* httpserver = static_cast<httpserver_manager*>(_req->_manager);
-        if(!httpserver) return;
+        auto* server = static_cast<httpserver*>(_req->_manager);
+        if(!server) return;
 
-        if(auto* dispatcher = httpserver->get_dispatcher())
+        if(auto* dispatcher = server->get_dispatcher())
         {
             dispatcher->handle(_req, _rsp);
         }
     }
-
-protected:
-    TIMETYPE _timeout = 0;
 };
 
 } // namesapce bee

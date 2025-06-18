@@ -1,0 +1,142 @@
+#!/bin/bash
+
+# 增强版 SSL 证书生成脚本
+# 支持自定义参数生成 cert.pem 和 key.pem
+
+# 默认参数值
+COMMON_NAME="localhost"
+COUNTRY="US"
+STATE="California"
+LOCALITY="San Francisco"
+ORGANIZATION="My Organization"
+ORGANIZATIONAL_UNIT="IT Department"
+EMAIL="admin@example.com"
+DAYS_VALID=365
+KEY_SIZE=2048
+OUTPUT_DIR="."
+FORCE_OVERWRITE=false
+
+# 显示帮助信息
+show_help() {
+    echo "用法: $0 [选项]"
+    echo "选项:"
+    echo "  -c, --cn <名称>        通用名称 (默认: localhost)"
+    echo "  -O, --org <组织>       组织名称 (默认: My Organization)"
+    echo "  -u, --unit <部门>      部门名称 (默认: IT Department)"
+    echo "  -l, --locality <城市>  城市名称 (默认: San Francisco)"
+    echo "  -s, --state <州/省>    州/省名称 (默认: California)"
+    echo "  -C, --country <国家>   国家代码 (2字母) (默认: US)"
+    echo "  -e, --email <邮箱>     管理员邮箱 (默认: admin@example.com)"
+    echo "  -d, --days <天数>      证书有效期 (默认: 365)"
+    echo "  -k, --key-size <大小>  RSA 密钥大小 (默认: 2048)"
+    echo "  -o, --output <目录>    输出目录 (默认: 当前目录)"
+    echo "  -f, --force            覆盖已存在的文件"
+    echo "  -h, --help             显示此帮助信息"
+    exit 0
+}
+
+# 解析命令行参数
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -c|--cn)
+            COMMON_NAME="$2"
+            shift 2
+            ;;
+        -O|--org)
+            ORGANIZATION="$2"
+            shift 2
+            ;;
+        -u|--unit)
+            ORGANIZATIONAL_UNIT="$2"
+            shift 2
+            ;;
+        -l|--locality)
+            LOCALITY="$2"
+            shift 2
+            ;;
+        -s|--state)
+            STATE="$2"
+            shift 2
+            ;;
+        -C|--country)
+            COUNTRY="$2"
+            shift 2
+            ;;
+        -e|--email)
+            EMAIL="$2"
+            shift 2
+            ;;
+        -d|--days)
+            DAYS_VALID="$2"
+            shift 2
+            ;;
+        -k|--key-size)
+            KEY_SIZE="$2"
+            shift 2
+            ;;
+        -o|--output)
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        -f|--force)
+            FORCE_OVERWRITE=true
+            shift
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *)
+            echo "未知选项: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# 创建输出目录
+mkdir -p "$OUTPUT_DIR"
+
+# 设置文件路径
+KEY_FILE="$OUTPUT_DIR/key.pem"
+CERT_FILE="$OUTPUT_DIR/cert.pem"
+CSR_FILE="$OUTPUT_DIR/csr.pem"
+
+# 检查文件是否已存在
+if [ "$FORCE_OVERWRITE" = false ]; then
+    if [ -f "$KEY_FILE" ] || [ -f "$CERT_FILE" ]; then
+        echo "错误: 证书文件已存在。使用 -f 选项覆盖或选择其他输出目录。"
+        exit 1
+    fi
+fi
+
+# 生成私钥
+echo "生成 ${KEY_SIZE} 位 RSA 私钥到 $KEY_FILE..."
+openssl genrsa -out "$KEY_FILE" "$KEY_SIZE"
+
+# 生成证书签名请求 (CSR)
+echo "生成证书签名请求 (CSR)..."
+openssl req -new -key "$KEY_FILE" -out "$CSR_FILE" \
+  -subj "/C=$COUNTRY/ST=$STATE/L=$LOCALITY/O=$ORGANIZATION/OU=$ORGANIZATIONAL_UNIT/CN=$COMMON_NAME/emailAddress=$EMAIL"
+
+# 生成自签名证书
+echo "生成有效期 ${DAYS_VALID} 天的自签名证书到 $CERT_FILE..."
+openssl x509 -req -days "$DAYS_VALID" -in "$CSR_FILE" -signkey "$KEY_FILE" -out "$CERT_FILE"
+
+# 清理临时文件
+echo "清理临时文件..."
+rm -f "$CSR_FILE"
+
+# 验证证书
+echo ""
+echo "证书生成完成！"
+echo "生成的私钥文件: $KEY_FILE"
+echo "生成的证书文件: $CERT_FILE"
+echo ""
+echo "证书信息:"
+openssl x509 -in "$CERT_FILE" -text -noout | grep -E "Subject:|Not Before|Not After|Public-Key"
+
+# 设置文件权限
+chmod 600 "$KEY_FILE"
+chmod 644 "$CERT_FILE"
+
+echo "文件权限已设置"
