@@ -6,6 +6,7 @@
 
 #include "glog.h"
 #include "event.h"
+#include "lock.h"
 #include "systemtime.h"
 #include "timewheel.h"
 #include "demultiplexer.h"
@@ -16,8 +17,13 @@
 namespace bee
 {
 
+reactor* reactor::_instance = nullptr;
+bee::mutex reactor::_instance_mutex;
+
 reactor::~reactor()
 {
+    stop();
+
     delete _dispatcher;
     for(auto& [fd, evt]: _io_events)
     {
@@ -34,6 +40,15 @@ reactor::~reactor()
         if(evt->is_close()) continue;
         delete evt;
     }
+    for(auto data : _sub_reactors)
+    {
+        if(data.th->joinable())
+        {
+            data.th->join();
+        }
+        delete data.th;
+        delete data.impl;
+    }
 }
 
 void reactor::init()
@@ -43,8 +58,8 @@ void reactor::init()
     {
         _dispatcher = new epoller();
     }
+    ASSERT(_dispatcher);
     _dispatcher->init();
-    _stop = false;
     _use_timer_thread = cfg->get<bool>("reactor", "use_timer_thread");
     if(!_use_timer_thread)
     {
@@ -54,11 +69,28 @@ void reactor::init()
     set_signal(SIGPIPE, SIG_IGN);
     add_event(new sigio_event());
     add_event(new control_event());
+
+    if(is_main_reactor())
+    {
+        size_t sub_reactor_count = cfg->get<size_t>("reactor", "sub_reactor_count", 0);
+        for(size_t idx = 0; idx < sub_reactor_count; ++idx)
+        {
+            sub_reactor data;
+            data.impl = new reactor;
+            data.impl->init();
+            data.th = new std::thread([impl = data.impl]()
+            {
+                impl->run();
+                impl->destroy();
+            });
+        }
+    }
 }
 
-int reactor::run()
+void reactor::run()
 {
-    if(_dispatcher == nullptr) return -1;
+    if(_dispatcher == nullptr) return;
+    _stop = false;
 
     while(!_stop)
     {
@@ -75,7 +107,6 @@ int reactor::run()
         handle_timer_event();
         //local_log("reactor::run end\n");
     }
-    return 0;
 }
 
 void reactor::stop()
@@ -89,8 +120,13 @@ void reactor::wakeup()
     _dispatcher->wakeup();
 }
 
-void reactor::add_event(event* ev)
+void reactor::add_event(event* ev, bool dispatch)
 {
+    if(dispatch)
+    {
+
+        return;
+    }
     _changelist.write(ev);
     wakeup();
 }
@@ -118,6 +154,16 @@ event* reactor::get_event(int fd)
 auto& reactor::get_wakeup()
 {
     return _dispatcher->get_wakeup();
+}
+
+reactor* reactor::get_instance()
+{
+    if(_instance == nullptr)
+    {
+        bee::mutex::scoped l(_instance_mutex);
+        if(_instance == nullptr) _instance = new reactor;
+    }
+    return _instance;
 }
 
 void reactor::load_event()
@@ -230,6 +276,28 @@ void reactor::handle_timer_event()
             add_event(tm);
         }
     }
+}
+
+void reactor::create_load_balancer()
+{
+    load_balance_strategy<sub_reactor>* strategy = nullptr;
+    switch(_strategy)
+    {
+        case LOAD_BALANCE_STRATEGY::ROUND_ROBIN:
+        {
+            strategy = load_balance_strategy_factory<sub_reactor>::create("round_robin_strategy<sub_reactor>");
+        }
+        case LOAD_BALANCE_STRATEGY::RANDOM:
+        {
+            strategy = load_balance_strategy_factory<sub_reactor>::create("random_strategy<sub_reactor>");
+        } break;
+        case LOAD_BALANCE_STRATEGY::LEAST_CONNECTIONS:
+        {
+            strategy = load_balance_strategy_factory<sub_reactor>::create("least_connection_strategy<sub_reactor>");
+        } break;
+        default: { break; }
+    }
+    _balancer = new load_balancer<sub_reactor>(std::unique_ptr<load_balance_strategy<sub_reactor>>(strategy));
 }
 
 std::thread start_threadpool_and_timer()

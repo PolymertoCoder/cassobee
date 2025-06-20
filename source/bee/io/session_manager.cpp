@@ -88,6 +88,12 @@ void session_manager::init()
     }
 }
 
+void session_manager::set_addr(address* addr)
+{
+    delete _addr;
+    _addr = addr;
+}
+
 void session_manager::check_timeouts()
 {
     bee::rwlock::rdscoped l(_locker);

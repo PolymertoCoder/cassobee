@@ -1,5 +1,7 @@
 #pragma once
+#ifdef _REENTRANT
 #include <atomic>
+#endif
 #include <set>
 #include "event.h"
 

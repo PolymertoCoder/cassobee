@@ -318,8 +318,9 @@ bool activeio_event::handle_event(int active_events)
     if(_base == nullptr) return false;
 
     struct sockaddr* addr = _ses->get_manager()->get_addr()->addr();
-    if(connect(_fd, addr, sizeof(*addr)) < 0)
+    while(connect(_fd, addr, sizeof(*addr)) < 0)
     {
+        if(errno == EINTR) continue;
         if(errno != EINPROGRESS)
         {
             perror("connect");
