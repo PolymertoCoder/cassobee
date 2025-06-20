@@ -265,14 +265,13 @@ bool httpclient::refresh_dns(const std::string& uri_str)
 
     _dns.host = _uri.get_host();
     _dns.port = _uri.get_port();
-    address* addr = address::lookup_any(_dns.host, AF_INET, SOCK_STREAM);
+    address* addr = address::lookup_any(_dns.host, _family, _socktype);
     if(!addr)
     {
         local_log("httpclient %s refresh_dns failed, cant find address %s", identity(), _dns.host.data());
         return false;
     }
-    delete _addr;
-    _addr = addr;
+    set_addr(addr);
 
     local_log("httpclient %s refresh_dns success, %s --> %s:%d", identity(), uri_str.data(), _dns.host.data(), _dns.port);
     return true;

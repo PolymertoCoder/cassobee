@@ -24,6 +24,7 @@ public:
     using MAP_TYPE = std::unordered_map<std::string, std::string>;
 
     httpprotocol() = default;
+    httpprotocol(PROTOCOLID type) : protocol(type) {}
     virtual ~httpprotocol() = default;
 
     static bool getline(octetsstream& os, std::string& str, char declm = '\n');
@@ -78,6 +79,7 @@ public:
     using callback = http_callback;
 
     httprequest() = default;
+    httprequest(PROTOCOLID type) : httpprotocol(type) {}
     virtual ~httprequest() = default;
 
     virtual PROTOCOLID get_type() const override { return TYPE; }
@@ -144,6 +146,7 @@ public:
     using task = http_servlet_task;
 
     httpresponse() = default;
+    httpresponse(PROTOCOLID type) : httpprotocol(type) {}
     virtual ~httpresponse() = default;
 
     virtual PROTOCOLID get_type() const override { return TYPE; }
@@ -166,5 +169,8 @@ private:
     std::vector<std::string> _cookies;
     std::string _reason;
 };
+
+static httprequest  __register_httprequest(httprequest::TYPE);
+static httpresponse __register_httpresponse(httpresponse::TYPE);
 
 } // namespace bee

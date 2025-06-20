@@ -15,6 +15,7 @@ public:
 
 class static_runnable : public runnable
 {
+public:
     virtual void destroy() override {}
 };
 

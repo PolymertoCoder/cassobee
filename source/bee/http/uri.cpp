@@ -23,6 +23,7 @@ void uri::clear()
 
 // 格式：schema:[//authority]path[?query][#fragment]
 // 其中 authority = [userinfo@]host[:port]
+// 例如 https://user:pass@example.com:8080/path/to/resource?query=example#fragment
 void uri::parse(const std::string& uri_str)
 {
     clear();
@@ -166,7 +167,7 @@ bool uri::is_default_port() const
     if(_port == 0) return true;
     if(_schema == "http" || _schema == "ws")
     {
-        return _port == 80;
+        return _port == 8080;
     }
     else if(_schema == "https" || _schema == "wss")
     {
