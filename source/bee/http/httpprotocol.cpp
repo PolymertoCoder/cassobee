@@ -16,6 +16,9 @@
 namespace bee
 {
 
+static httprequest  __register_httprequest(httprequest::TYPE);
+static httpresponse __register_httpresponse(httpresponse::TYPE);
+
 // httpprotocol implementation
 
 bool httpprotocol::getline(octetsstream& os, std::string& str, char declm)

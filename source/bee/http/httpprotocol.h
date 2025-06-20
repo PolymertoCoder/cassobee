@@ -170,7 +170,4 @@ private:
     std::string _reason;
 };
 
-static httprequest  __register_httprequest(httprequest::TYPE);
-static httpresponse __register_httpresponse(httpresponse::TYPE);
-
 } // namespace bee
