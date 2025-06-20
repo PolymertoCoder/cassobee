@@ -62,7 +62,7 @@ protected:
         {
             local_log("factory %s cannot find product constructor: \"%s(%s)\".",
                     std::string(factory_name).data(), std::string(product_wrapper<I>::value).data(),
-                    bee::join(type_name_string<create_params>()...).data());
+                    bee::join(", ", type_name_string<create_params>()...).data());
         }
         return nullptr;
     }

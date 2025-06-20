@@ -1,4 +1,5 @@
 #pragma once
+#include "factory.h"
 #include <vector>
 #include <mutex>
 #include <atomic>
@@ -9,6 +10,13 @@
 
 namespace bee
 {
+
+enum LOAD_BALANCE_STRATEGY
+{
+    ROUND_ROBIN,
+    RANDOM,
+    LEAST_CONNECTIONS,
+};
 
 // 负载均衡策略接口
 template <typename T>
@@ -94,14 +102,14 @@ private:
 
 // 主负载均衡器
 template <typename T>
-class load_balencer
+class load_balancer
 {
 public:
     // 使用默认策略（轮询）
-    load_balencer() : _strategy(std::make_unique<round_robin_strategy<T>>()) {}
+    load_balancer() : _strategy(std::make_unique<round_robin_strategy<T>>()) {}
     
     // 使用自定义策略
-    explicit load_balencer(std::unique_ptr<load_balance_strategy<T>> strategy)
+    explicit load_balancer(std::unique_ptr<load_balance_strategy<T>> strategy)
         : _strategy(std::move(strategy)) {}
     
     // 添加资源
@@ -169,5 +177,11 @@ private:
     std::unique_ptr<load_balance_strategy<T>> _strategy;
     mutable std::mutex _mutex;
 };
+
+template<typename T>
+using load_balance_strategy_factory = factory_template<load_balance_strategy<T>,
+                                                       round_robin_strategy<T>,
+                                                       random_strategy<T>,
+                                                       least_connections_strategy<T>>;
 
 } // namespace bee
