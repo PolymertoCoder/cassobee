@@ -1,6 +1,5 @@
 #pragma once
 #include "servlet.h"
-#include "config.h"
 
 namespace bee
 {

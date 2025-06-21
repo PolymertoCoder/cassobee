@@ -20,12 +20,18 @@ public:
     const std::string& get_name() const { return _name; }
 
     httpserver* get_manager() const;
-    void reply(const std::string& result = "");
+    void reply(const std::string& result = ""); // 默认是明文
+    void reply(HTTP_CONTENT_TYPE content_type, const std::string& result);
+    FORCE_INLINE void reply_html(const std::string& result) { reply(HTTP_CONTENT_TYPE_HTML, result); }
+    FORCE_INLINE void reply_css(const std::string& result) { reply(HTTP_CONTENT_TYPE_CSS, result); }
+    FORCE_INLINE void reply_xml(const std::string& result) { reply(HTTP_CONTENT_TYPE_XML, result); }
+    FORCE_INLINE void reply_json(const std::string& result) { reply(HTTP_CONTENT_TYPE_JSON, result); }
+    FORCE_INLINE void reply_javascript(const std::string& result) { reply(HTTP_CONTENT_TYPE_JS, result); }
 
 protected:
     virtual void on_init();
+    virtual void on_finish(HTTP_CONTENT_TYPE content_type, const std::string& result);
     virtual void on_error(int retcode);
-    virtual void on_finish(const std::string& result = "");
     virtual void on_timeout();
 
     std::string get_retcode_message(int retcode);

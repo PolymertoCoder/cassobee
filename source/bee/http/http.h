@@ -10,16 +10,16 @@ class ostringstream;
 using http_callback_func = std::function<void(int/*status*/, class httprequest*, class httpresponse*)>;
 
 #define HTTP_METHOD_MAP \
-    X(0, UNKNOWN, "Unknown") \
-    X(1, GET, "GET") \
-    X(2, POST, "POST") \
-    X(3, PUT, "PUT") \
-    X(4, DELETE, "DELETE") \
-    X(5, HEAD, "HEAD") \
-    X(6, OPTIONS, "OPTIONS") \
-    X(7, PATCH, "PATCH") \
-    X(8, TRACE, "TRACE") \
-    X(9, CONNECT, "CONNECT")
+    X(UNKNOWN, "Unknown") \
+    X(GET, "GET") \
+    X(POST, "POST") \
+    X(PUT, "PUT") \
+    X(DELETE, "DELETE") \
+    X(HEAD, "HEAD") \
+    X(OPTIONS, "OPTIONS") \
+    X(PATCH, "PATCH") \
+    X(TRACE, "TRACE") \
+    X(CONNECT, "CONNECT")
 
 #define HTTP_STATUS_MAP \
     X(0, UNKNOWN, "Unknown") \
@@ -97,10 +97,41 @@ using http_callback_func = std::function<void(int/*status*/, class httprequest*,
     X(9, ORIGIN, "Origin")
 
 #define HTTP_VERSION_MAP \
-    X(0, UNKNOWN, "Unknown") \
-    X(1, 1_0, "HTTP/1.0") \
-    X(2, 1_1, "HTTP/1.1") \
-    X(3, 2_0, "HTTP/2.0")
+    X(UNKNOWN, "Unknown") \
+    X(1_0, "HTTP/1.0") \
+    X(1_1, "HTTP/1.1") \
+    X(2_0, "HTTP/2.0")
+
+#define HTTP_CONTENT_TYPE_MAP                            \
+    X(PLAIN,           "text/plain")                     \
+    X(HTML,            "text/html")                      \
+    X(CSS,             "text/css")                       \
+    X(MARKDOWN,        "text/markdown")                  \
+    X(XML_TEXT,        "text/xml")                       \
+    X(JS,              "application/javascript")         \
+    X(XML,             "application/xml")                \
+    X(JSON,            "application/json")               \
+    X(FORM_URLENCODED, "application/x-www-form-urlencoded") \
+    X(OCTET_STREAM,    "application/octet-stream")       \
+    X(PDF,             "application/pdf")                \
+    X(ZIP,             "application/zip")                \
+    X(XLS,             "application/vnd.ms-excel")       \
+    X(XLSX,            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") \
+    X(PNG,             "image/png")                      \
+    X(JPEG,            "image/jpeg")                     \
+    X(GIF,             "image/gif")                      \
+    X(WEBP,            "image/webp")                     \
+    X(SVG,             "image/svg+xml")                  \
+    X(ICO,             "image/x-icon")                   \
+    X(MP3,             "audio/mpeg")                     \
+    X(WAV,             "audio/wav")                      \
+    X(OGG_AUDIO,       "audio/ogg")                      \
+    X(MP4,             "video/mp4")                      \
+    X(WEBM,            "video/webm")                     \
+    X(OGG_VIDEO,       "video/ogg")                      \
+    X(FORM_DATA,       "multipart/form-data")            \
+    X(BYTERANGES,      "multipart/byteranges")
+
 
 /*
 UNKNOWN = 0, // 未知方法
@@ -116,7 +147,7 @@ CONNECT,     // HTTP/1.1协议中预留给能够将连接改为管道方式的�
 */
 enum HTTP_METHOD
 {
-#define X(code, name, desc) HTTP_METHOD_##name = code, // NOLINT
+#define X(name, desc) HTTP_METHOD_##name, // NOLINT
     HTTP_METHOD_MAP
 #undef X
 };
@@ -137,8 +168,15 @@ enum HTTP_RESULT
 
 enum HTTP_VERSION
 {
-#define X(code, name, desc) HTTP_VERSION_##name = code, // NOLINT
+#define X(name, desc) HTTP_VERSION_##name, // NOLINT
     HTTP_VERSION_MAP
+#undef X
+};
+
+enum HTTP_CONTENT_TYPE
+{
+#define X(name, desc) HTTP_CONTENT_TYPE_##name, // NOLINT
+    HTTP_CONTENT_TYPE_MAP
 #undef X
 };
 
@@ -165,5 +203,7 @@ std::string http_result_to_string(HTTP_RESULT result);
 
 std::string http_version_to_string(HTTP_VERSION version);
 HTTP_VERSION string_to_http_version(const std::string& version);
+
+std::string http_content_type_to_string(HTTP_CONTENT_TYPE content_type);
 
 } // namespace bee

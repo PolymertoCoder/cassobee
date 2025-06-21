@@ -1,5 +1,6 @@
 #include "config_servlet.h"
 #include "httpprotocol.h"
+#include "config.h"
 
 namespace bee
 {

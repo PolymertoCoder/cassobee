@@ -3,6 +3,7 @@
 #include "http_task.h"
 #include "glog.h"
 #include "httpprotocol.h"
+#include "log.h"
 #include "servlet.h"
 #include "systemtime.h"
 #ifdef _REENTRANT
@@ -38,7 +39,12 @@ void httpserver::handle_protocol(httpprotocol* protocol)
 
 void httpserver::reply(HTTP_TASKID taskid, const std::string& result)
 {
-    finish_task(taskid, result);
+    reply(taskid, HTTP_CONTENT_TYPE_PLAIN, result);
+}
+
+void httpserver::reply(HTTP_TASKID taskid, HTTP_CONTENT_TYPE content_type, const std::string& result)
+{
+    finish_task(taskid, content_type, result);
 }
 
 void httpserver::start_task(httprequest* req, httpresponse* rsp)
@@ -73,7 +79,7 @@ auto httpserver::find_task(HTTP_TASKID taskid) -> servlet*
     return iter != _http_tasks.end() ? static_cast<servlet*>(iter->second) : nullptr;
 }
 
-void httpserver::finish_task(HTTP_TASKID taskid, const std::string& result)
+void httpserver::finish_task(HTTP_TASKID taskid, HTTP_CONTENT_TYPE content_type, const std::string& result)
 {
     bee::rwlock::wrscoped l(_locker);
     auto iter = _http_tasks.find(taskid);
@@ -84,7 +90,7 @@ void httpserver::finish_task(HTTP_TASKID taskid, const std::string& result)
     }
     servlet* task = static_cast<servlet*>(iter->second);
     _http_tasks.erase(iter);
-    task->on_finish(result);
+    task->on_finish(content_type, result);
 }
 
 void httpserver::handle_request(httprequest* req)
@@ -94,6 +100,22 @@ void httpserver::handle_request(httprequest* req)
     // 初始化响应基本信息
     rsp->set_version(req->get_version());
     rsp->set_header("server", identity());
+
+    constexpr static const char* cookie_keys[] = {
+        "sessionid", "token", "username", "password",
+        "email", "phone", "address", "city", "state"
+    };
+    for (const std::string& key : cookie_keys)
+    {
+        if(req->has_cookie(key))
+        {
+            rsp->set_cookie(key, req->get_cookie(key), /*expire*/ 3600, "/", "", true, true);
+        }
+    }
+
+    ostringstream oss;
+    req->dump(oss);
+    local_log("httpserver::handle_request, %s", oss.str().data());
 
     start_task(req, rsp);
 }
@@ -106,8 +128,9 @@ void httpserver::check_timeouts()
     {
         if(now >= iter->second->get_timeout())
         {
+            auto* task = static_cast<servlet*>(iter->second);
             local_log("httpserver %s check_http_task_timeouts, taskid %lu timeout.", identity(), iter->second->get_taskid());
-            iter->second->run();
+            task->on_timeout();
             iter = _http_tasks.erase(iter);
         }
         else

@@ -1,8 +1,6 @@
 #pragma once
 #include "httpsession.h"
 #include "session_manager.h"
-#include "types.h"
-#include <unordered_map>
 
 namespace bee
 {

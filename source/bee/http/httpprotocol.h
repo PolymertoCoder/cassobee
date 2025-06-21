@@ -112,6 +112,7 @@ public:
 
     FORCE_INLINE void set_cookie(const std::string& key, const std::string& value) { _cookies[key] = value; }
     const std::string& get_cookie(const std::string& key);
+    FORCE_INLINE bool has_cookie(const std::string& key) const { return _cookies.contains(key); }
     FORCE_INLINE void del_cookie(const std::string& key) { _cookies.erase(key); }
 
 protected:

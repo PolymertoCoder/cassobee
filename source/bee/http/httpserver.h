@@ -18,11 +18,12 @@ public:
     virtual void handle_protocol(httpprotocol* protocol) override;
 
     void reply(HTTP_TASKID taskid, const std::string& result = "");
+    void reply(HTTP_TASKID taskid, HTTP_CONTENT_TYPE content_type = HTTP_CONTENT_TYPE_PLAIN, const std::string& result = "");
 
 protected:
     void start_task(httprequest* req, httpresponse* rsp);
     auto find_task(HTTP_TASKID taskid) -> servlet*;
-    void finish_task(HTTP_TASKID taskid, const std::string& result = "");
+    void finish_task(HTTP_TASKID taskid, HTTP_CONTENT_TYPE content_type = HTTP_CONTENT_TYPE_PLAIN, const std::string& result = "");
 
     void handle_request(httprequest* req);
     void check_timeouts();

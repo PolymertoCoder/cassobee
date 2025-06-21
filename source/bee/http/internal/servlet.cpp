@@ -29,15 +29,22 @@ void servlet::reply(const std::string& result)
     static_cast<httpserver*>(_req->_manager)->reply(_taskid, result);
 }
 
-void servlet::on_init()
+void servlet::reply(HTTP_CONTENT_TYPE content_type, const std::string& result)
 {
-    
+    static_cast<httpserver*>(_req->_manager)->reply(_taskid, content_type, result);
 }
 
-void servlet::on_error(int retcode)
+void servlet::on_init()
 {
-    _rsp->set_status(HTTP_STATUS_INTERNAL_SERVER_ERROR);
-    _rsp->set_body(get_retcode_message(HTTP_STATUS_INTERNAL_SERVER_ERROR));
+}
+
+void servlet::on_finish(HTTP_CONTENT_TYPE content_type, const std::string& result)
+{
+    if(result.size())
+    {
+        _rsp->set_header("Content-Type", http_content_type_to_string(content_type));
+        _rsp->set_body(result);
+    }
 
     httpserver* http_server = get_manager();
     if(session* ses = http_server->find_session_nolock(_req->_sid))
@@ -46,9 +53,11 @@ void servlet::on_error(int retcode)
     }
 }
 
-void servlet::on_finish(const std::string& result)
+void servlet::on_error(int retcode)
 {
-    if(result.size()) _rsp->set_body(result);
+    _rsp->set_status(HTTP_STATUS_INTERNAL_SERVER_ERROR);
+    _rsp->set_header("Content-Type", http_content_type_to_string(HTTP_CONTENT_TYPE_PLAIN));
+    _rsp->set_body(get_retcode_message(HTTP_STATUS_INTERNAL_SERVER_ERROR));
 
     httpserver* http_server = get_manager();
     if(session* ses = http_server->find_session_nolock(_req->_sid))
@@ -60,6 +69,7 @@ void servlet::on_finish(const std::string& result)
 void servlet::on_timeout()
 {
     _rsp->set_status(HTTP_STATUS_SERVICE_UNAVAILABLE);
+    _rsp->set_header("Content-Type", http_content_type_to_string(HTTP_CONTENT_TYPE_PLAIN));
     _rsp->set_body(get_retcode_message(HTTP_STATUS_SERVICE_UNAVAILABLE));
 
     httpserver* http_server = get_manager();

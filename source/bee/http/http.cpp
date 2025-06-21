@@ -7,7 +7,7 @@ namespace bee
 
 std::string http_method_to_string(HTTP_METHOD method)
 {
-#define X(code, name, string) \
+#define X(name, string) \
     case HTTP_METHOD_##name: return #string;
     switch(method)
     {
@@ -19,7 +19,7 @@ std::string http_method_to_string(HTTP_METHOD method)
 
 HTTP_METHOD string_to_http_method(const std::string& method)
 {
-#define X(code, name, string) \
+#define X(name, string) \
     if(method.compare(#string) == 0) return HTTP_METHOD_##name;
     HTTP_METHOD_MAP
 #undef X
@@ -61,7 +61,7 @@ std::string http_result_to_string(HTTP_RESULT result)
 
 std::string http_version_to_string(HTTP_VERSION version)
 {
-#define X(code, name, string) \
+#define X(name, string) \
     case HTTP_VERSION_##name: return #string;
     switch(version)
     {
@@ -73,11 +73,23 @@ std::string http_version_to_string(HTTP_VERSION version)
 
 HTTP_VERSION string_to_http_version(const std::string& version)
 {
-#define X(code, name, string) \
+#define X(name, string) \
     if(version.compare(#string) == 0) return HTTP_VERSION_##name;
     HTTP_VERSION_MAP
 #undef X
     return HTTP_VERSION::HTTP_VERSION_UNKNOWN;
+}
+
+std::string http_content_type_to_string(HTTP_CONTENT_TYPE content_type)
+{
+#define X(name, string) \
+    case HTTP_CONTENT_TYPE_##name: return #string;
+    switch(content_type)
+    {
+        HTTP_CONTENT_TYPE_MAP
+        default: return "Unknown";
+    }
+#undef X
 }
 
 } // namespace bee

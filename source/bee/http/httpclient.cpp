@@ -215,6 +215,10 @@ void httpclient::handle_response(httpresponse* rsp)
     httprequest* req = task->get_request();
     ASSERT(req);
 
+    ostringstream oss;
+    rsp->dump(oss);
+    local_log("httpclient::handle_response, %s", oss.str().data());
+
     // 处理响应
     task->set_response(rsp);
     task->set_status(rsp->get_status());
@@ -251,6 +255,7 @@ void httpclient::try_new_connection()
 {
     if(!check_connection_count()) return;
     connect();
+    local_log("httpclient %s try_new_connection.", identity());
 }
 
 bool httpclient::refresh_dns(const std::string& uri_str)
