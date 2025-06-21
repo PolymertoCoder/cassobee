@@ -1,6 +1,7 @@
 #pragma once
 #include "protocol.h"
 #include "http.h"
+#include "types.h"
 #include <bitset>
 #include <string>
 #include <unordered_map>
@@ -38,24 +39,24 @@ public:
     static httpresponse* get_response();
 
     // httpprotocol common method
-    void set_websocket(bool is_websocket) { _is_websocket = is_websocket; }
-    bool is_websocket() const { return _is_websocket; }
+    FORCE_INLINE void set_websocket(bool is_websocket) { _is_websocket = is_websocket; }
+    FORCE_INLINE bool is_websocket() const { return _is_websocket; }
 
-    void set_keepalive(bool is_keepalive) { _is_keepalive = is_keepalive; }
-    bool is_keepalive() const { return _is_keepalive; }
+    FORCE_INLINE void set_keepalive(bool is_keepalive) { _is_keepalive = is_keepalive; }
+    FORCE_INLINE bool is_keepalive() const { return _is_keepalive; }
 
-    void set_version(HTTP_VERSION version) { _version = version; }
-    HTTP_VERSION get_version() const { return _version; }
+    FORCE_INLINE void set_version(HTTP_VERSION version) { _version = version; }
+    FORCE_INLINE HTTP_VERSION get_version() const { return _version; }
 
     void set_body(const std::string& body);
-    const std::string& get_body() const { return _body; }
+    FORCE_INLINE const std::string& get_body() const { return _body; }
 
     void set_header(const std::string& key, const std::string& value);
-    void del_header(const std::string& key) { _headers.erase(key); }
+    FORCE_INLINE void del_header(const std::string& key) { _headers.erase(key); }
     const std::string& get_header(const std::string& key) const;
-    const MAP_TYPE& get_headers() const { return _headers; }
-    size_t get_header_count() const { return _headers.size(); }
-    bool has_header(const std::string& key) const { return _headers.contains(key); }
+    FORCE_INLINE const MAP_TYPE& get_headers() const { return _headers; }
+    FORCE_INLINE size_t get_header_count() const { return _headers.size(); }
+    FORCE_INLINE bool has_header(const std::string& key) const { return _headers.contains(key); }
 
 protected:
     void on_parse_header_finished();
@@ -93,25 +94,25 @@ public:
     // httprequest method
     void init_param();
 
-    void set_method(HTTP_METHOD method) { _method = method; }
-    HTTP_METHOD get_method() const { return _method; }
+    FORCE_INLINE void set_method(HTTP_METHOD method) { _method = method; }
+    FORCE_INLINE HTTP_METHOD get_method() const { return _method; }
 
-    void set_path(const std::string& path) { _path = path; }
-    const std::string& get_path() const { return _path; }
+    FORCE_INLINE void set_path(const std::string& path) { _path = path; }
+    FORCE_INLINE const std::string& get_path() const { return _path; }
 
-    void set_query(const std::string& query) { _query = query; }
-    const std::string& get_query() const { return _query; }
+    FORCE_INLINE void set_query(const std::string& query) { _query = query; }
+    FORCE_INLINE const std::string& get_query() const { return _query; }
 
-    void set_fragment(const std::string& fragment) { _fragment = fragment; }
-    const std::string& get_fragment() const { return _fragment; }
+    FORCE_INLINE void set_fragment(const std::string& fragment) { _fragment = fragment; }
+    FORCE_INLINE const std::string& get_fragment() const { return _fragment; }
 
-    void set_param(const std::string& key, const std::string& value) { _params[key] = value; }
+    FORCE_INLINE void set_param(const std::string& key, const std::string& value) { _params[key] = value; }
     const std::string& get_param(const std::string& key);
-    void del_param(const std::string& key) { _params.erase(key); }
+    FORCE_INLINE void del_param(const std::string& key) { _params.erase(key); }
 
-    void set_cookie(const std::string& key, const std::string& value) { _cookies[key] = value; }
+    FORCE_INLINE void set_cookie(const std::string& key, const std::string& value) { _cookies[key] = value; }
     const std::string& get_cookie(const std::string& key);
-    void del_cookie(const std::string& key) { _cookies.erase(key); }
+    FORCE_INLINE void del_cookie(const std::string& key) { _cookies.erase(key); }
 
 protected:
     enum
@@ -158,8 +159,8 @@ public:
     virtual octetsstream& unpack(octetsstream& os) override;
 
     // httpresponse method
-    void set_status(HTTP_STATUS code) { _status = code; }
-    HTTP_STATUS get_status() const { return _status; }
+    FORCE_INLINE void set_status(HTTP_STATUS code) { _status = code; }
+    FORCE_INLINE HTTP_STATUS get_status() const { return _status; }
 
     void set_redirect(const std::string& url);
     void set_cookie(const std::string& key, const std::string& value, TIMETYPE expiretime = 0, const std::string& path = "/", const std::string& domain = "", bool secure = false, bool httponly = false);

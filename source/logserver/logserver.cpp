@@ -1,7 +1,6 @@
 #include <csignal>
 #include "config.h"
 #include "reactor.h"
-#include "session_manager.h"
 #include "timewheel.h"
 #include "threadpool.h"
 #include "log_manager.h"

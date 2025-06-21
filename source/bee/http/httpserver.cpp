@@ -2,6 +2,7 @@
 #include "config_servlet.h"
 #include "http_task.h"
 #include "glog.h"
+#include "httpprotocol.h"
 #include "servlet.h"
 #include "systemtime.h"
 #ifdef _REENTRANT
@@ -35,11 +36,26 @@ void httpserver::handle_protocol(httpprotocol* protocol)
     }
 }
 
+void httpserver::reply(HTTP_TASKID taskid, const std::string& result)
+{
+    finish_task(taskid, result);
+}
+
 void httpserver::start_task(httprequest* req, httpresponse* rsp)
 {
     bee::rwlock::wrscoped l(_locker);
+    servlet* task = _dispatcher->get_matched_servlet(req->get_path());
+    if(!task)
+    {
+        local_log("httpserver %s cant find %s servlet.", identity(), req->get_path().data());
+        return;
+    }
+
     HTTP_TASKID taskid = ++_next_http_taskid;
-    auto* task = new http_servlet_task(taskid, req, rsp, systemtime::get_time() + _http_task_timeout);    
+    task->set_taskid(taskid);
+    task->set_timeout(systemtime::get_time() + _http_task_timeout);
+    task->set_request(req);
+    task->set_response(rsp);
     _http_tasks.emplace(taskid, task);
 
 #ifdef _REENTRANT
@@ -50,23 +66,25 @@ void httpserver::start_task(httprequest* req, httpresponse* rsp)
 #endif
 }
 
-auto httpserver::find_task(HTTP_TASKID taskid) -> http_servlet_task*
+auto httpserver::find_task(HTTP_TASKID taskid) -> servlet*
 {
+    bee::rwlock::wrscoped l(_locker);
     auto iter = _http_tasks.find(taskid);
-    return iter != _http_tasks.end() ? static_cast<http_servlet_task*>(iter->second) : nullptr;
+    return iter != _http_tasks.end() ? static_cast<servlet*>(iter->second) : nullptr;
 }
 
-void httpserver::finish_task(HTTP_TASKID taskid)
+void httpserver::finish_task(HTTP_TASKID taskid, const std::string& result)
 {
+    bee::rwlock::wrscoped l(_locker);
     auto iter = _http_tasks.find(taskid);
     if(iter == _http_tasks.end())
     {
         local_log("httpclient %s finish_http_task failed, taskid %lu not found.", identity(), taskid);
         return;
     }
-    auto* task = iter->second;
+    servlet* task = static_cast<servlet*>(iter->second);
     _http_tasks.erase(iter);
-    task->destroy();
+    task->on_finish(result);
 }
 
 void httpserver::handle_request(httprequest* req)
@@ -78,32 +96,6 @@ void httpserver::handle_request(httprequest* req)
     rsp->set_header("server", identity());
 
     start_task(req, rsp);
-}
-
-void httpserver::start_http_task_nolock(httprequest* req, httpresponse* rsp)
-{
-    HTTP_TASKID taskid = ++_next_http_taskid;
-    auto* task = new http_servlet_task(taskid, req, rsp, systemtime::get_time() + _http_task_timeout);
-    _http_tasks.emplace(taskid, task);
-}
-
-void httpserver::finish_http_task_nolock(HTTP_TASKID taskid)
-{
-    auto iter = _http_tasks.find(taskid);
-    if(iter == _http_tasks.end())
-    {
-        local_log("httpserver %s finish_http_task failed, taskid %lu not found.", identity(), taskid);
-        return;
-    }
-    auto* task = iter->second;
-    _http_tasks.erase(iter);
-
-#ifdef _REENTRANT
-    threadpool::get_instance()->add_task(thread_group_idx(), task);
-#else
-    task->run();
-    task->destroy();
-#endif
 }
 
 void httpserver::check_timeouts()

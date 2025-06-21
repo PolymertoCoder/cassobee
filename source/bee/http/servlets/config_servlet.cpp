@@ -10,8 +10,8 @@ int config_servlet::handle(httprequest* req, httpresponse* rsp)
     std::string section = req->get_param("section");
     std::string key = req->get_param("key");
     std::string value = cfg->get<std::string>(section, key);
-    rsp->set_body(value);
     rsp->set_status(HTTP_STATUS_OK);
+    reply(value);
     return 0;
 }
 

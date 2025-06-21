@@ -1,7 +1,7 @@
 #include "httpclient.h"
 #include "config.h"
 #include "systemtime.h"
-#include "http_task.h"
+#include "http_callback.h"
 #include "address.h"
 #ifdef _REENTRANT
 #include "threadpool.h"
@@ -53,14 +53,17 @@ void httpclient::handle_protocol(httpprotocol* protocol)
     }
 }
 
-int httpclient::send_request(HTTP_METHOD method, const std::string& url, callback cbk, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
+int httpclient::send_request(HTTP_METHOD method, const std::string& path, callback cbk, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
 {
-    if(url.empty())
+    if(path.empty())
     {
         local_log("httpclient %s send_request failed, url is empty.", identity());
         return HTTP_RESULT_INVALID_URL;
     }
-    return send_request(method, uri(url), std::move(cbk), timeout, headers, body);
+
+    uri request_uri = _uri;
+    request_uri.set_path(path);
+    return send_request(method, std::move(request_uri), std::move(cbk), timeout, headers, body);
 }
 
 int httpclient::send_request(HTTP_METHOD method, const uri& uri, callback cbk, TIMETYPE timeout/*ms*/, const httpprotocol::MAP_TYPE& headers, const std::string& body)
@@ -118,44 +121,44 @@ int httpclient::send_request(HTTP_METHOD method, const uri& uri, callback cbk, T
     return HTTP_RESULT_OK;
 }
 
-int httpclient::get(const std::string& url, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
+int httpclient::get(const std::string& path, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
 {
-    return send_request(HTTP_METHOD_GET, url, std::move(cbk), timeout, std::move(headers));
+    return send_request(HTTP_METHOD_GET, path, std::move(cbk), timeout, std::move(headers));
 }
 
-int httpclient::post(const std::string& url, const std::string& body, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
+int httpclient::post(const std::string& path, const std::string& body, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
 {
-    return send_request(HTTP_METHOD_POST, url, std::move(cbk), timeout, std::move(headers), body);
+    return send_request(HTTP_METHOD_POST, path, std::move(cbk), timeout, std::move(headers), body);
 }
 
-int httpclient::put(const std::string& url, const std::string& body, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
+int httpclient::put(const std::string& path, const std::string& body, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
 {
-    return send_request(HTTP_METHOD_PUT, url, std::move(cbk), timeout, std::move(headers), body);
+    return send_request(HTTP_METHOD_PUT, path, std::move(cbk), timeout, std::move(headers), body);
 }
 
-int httpclient::del(const std::string& url, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
+int httpclient::del(const std::string& path, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
 {
-    return send_request(HTTP_METHOD_DELETE, url, std::move(cbk), timeout, std::move(headers));
+    return send_request(HTTP_METHOD_DELETE, path, std::move(cbk), timeout, std::move(headers));
 }
 
-int httpclient::head(const std::string& url, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
+int httpclient::head(const std::string& path, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
 {
-    return send_request(HTTP_METHOD_HEAD, url, std::move(cbk), timeout, std::move(headers));
+    return send_request(HTTP_METHOD_HEAD, path, std::move(cbk), timeout, std::move(headers));
 }
 
-int httpclient::options(const std::string& url, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
+int httpclient::options(const std::string& path, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
 {
-    return send_request(HTTP_METHOD_OPTIONS, url, std::move(cbk), timeout, std::move(headers));
+    return send_request(HTTP_METHOD_OPTIONS, path, std::move(cbk), timeout, std::move(headers));
 }
 
-int httpclient::patch(const std::string& url, std::string body, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
+int httpclient::patch(const std::string& path, std::string body, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
 {
-    return send_request(HTTP_METHOD_PATCH, url, std::move(cbk), timeout, std::move(headers), std::move(body));
+    return send_request(HTTP_METHOD_PATCH, path, std::move(cbk), timeout, std::move(headers), std::move(body));
 }
 
-int httpclient::trace(const std::string& url, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
+int httpclient::trace(const std::string& path, callback cbk, TIMETYPE timeout, httpprotocol::MAP_TYPE headers)
 {
-    return send_request(HTTP_METHOD_TRACE, url, std::move(cbk), timeout, std::move(headers));
+    return send_request(HTTP_METHOD_TRACE, path, std::move(cbk), timeout, std::move(headers));
 }
 
 void httpclient::start_task(httprequest* req, callback cbk, TIMETYPE timeout)

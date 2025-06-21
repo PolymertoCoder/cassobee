@@ -7,14 +7,9 @@
 namespace bee
 {
 
-class uri;
 class httprequest;
 class httpresponse;
-class servlet_dispatcher;
 class http_task;
-class http_callback;
-class http_functional_callback;
-class http_servlet_task;
 
 class httpsession_manager : public session_manager
 {
@@ -33,6 +28,7 @@ protected:
     void send_response_nolock(session* ses, const httpresponse& rsp);
 
 protected:
+    friend class servlet;
     HTTP_TASKID _next_http_taskid = 0;
     TIMETYPE _http_task_timeout = 0; // HTTP任务超时时间
     std::unordered_map<HTTP_TASKID, http_task*> _http_tasks; // HTTP任务缓存

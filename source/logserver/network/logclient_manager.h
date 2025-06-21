@@ -1,5 +1,4 @@
 #pragma once
-#include "common.h"
 #include "session_manager.h"
 
 namespace bee

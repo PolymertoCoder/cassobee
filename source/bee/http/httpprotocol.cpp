@@ -54,7 +54,8 @@ void httpprotocol::set_header(const std::string& key, const std::string& value)
 {
     if (key.empty() || value.empty())
     {
-        throw std::invalid_argument("Header key or value cannot be empty");
+        local_log("Header key or value cannot be empty %s %s", key.data(), value.data());
+        return;
     }
     std::string k, v;
     std::transform(key.begin(), key.end(), k.begin(), ::tolower);

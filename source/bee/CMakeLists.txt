@@ -52,6 +52,7 @@ set(BEE_PUBLIC_INCLUDES ${SOURCE_PATH}/bee/common
                         ${SOURCE_PATH}/bee/database/sqlite
                         ${SOURCE_PATH}/bee/http
                         ${SOURCE_PATH}/bee/http/servlets
+                        ${SOURCE_PATH}/bee/http/internal
                         ${SOURCE_PATH}/bee/meta
                         ${SOURCE_PATH}/protocol
                         ${SOURCE_PATH}/protocol/include

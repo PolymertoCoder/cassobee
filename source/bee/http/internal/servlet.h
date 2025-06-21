@@ -1,21 +1,37 @@
 #pragma once
 #include "httpprotocol.h"
 #include "lock.h"
+#include "http_task.h"
 #include <string>
 
 namespace bee
 {
 
-class servlet
+class httpserver;
+
+class servlet : public http_task
 {
 public:
     servlet(const std::string& name) : _name(name) {}
     virtual ~servlet() = default;
+    virtual void run() override;
     virtual int handle(httprequest* req, httpresponse* rsp) = 0;
     virtual servlet* dup() const = 0;
     const std::string& get_name() const { return _name; }
 
-private:
+    httpserver* get_manager() const;
+    void reply(const std::string& result = "");
+
+protected:
+    virtual void on_init();
+    virtual void on_error(int retcode);
+    virtual void on_finish(const std::string& result = "");
+    virtual void on_timeout();
+
+    std::string get_retcode_message(int retcode);
+
+protected:
+    friend class httpserver;
     std::string _name;
 };
 

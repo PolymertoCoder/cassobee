@@ -18,32 +18,32 @@ public:
     virtual size_t thread_group_idx() override { return 0; }
     virtual void handle_protocol(httpprotocol* protocol) override;
 
-    int send_request(HTTP_METHOD method, const std::string& url, callback cbk, TIMETYPE timeout = 0, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
+    int send_request(HTTP_METHOD method, const std::string& path, callback cbk, TIMETYPE timeout = 0, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
     int send_request(HTTP_METHOD method, const uri& uri, callback cbk, TIMETYPE timeout = 0, const httpprotocol::MAP_TYPE& headers = {}, const std::string& body = "");
 
     // GET请求通常用于获取资源
-    int get(const std::string& url, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
+    int get(const std::string& path, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
 
     // POST请求通常用于提交数据
-    int post(const std::string& url, const std::string& body, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
+    int post(const std::string& path, const std::string& body, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
 
     // PUT请求通常用于更新资源
-    int put(const std::string& url, const std::string& body, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
+    int put(const std::string& path, const std::string& body, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
 
     // DELETE请求通常用于删除资源
-    int del(const std::string& url, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
+    int del(const std::string& path, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
 
     // HEAD请求通常用于获取资源的元信息
-    int head(const std::string& url, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
+    int head(const std::string& path, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
 
     // OPTIONS请求通常用于获取服务器支持的HTTP方法
-    int options(const std::string& url, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
+    int options(const std::string& path, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
 
     // PATCH请求通常用于对资源进行部分修改
-    int patch(const std::string& url, std::string body, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
+    int patch(const std::string& path, std::string body, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
 
     // TRACE请求通常用于诊断目的，回显服务器收到的请求
-    int trace(const std::string& url, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
+    int trace(const std::string& path, callback cbk, TIMETYPE timeout = 0, httpprotocol::MAP_TYPE headers = {});
 
 protected:
     void start_task(httprequest* req, callback cbk, TIMETYPE timeout);
