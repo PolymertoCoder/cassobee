@@ -1,0 +1,33 @@
+#!/bin/bash
+
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
+buildpath=$rootpath/build
+compile_traces_dir=$buildpath/compiletime_traces
+
+cd $buildpath
+
+# 先清理
+make clean
+add_color "[ClangBuildAnalyzer] clean old compile files..." yellow
+
+cmake .. -B . -DCASSOBEE_COMPILE_TIME_REPORT_ENABLE=ON
+
+if [ ! -d $compile_traces_dir ]; then
+    mkdir $compile_traces_dir
+    echo $compile_traces_dir
+fi
+
+ClangBuildAnalyzer --start .
+
+add_color "[ClangBuildAnalyzer] start clang -ftime-trace build to collect compile time data..." yellow
+make -j8
+
+ClangBuildAnalyzer --stop . $compile_traces_dir/build_capture.bin
+
+add_color "[ClangBuildAnalyzer] analyzing build_capture.bin..." yellow
+ClangBuildAnalyzer --analyze $compile_traces_dir/build_capture.bin
+
+ClangBuildAnalyzer --analyze $compile_traces_dir/build_capture.bin > $compile_traces_dir/compiletime_report.txt
+add_color "[ClangBuildAnalyzer] analyze finished, report will also output to $compile_traces_dir/compiletime_report.txt" yellow
+
+rm ClangBuildAnalyzerSession.txt
