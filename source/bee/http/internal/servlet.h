@@ -21,12 +21,39 @@ public:
 
     httpserver* get_manager() const;
     void reply(const std::string& result = ""); // 默认是明文
+    void reply(std::string&& result = ""); // 默认是明文
     void reply(HTTP_CONTENT_TYPE content_type, const std::string& result);
-    FORCE_INLINE void reply_html(const std::string& result) { reply(HTTP_CONTENT_TYPE_HTML, result); }
-    FORCE_INLINE void reply_css(const std::string& result) { reply(HTTP_CONTENT_TYPE_CSS, result); }
-    FORCE_INLINE void reply_xml(const std::string& result) { reply(HTTP_CONTENT_TYPE_XML, result); }
-    FORCE_INLINE void reply_json(const std::string& result) { reply(HTTP_CONTENT_TYPE_JSON, result); }
-    FORCE_INLINE void reply_javascript(const std::string& result) { reply(HTTP_CONTENT_TYPE_JS, result); }
+    void reply(HTTP_CONTENT_TYPE content_type, std::string&& result);
+
+    template<typename result_type>
+    FORCE_INLINE void reply_html(result_type&& result)
+    {
+        reply(HTTP_CONTENT_TYPE_HTML, std::forward<result_type>(result));
+    }
+
+    template<typename result_type>
+    FORCE_INLINE void reply_css(result_type&& result)
+    {
+        reply(HTTP_CONTENT_TYPE_CSS, std::forward<result_type>(result));
+    }
+
+    template<typename result_type>
+    FORCE_INLINE void reply_xml(result_type&& result)
+    {
+        reply(HTTP_CONTENT_TYPE_XML, std::forward<result_type>(result));
+    }
+
+    template<typename result_type>
+    FORCE_INLINE void reply_json(result_type&& result)
+    {
+        reply(HTTP_CONTENT_TYPE_JSON, std::forward<result_type>(result));
+    }
+
+    template<typename result_type>
+    FORCE_INLINE void reply_javascript(result_type&& result)
+    {
+        reply(HTTP_CONTENT_TYPE_JS, std::forward<result_type>(result));
+    }
 
 protected:
     virtual void on_init();

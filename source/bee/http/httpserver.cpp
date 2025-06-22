@@ -42,6 +42,11 @@ void httpserver::reply(HTTP_TASKID taskid, const std::string& result)
     reply(taskid, HTTP_CONTENT_TYPE_PLAIN, result);
 }
 
+void httpserver::reply(HTTP_TASKID taskid, std::string&& result)
+{
+    reply(taskid, HTTP_CONTENT_TYPE_PLAIN, std::move(result));
+}
+
 void httpserver::reply(HTTP_TASKID taskid, HTTP_CONTENT_TYPE content_type, const std::string& result)
 {
     finish_task(taskid, content_type, result);

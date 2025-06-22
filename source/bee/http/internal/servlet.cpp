@@ -26,12 +26,22 @@ httpserver* servlet::get_manager() const
 
 void servlet::reply(const std::string& result)
 {
-    static_cast<httpserver*>(_req->_manager)->reply(_taskid, result);
+    get_manager()->reply(_taskid, result);
+}
+
+void servlet::reply(std::string&& result)
+{
+    get_manager()->reply(_taskid, std::move(result));
 }
 
 void servlet::reply(HTTP_CONTENT_TYPE content_type, const std::string& result)
 {
-    static_cast<httpserver*>(_req->_manager)->reply(_taskid, content_type, result);
+    get_manager()->reply(_taskid, content_type, result);
+}
+
+void servlet::reply(HTTP_CONTENT_TYPE content_type, std::string&& result)
+{
+    get_manager()->reply(_taskid, content_type, std::move(result));
 }
 
 void servlet::on_init()

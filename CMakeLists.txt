@@ -217,15 +217,6 @@ endif()
 
 add_subdirectory(source)
 
-# cmake_language(DEFER CALL _execute_after_all_targets ${CMAKE_PATH})
-
-# function(_execute_after_all_targets module_path)
-#     message(STATUS "Executing deferred FastBuild generation")
-#     list(APPEND CMAKE_MODULE_PATH ${module_path})
-#     include(fastbuild_gen)
-#     generate_fastbuild_config()
-# endfunction()
-
 # 根据cmake规则生成fastbuild bff文件，必须放在最后
 if(${CASSOBEE_GEN_FASTBUILD_BFF_ENABLE})
     message(STATUS "=== FASTBUILD GENERATION START ===")
