@@ -1,0 +1,14 @@
+#!/bin/bash
+
+rootpath=$(cd $(dirname $0) && cd ..; pwd)
+doxydoc_path=$rootpath/debug/Doxygen
+
+cd $rootpath
+
+doxygen
+
+cd $doxydoc_path
+
+zip -r doxydoc_html.zip html
+
+add_color "generate doxydoc success, please downlown it and open index.html to check" green
