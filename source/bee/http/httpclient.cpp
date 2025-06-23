@@ -57,7 +57,7 @@ int httpclient::send_request(HTTP_METHOD method, const std::string& path, callba
 {
     if(path.empty())
     {
-        local_log("httpclient %s send_request failed, url is empty.", identity());
+        local_log("httpclient %s send_request failed, path is empty.", identity());
         return HTTP_RESULT_INVALID_URL;
     }
 
@@ -70,12 +70,14 @@ int httpclient::send_request(HTTP_METHOD method, const uri& uri, callback cbk, T
 {
     if(!uri.is_valid())
     {
+        local_log("httpclient %s send_request failed, uri is invalid.", identity());
         return HTTP_RESULT_INVALID_URL;
     }
 
-    bool is_ssl = (uri.get_scheme() == "https");
+    bool is_ssl = (uri.get_schema() == "https");
     if(is_ssl && !this->ssl_enabled())
     {
+        local_log("httpclient %s send_request failed, schema is https but ssl is not enabled.", identity());
         return HTTP_RESULT_SSL_NOT_ENABLED;
     }
 
@@ -113,6 +115,8 @@ int httpclient::send_request(HTTP_METHOD method, const uri& uri, callback cbk, T
     }
 
     req->set_body(body);
+
+    bee::rwlock::wrscoped l(_locker);
 
     start_task(req, std::move(cbk), timeout > 0 ? timeout : _http_task_timeout);
 
@@ -177,13 +181,14 @@ auto httpclient::find_task(HTTP_TASKID taskid) -> http_callback*
 
 void httpclient::finish_task(http_callback* task)
 {
+    HTTP_TASKID taskid = task->get_taskid();
 #ifdef _REENTRANT
     threadpool::get_instance()->add_task(thread_group_idx(), task);
 #else
     task->run();
     task->destroy();
 #endif
-    _http_tasks.erase(task->get_taskid());
+    _http_tasks.erase(taskid);
 }
 
 void httpclient::handle_response(httpresponse* rsp)
@@ -245,7 +250,7 @@ void httpclient::recycle_connection(SID sid, bool is_keepalive)
         // 如果响应不是长连接，则关闭会话
         if(auto* ses = find_session_nolock(sid))
         {
-            ses->close();
+            ses->set_close();
             local_log("%s %lu session, httpprotocol handle finished, not keep-alive, close connection.", identity(), sid);
         }
     }

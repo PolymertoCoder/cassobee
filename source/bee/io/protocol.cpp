@@ -99,12 +99,12 @@ protocol* protocol::decode(octetsstream& os, session* ses)
     }
     catch(octetsstream::exception& e)
     {
-        ses->close();
+        ses->set_close();
         local_log("protocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
     }
     catch(...)
     {
-        ses->close();
+        ses->set_close();
         local_log("protocol decode failed, id=%d size=%zu.", id, size);
     }
     os >> octetsstream::ROLLBACK;

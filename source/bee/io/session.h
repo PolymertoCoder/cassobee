@@ -34,8 +34,6 @@ public:
     virtual void set_open();
     virtual void set_close();
 
-    virtual void close();
-
     virtual void on_recv(size_t len);
     virtual void on_send(size_t len);
 
@@ -68,10 +66,15 @@ public:
     bool is_timeout(TIMETYPE timeout) const; // 检查会话是否超时
 
 protected:
+    virtual void close();
+
+protected:
     friend class session_manager;
     friend class httpsession_manager;
+    friend struct netio_event;
     friend struct streamio_event;
     friend struct sslio_event;
+
     SID _sid = 0;
     int _sockfd = 0;
     uint8_t _state = SESSION_STATE_NONE;

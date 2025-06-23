@@ -13,6 +13,7 @@
 #include "app_command.h"
 #include "command_line.h"
 #include "httpprotocol.h"
+#include "log.h"
 #include "session_manager.h"
 #include "logserver_manager.h"
 #include "glog.h"
@@ -88,37 +89,18 @@ int main(int argc, char* argv[])
     servermgr->init();
     servermgr->connect();
 
-    auto http_client = std::make_unique<httpclient>();
+    auto* http_client = new httpclient();
     http_client->init();
 
-    struct TestResult
-    {
-        std::atomic<bool> completed{false};
-        int status{0};
-        std::string response_body;
-        std::string error;
-    };
-
-    const int NUM_REQUESTS = 100;
-    std::vector<TestResult> results(NUM_REQUESTS);
-    std::atomic<int> completed_count{0};
-    
     // 发送并发请求
-    for (int i = 0; i < NUM_REQUESTS; i++) {
-        http_client->get("/test/hello", [&, i](int status, httprequest* req, httpresponse* rsp) {
-            results[i].status = status;
-            if (rsp) {
-                results[i].response_body = rsp->get_body();
-            }
-            results[i].completed = true;
-            completed_count++;
+    add_timer(1000, [http_client]()
+    {
+        http_client->get("/test/hello", [](int status, httprequest* req, httpresponse* rsp) {
+            local_log("receive httpresponse status:%d, callback run.", status);
         });
-    }
+        return true;
+    });
     
-    // 等待所有响应
-    for (int i = 0; i < 500 && completed_count < NUM_REQUESTS; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
 
     // int timerid = add_timer(1000, [servermgr]()
     // {

@@ -17,7 +17,7 @@ public:
     bool is_default_port() const;
 
     // getters
-    FORCE_INLINE const std::string& get_scheme() const { return _schema; }
+    FORCE_INLINE const std::string& get_schema() const { return _schema; }
     FORCE_INLINE const std::string& get_user() const { return _user; }
     FORCE_INLINE const std::string& get_password() const { return _password; }
     FORCE_INLINE const std::string& get_host() const { return _host; }
@@ -31,7 +31,7 @@ public:
     FORCE_INLINE const std::string& get_fragment() const { return _fragment; }
 
     // setters
-    FORCE_INLINE void set_scheme(const std::string& scheme) { _schema = scheme; }
+    FORCE_INLINE void set_scheme(const std::string& schema) { _schema = schema; }
     FORCE_INLINE void set_user(const std::string& user) { _user = user; }
     FORCE_INLINE void set_password(const std::string& password) { _password = password; }
     FORCE_INLINE void set_host(const std::string& host) { _host = host; }

@@ -13,10 +13,6 @@ public:
     }
     virtual void on_add_session(SID sid) override;
     virtual void on_del_session(SID sid) override;
-    bool send(const protocol& prot);
-
-private:
-    SID _localsid = 0;
 };
 
 } // namespace bee

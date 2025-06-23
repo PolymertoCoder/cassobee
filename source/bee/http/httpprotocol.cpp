@@ -225,12 +225,12 @@ httpprotocol* httpprotocol::decode(octetsstream& os, httpsession* httpses)
     }
     catch(octetsstream::exception& e)
     {
-        httpses->close();
+        httpses->set_close();
         // local_log("httpprotocol decode throw octetesstream exception %s, id=%d size=%zu.", e.what(), id, size);
     }
     catch(...)
     {
-        httpses->close();
+        httpses->set_close();
         // local_log("httpprotocol decode failed, id=%d size=%zu.", id, size);
     }
     os >> octetsstream::ROLLBACK;

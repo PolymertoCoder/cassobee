@@ -21,6 +21,8 @@ public:
     return_type get(const std::string section, const std::string item, return_type default_value = {})
     {
         std::string value = get(section, item);
+        if(value.empty()) return default_value;
+
         if constexpr(std::is_same_v<return_type, bool>)
         {
             if(value == "true" || value == "1")

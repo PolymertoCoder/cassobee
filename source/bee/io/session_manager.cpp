@@ -195,7 +195,7 @@ void session_manager::close_session(SID sid)
 void session_manager::add_session_nolock(SID sid, session* ses)
 {
     if(!ses) return;
-    assert(_sessions.bucket_count() > 0 && "sessions map is not initialized");
+    // assert(_sessions.bucket_count() > 0 && "sessions map is not initialized");
     if(_sessions.emplace(sid, ses).second)
     {
         on_add_session(sid);

@@ -9,6 +9,7 @@ httpsession* httpsession_manager::create_session()
 {
     auto ses = new httpsession(this);
     ses->set_sid(session_manager::get_next_sessionid());
+    local_log("httpsession_manager %s, create httpsession.", identity());
     return ses;
 }
 
