@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "marshal.h"
+#include "runnable.h"
 #include "types.h"
 #include "format.h"
 
@@ -12,7 +13,7 @@ namespace bee
 class session;
 class session_manager;
 
-class protocol : public marshal
+class protocol : public marshal, public runnable
 {
 public:
     CLASS_EXCEPTION_DEFINE(exception);

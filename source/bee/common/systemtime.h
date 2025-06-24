@@ -15,9 +15,9 @@ class systemtime
 public:
     static TIMETYPE get_time()
     {
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        return tv.tv_sec;
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        return static_cast<TIMETYPE>(ts.tv_sec);
     }
     static struct tm get_local_time()
     {
@@ -28,21 +28,27 @@ public:
     }
     static TIMETYPE get_seconds()
     {
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        return tv.tv_sec;
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        return static_cast<TIMETYPE>(ts.tv_sec);
     }
     static TIMETYPE get_millseconds()
     {
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        return (tv.tv_sec*1000 + tv.tv_usec/1000);
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        return static_cast<TIMETYPE>(ts.tv_sec) * 1000 + ts.tv_nsec / 1000000;
     }
     static TIMETYPE get_microseconds()
     {
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        return (tv.tv_sec*1000000 + tv.tv_usec);
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        return static_cast<TIMETYPE>(ts.tv_sec) * 1000000 + ts.tv_nsec / 1000;
+    }
+    static TIMETYPE get_nanoseconds()
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return static_cast<TIMETYPE>(ts.tv_sec) * 1000000000ULL + ts.tv_nsec;
     }
     static std::string format_time(TIMETYPE now = INVALID_TIME, const char* fmt = "%Y-%m-%d %H:%M:%S")
     {

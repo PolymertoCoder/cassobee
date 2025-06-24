@@ -253,12 +253,14 @@ passiveio_event::passiveio_event(session_manager* manager)
         {
             perror("bind");
             close(listenfd);
+            local_log("passiveio_event bind failed, addr:%s.", manager->get_addr()->to_string().data());
             return;
         }
         if(listen(listenfd, 20) < 0)
         {
             perror("listen");
             close(listenfd);
+            local_log("passiveio_event listen failed, addr:%s.", manager->get_addr()->to_string().data());
             return;
         }
         _fd = listenfd;
