@@ -11,20 +11,27 @@ namespace bee
 void log_manager::init()
 {
     auto cfg = config::get_instance();
-    std::string logdir   = cfg->get("log", "dir");
-    std::string filename = cfg->get("log", "filename");
-    assert(logdir.size() && filename.size());
-
-    bool asynclog = cfg->get<bool>("log", "asynclog", false);
-    auto loglevel = cfg->get<int>("log", "loglevel", LOG_LEVEL::TRACE);
-    if(asynclog)
+    
     {
-        _file_logger = new logger((LOG_LEVEL)loglevel, new async_appender(logdir, filename));
+        std::string logdir   = cfg->get("log", "dir");
+        std::string filename = cfg->get("log", "filename");
+        assert(logdir.size() && filename.size());
+        bool asynclog = cfg->get<bool>("log", "asynclog", false);
+        auto loglevel = cfg->get<int>("log", "loglevel", LOG_LEVEL::TRACE);
+        if(asynclog)
+        {
+            _file_logger = new logger((LOG_LEVEL)loglevel, new async_appender(logdir, filename));
+        }
+        else
+        {
+            _file_logger = new logger((LOG_LEVEL)loglevel, new file_appender(logdir, filename));
+        }
     }
-    else
     {
-        _file_logger = new logger((LOG_LEVEL)loglevel, new file_appender(logdir, filename));
-    }
+        std::string logdir   = cfg->get("influxlog", "dir");
+        std::string filename = cfg->get("influxlog", "filename");
+        _influx_logger = new influx_logger(new file_appender(logdir, filename));
+    }   
 }
 
 void log_manager::log(LOG_LEVEL level, const log_event& event)
@@ -39,6 +46,12 @@ void log_manager::log(LOG_LEVEL level, const log_event& event)
     {
         logger->log(level, event);
     }
+}
+
+void log_manager::influxlog(const influxlog_event& event)
+{
+    if(!_influx_logger) return;
+    _influx_logger->influxlog(event);
 }
 
 logger* log_manager::get_logger(std::string name)

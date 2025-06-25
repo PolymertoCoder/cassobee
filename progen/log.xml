@@ -1,8 +1,20 @@
 <application>
     <!-- 协议号[200, 300) -->
-    <protocol name="remotelog" maxsize="2048" type="1">
+    <protocol name="remotelog" maxsize="2048" type="200">
         <include name="log_event.h"/>
         <field name="loglevel" type="uint8_t" default="0"/>
         <field name="logevent" type="log_event" default="log_event()"/>
+    </protocol>
+
+    <!-- <rpcdata name="influxlog_event">
+        <field name="measurement" type="std::string" default="{}"/>
+        <field name="tags" type="std::map&lt;std::string, std::string&gt;" default="{}"/>
+        <field name="fields" type="std::map&lt;std::string, std::string&gt;" default="{}"/>
+        <field name="timestamp" type="int64_t" default="0"/>
+    </rpcdata> -->
+
+    <protocol name="remoteinfluxlog" maxsize="2048" type="201">
+        <include name="influxlog_event.h"/>
+        <field name="logevent" type="influxlog_event" default="influxlog_event()"/>
     </protocol>
 </application>

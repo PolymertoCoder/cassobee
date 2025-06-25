@@ -1,6 +1,7 @@
 <application>
     <state name="log">
         <protocol name="remotelog"/>
+        <protocol name="remoteinfluxlog"/>
     </state>
 
     <state name="clientserver">

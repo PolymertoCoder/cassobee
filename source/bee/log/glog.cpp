@@ -1,17 +1,18 @@
 #include "glog.h"
 
-#include <cstdarg>
 #include <cstdio>
 #include "glog.h"
 #include "log_appender.h"
 #include "logger.h"
 #include "config.h"
 #include "log_event.h"
+#include "influxlog_event.h"
 #include "systemtime.h"
 
 namespace bee
 {
 thread_local bee::log_event g_logevent;
+thread_local bee::influxlog_event g_influxlogevent;
 thread_local bee::ostringstream g_logstream;
 
 void logclient::init()
@@ -48,44 +49,14 @@ void logclient::console_log(LOG_LEVEL level, const char* filename, int line, std
     _console_logger->log(level, g_logevent);
 }
 
-logclient::impl::impl(LOG_OUTPUT output, LOG_LEVEL level, const char* filename, int line)
-    : _output(output), _loglevel(level), _line(line), _filename(filename) {}
-
-logclient::impl::~impl()
+void logclient::influx_log(const std::string& measurement, const std::map<std::string, std::string> tags, const std::map<std::string, std::string>& fields, TIMETYPE timestamp)
 {
-    if(!g_logstream.empty())
-    {
-        g_logstream.truncate(LOG_BUFFER_SIZE);
-        log(g_logstream.str());
-        g_logstream.clear();
-    }
-}
+    g_influxlogevent.measurement = measurement;
+    g_influxlogevent.tags = tags;
+    g_influxlogevent.fields = fields;
+    g_influxlogevent.timestamp = timestamp;
 
-void logclient::impl::log(std::string&& content)
-{
-    if(_output == LOG_OUTPUT::CONSOLE)
-    {
-        logclient::get_instance()->console_log(_loglevel, _filename, _line, std::move(content));
-    }
-    else if(_output == LOG_OUTPUT::LOGFILE)
-    {
-        logclient::get_instance()->glog(_loglevel, _filename, _line,  std::move(content));
-    }
-}
-
-void logclient::impl::operator()(std::string content)
-{
-    log(std::move(content));
-}
-
-void logclient::impl::operator()(const char* fmt, ...)
-{
-    thread_local char content[LOG_BUFFER_SIZE];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(content, sizeof(content), fmt, args);
-    va_end(args);
-    log(std::string(content));
+    commit_influxlog(g_influxlogevent);
 }
 
 void logclient::set_process_name(const std::string& process_name)
@@ -105,6 +76,10 @@ ATTR_WEAK void logclient::set_logserver(logserver_manager* logserver)
 ATTR_WEAK void logclient::commit_log(LOG_LEVEL level, const log_event& event)
 {
     _console_logger->log(level, event);
+}
+
+ATTR_WEAK void commit_influxlog(const influxlog_event& event)
+{
 }
 
 } // namespace bee

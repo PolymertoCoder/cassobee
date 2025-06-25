@@ -1,5 +1,6 @@
 #include "logger.h"
 #include "log_appender.h"
+#include "influxlog_event.h"
 
 namespace bee
 {
@@ -55,6 +56,59 @@ void logger::clr_appender()
         appender = nullptr;
     }
     _appenders.clear();
+}
+
+influx_logger::influx_logger(log_appender* appender)
+    : logger(LOG_LEVEL::TRACE, appender)
+{
+}
+
+void influx_logger::influxlog(const influxlog_event& event)
+{
+    thread_local bee::ostringstream line;
+    line.clear();
+
+    // 测量名称
+    line << event.measurement;
+
+    // 标签集
+    for(const auto& [key, value] : event.tags)
+    {
+        line << ',' << escape_influx(key) << '=' << escape_influx(value);
+    }
+    line << ' ';
+    
+    // 字段集
+    bool first_field = true;
+    for(const auto& [key, value] : event.fields)
+    {
+        if(!first_field) line << ',';
+        line << ',' << escape_influx(key) << '=' << escape_influx(value);
+        first_field = false;
+    }
+
+    // 时间戳 (纳秒)
+    line << ' ' << event.timestamp;
+
+    
+}
+
+std::string influx_logger::escape_influx(const std::string& input)
+{
+    thread_local ostringstream oss;
+    oss.clear();
+    for(char c : input)
+    {
+        switch (c)
+        {
+            case ',':
+            case ' ':
+            case '=': { oss << '\\'; }
+            [[fallthrough]];
+            default: { oss << c; }
+        }
+    }
+    return oss.str();
 }
 
 } // namespace bee

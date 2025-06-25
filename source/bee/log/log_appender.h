@@ -18,6 +18,7 @@ namespace bee
 {
 class log_event;
 class log_formatter;
+class log_rotator;
 
 // 日志输出器
 class log_appender
@@ -25,6 +26,7 @@ class log_appender
 public:
     log_appender();
     virtual ~log_appender() = default;
+    virtual void log(const std::string& content) = 0; // 忽略formatter直接输出
     virtual void log(LOG_LEVEL level, const log_event& event) = 0;
 
 protected:
@@ -36,6 +38,7 @@ protected:
 class console_appender : public log_appender
 {
 public:
+    virtual void log(const std::string& content) override;
     virtual void log(LOG_LEVEL level, const log_event& event) override;
 };
 
@@ -43,17 +46,13 @@ public:
 class rotatable_log_appender : public log_appender
 {
 public:
-    class log_rotater;
-    class time_log_rotater;
-
-public:
-    rotatable_log_appender(log_rotater* rotater);
+    rotatable_log_appender(log_rotator* rotator);
     virtual ~rotatable_log_appender();
     virtual bool rotate() = 0;
     std::string get_suffix();
 
 private:
-    log_rotater* _rotater; 
+    log_rotator* _rotator; 
 };
 
 // 日志输出到文件
@@ -63,7 +62,10 @@ public:
     file_appender(std::string logdir, std::string filename);
     ~file_appender();
     virtual bool rotate() override;
+    virtual void log(const std::string& content) override;
     virtual void log(LOG_LEVEL level, const log_event& event) override;
+
+    FORCE_INLINE std::string get_filepath() const { return _filepath; }
 
 protected:
     bool reopen();
@@ -81,6 +83,7 @@ class async_appender : public file_appender
 public:
     async_appender(std::string logdir, std::string filename);
     ~async_appender();
+    virtual void log(const std::string& content) override;
     virtual void log(LOG_LEVEL level, const log_event& event) override;
 
     void start();
