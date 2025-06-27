@@ -223,9 +223,9 @@ void netio_event::handle_close()
     }
 }
 
-void netio_event::close_socket() // 强制断开
+void netio_event::close_socket(int reason) // 强制断开
 {
-    _ses->set_close();
+    _ses->set_close(reason);
     del_event();
 }
 
@@ -326,7 +326,7 @@ bool activeio_event::handle_event(int active_events)
         if(errno != EINPROGRESS)
         {
             perror("connect");
-            close_socket();
+            close_socket(SESSION_CLOSE_REASON_ERROR);
             return false;
         }
     }
@@ -343,7 +343,7 @@ bool activeio_event::handle_event(int active_events)
         {
             perror("getsockopt");
         }
-        close_socket();
+        close_socket(SESSION_CLOSE_REASON_ERROR);
         return false;
     }
 
@@ -366,20 +366,20 @@ streamio_event::streamio_event(int fd, session* ses)
     if(getsockname(_fd, addr->addr(), &addr->len()) < 0)
     {
         perror("getsockname");
-        close_socket();
+        close_socket(SESSION_CLOSE_REASON_ERROR);
         return;
     }
     int flag = 1;
     if(setsockopt(_fd, SOL_SOCKET, SO_KEEPALIVE, &flag, sizeof(int)) < 0)
     {
         perror("setsockopt");
-        close_socket();
+        close_socket(SESSION_CLOSE_REASON_ERROR);
         return;
     }
     if(setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int)) < 0)
     {
         perror("setsockopt");
-        close_socket();
+        close_socket(SESSION_CLOSE_REASON_ERROR);
         return;
     }
     ses->set_open();
@@ -419,8 +419,8 @@ int streamio_event::handle_read()
         {
             local_log("recv[fd=%d]: connection closed by peer, buffer size=%zu",
                 _fd, rbuffer.size());
-            close_socket();
-            return -1;
+            close_socket(SESSION_CLOSE_REASON_REMOTE);
+            break;
         }
         else // len < 0
         {
@@ -429,8 +429,8 @@ int streamio_event::handle_read()
             perror("recv");
             local_log("recv[fd=%d]: error (errno=%d: %s), closing socket, buffer size=%zu",
                 _fd, errno, strerror(errno), rbuffer.size());
-            close_socket();
-            return -1;
+            close_socket(SESSION_CLOSE_REASON_ERROR);
+            break;
         }
     }
     
@@ -463,12 +463,8 @@ int streamio_event::handle_write()
         }
         else if(len == 0)
         {
-            if(_ses->_write_offset < wbuffer->size())
-            {
-                local_log("Send returned 0: Connection might be closed by the peer.\n");
-                bee::rwlock::wrscoped sesl(_ses->_locker);
-                _ses->permit_send(); // 写缓冲区的数据还有剩余，下次唤醒时再尝试
-            }
+            local_log("Send returned 0: Connection might be closed by the peer or is otherwise unusable.");
+            close_socket(SESSION_CLOSE_REASON_ERROR);
             break;
         }
         else // len < 0
@@ -476,7 +472,7 @@ int streamio_event::handle_write()
             if(errno == EINTR) continue;
             if(errno == EAGAIN) break;
             perror("send");
-            close_socket();
+            close_socket(SESSION_CLOSE_REASON_ERROR);
             break;
         }
 

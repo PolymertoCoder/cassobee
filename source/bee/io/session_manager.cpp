@@ -101,7 +101,7 @@ void session_manager::check_timeouts()
     {
         if(ses->is_timeout(_keepalive_timeout))
         {
-            ses->set_close();
+            ses->set_close(SESSION_CLOSE_REASON_TIMEOUT);
             local_log("%s session %lu keepalive timeout, close connection.", identity(), sid);
         }
     }
@@ -180,16 +180,6 @@ session* session_manager::find_session(SID sid)
 {
     bee::rwlock::rdscoped l(_locker);
     return find_session_nolock(sid);
-}
-
-void session_manager::close_session(SID sid)
-{
-    bee::rwlock::rdscoped l(_locker);
-    if(session* ses = find_session_nolock(sid))
-    {
-        bee::rwlock::wrscoped sesl(ses->_locker);
-        ses->set_close();
-    }
 }
 
 void session_manager::add_session_nolock(SID sid, session* ses)

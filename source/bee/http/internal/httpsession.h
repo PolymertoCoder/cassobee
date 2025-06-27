@@ -16,9 +16,6 @@ public:
 
     virtual httpsession* dup() override;
 
-    virtual void set_open() override;
-    virtual void set_close() override;
-
     virtual void on_recv(size_t len) override;
     virtual void on_send(size_t len) override;
 
@@ -27,22 +24,8 @@ public:
 
 protected:
     friend class httpsession_manager;
-    TIMETYPE _create_time = 0;
     uint64_t _requests = 0;
     httpprotocol* _unfinished_protocol = nullptr;
-};
-
-class httpclient_session : public httpsession
-{
-public:
-    
-protected:
-    
-};
-
-class httpserver_session : public httpsession
-{
-
 };
 
 } // namespace bee

@@ -33,21 +33,9 @@ httpsession* httpsession::dup()
     ses->_writebuf.clear();
     ses->_reados.clear();
     ses->_writeos.clear();
-    ses->_create_time = 0;
     ses->_requests = 0;
     ses->_unfinished_protocol = nullptr;
     return ses;
-}
-
-void httpsession::set_open()
-{
-    _create_time = systemtime::get_time();
-    session::set_open();
-}
-
-void httpsession::set_close()
-{
-    session::set_close();
 }
 
 void httpsession::on_recv(size_t len)

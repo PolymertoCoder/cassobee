@@ -13,13 +13,24 @@ class address;
 struct event;
 class session_manager;
 
-enum SESSION_STATE
+enum SESSION_STATE : uint8_t
 {
     SESSION_STATE_NONE,
     SESSION_STATE_ACTIVE,
     SESSION_STATE_SENDING,
     SESSION_STATE_RECVING,
     SESSION_STATE_CLOSING,
+};
+
+enum SESSION_CLOSE_REASON : uint8_t
+{
+    SESSION_CLOSE_REASON_NONE,
+    SESSION_CLOSE_REASON_LOCAL,
+    SESSION_CLOSE_REASON_REMOTE,
+    SESSION_CLOSE_REASON_TIMEOUT,
+    SESSION_CLOSE_REASON_RESET,
+    SESSION_CLOSE_REASON_ERROR,
+    SESSION_CLOSE_REASON_EXCEPTION,
 };
 
 class session
@@ -32,7 +43,7 @@ public:
     virtual session* dup();
 
     virtual void set_open();
-    virtual void set_close();
+    virtual void set_close(int reason = SESSION_CLOSE_REASON_LOCAL);
 
     virtual void on_recv(size_t len);
     virtual void on_send(size_t len);
@@ -57,6 +68,7 @@ public:
     FORCE_INLINE session_manager* get_manager() const { return _manager; }
 
     FORCE_INLINE void set_state(SESSION_STATE state) { _state = state; }
+    FORCE_INLINE void set_close_reason(SESSION_CLOSE_REASON reason) { _close_reason = reason; }
     FORCE_INLINE bool is_active() { return _state == SESSION_STATE_ACTIVE; }
     FORCE_INLINE bool is_close() { return _state == SESSION_STATE_CLOSING; }
 
@@ -77,7 +89,10 @@ protected:
 
     SID _sid = 0;
     int _sockfd = 0;
-    uint8_t _state = SESSION_STATE_NONE;
+    SESSION_STATE _state = SESSION_STATE_NONE;
+    SESSION_CLOSE_REASON _close_reason = SESSION_CLOSE_REASON_NONE;
+    TIMETYPE _last_active = 0; // 最后活跃时间
+
     address* _peer = nullptr;
     session_manager* _manager;
 
@@ -90,8 +105,6 @@ protected:
     size_t _write_offset = 0;
     octetsstream _writeos;
     octets _writebuf;
-
-    TIMETYPE _last_active = 0; // 最后活跃时间
 };
 
 } // namespace bee

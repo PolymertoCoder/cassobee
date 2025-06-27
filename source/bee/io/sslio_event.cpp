@@ -101,7 +101,7 @@ bool ssl_activeio_event::handle_event(int active_events)
         if(errno != EINPROGRESS)
         {
             perror("connect");
-            close_socket();
+            close_socket(SESSION_CLOSE_REASON_ERROR);
             return false;
         }
     }
@@ -118,7 +118,7 @@ bool ssl_activeio_event::handle_event(int active_events)
         {
             perror("getsockopt");
         }
-        close_socket();
+        close_socket(SESSION_CLOSE_REASON_ERROR);
         return false;
     }
 
@@ -202,19 +202,22 @@ int sslio_event::handle_read()
             local_log("recv[fd=%d]: received %d bytes, buffer size=%zu, free space=%zu",
                 _fd, len, rbuffer.size(), rbuffer.free_space());
         }
-        else
+        else // len <= 0
         {
             int err = SSL_get_error(_ssl, len);
-            if(err == SSL_ERROR_WANT_READ) break;
-            if(err == SSL_ERROR_WANT_WRITE)
-            {
-                _ses->permit_send();
-                break;
-            }
+            if(err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) continue;
+
             cleanup_ssl();
-            close_socket();
-            local_log("sslio_event handle_recv error fd=%d", _fd);
-            return -1;
+            if(err == SSL_ERROR_ZERO_RETURN)
+            {
+                close_socket(SESSION_CLOSE_REASON_REMOTE);
+            }
+            else
+            {
+                close_socket(SESSION_CLOSE_REASON_ERROR);
+                local_log("sslio_event handle_recv error fd=%d err=%d", _fd, err);
+            }
+            break;
         }
     }
     
@@ -245,29 +248,14 @@ int sslio_event::handle_write()
             total_send += len;
             _ses->_write_offset += len;
         }
-        else if(len == 0)
-        {
-            if(_ses->_write_offset < wbuffer->size())
-            {
-                local_log("SSL_write[fd=%d]: session %lu buffer is fulled, no space to send data", _fd, _ses->get_sid());
-                bee::rwlock::wrscoped sesl(_ses->_locker);
-                _ses->permit_send(); // 写缓冲区的数据还有剩余，下次唤醒时再尝试
-            }
-            break;
-        }
-        else // len < 0
+        else // len <= 0
         {
             int err = SSL_get_error(_ssl, len);
-            if(err == SSL_ERROR_WANT_WRITE) break;
-            if(err == SSL_ERROR_WANT_READ)
-            {
-                _ses->permit_recv();
-                break;
-            }
+            if(err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) continue;
             cleanup_ssl();
-            close_socket();
-            local_log("sslio_event handle_send error fd=%d", _fd);
-            return -1;
+            close_socket(SESSION_CLOSE_REASON_ERROR);
+            local_log("sslio_event handle_send error fd=%d err=%d", _fd, err);
+            break;
         }
 
         if(_ses->_write_offset == wbuffer->size())
@@ -295,7 +283,7 @@ bool sslio_event::handle_handshake()
     {
         local_log("sslio_event handle_handshake timeout fd=%d", _fd);
         cleanup_ssl();
-        close_socket();
+        close_socket(SESSION_CLOSE_REASON_TIMEOUT);
         return false;
     }
 
@@ -324,7 +312,7 @@ bool sslio_event::handle_handshake()
         {
             local_log("sslio_event handle_handshake error fd=%d", _fd);
             cleanup_ssl();
-            close_socket();
+            close_socket(SESSION_CLOSE_REASON_ERROR);
             return false;
         } break;
     }

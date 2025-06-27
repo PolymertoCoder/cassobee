@@ -14,9 +14,11 @@ namespace bee
 {
 
 session::session(session_manager* manager)
-    : _manager(manager)
 {
+    clear();
+
     _peer = _manager->get_addr()->dup();
+    _manager = manager;
 
     _reados.reserve(_manager->_read_buffer_size);
     _readbuf.reserve(_manager->_read_buffer_size);
@@ -39,6 +41,10 @@ void session::clear()
     _sid = 0;
     _sockfd = 0;
     _state = SESSION_STATE_NONE;
+    _close_reason = SESSION_CLOSE_REASON_NONE;
+    _last_active = 0;
+
+    _manager = nullptr;
 
     _event = nullptr;
 
@@ -53,17 +59,10 @@ void session::clear()
 session* session::dup()
 {
     auto ses = new session(*this);
+    ses->clear();
     ses->_sid = _manager->get_next_sessionid();
-    ses->_sockfd = 0;
-    ses->_state = SESSION_STATE_NONE;
+    ses->_manager = _manager;
     ses->_peer = _peer->dup();
-
-    ses->_event = nullptr;
-    ses->_reados.clear();
-    ses->_readbuf.clear();
-    ses->_write_offset = 0;
-    ses->_writeos.clear();
-    ses->_writebuf.clear();
     return ses;
 }
 
@@ -73,9 +72,10 @@ void session::set_open()
     _manager->add_session(_sid, this);
 }
 
-void session::set_close()
+void session::set_close(int reason)
 {
     set_state(SESSION_STATE_CLOSING);
+    set_close_reason((SESSION_CLOSE_REASON)reason);
 }
 
 void session::close()

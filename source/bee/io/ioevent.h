@@ -54,7 +54,7 @@ struct netio_event : io_event
     netio_event(session* ses);
     virtual ~netio_event();
     virtual void handle_close() override;
-    void close_socket();
+    void close_socket(int reason);
     session* _ses;
 };
 
