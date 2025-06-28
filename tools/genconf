@@ -1,7 +1,27 @@
 #!/bin/bash
 
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
-cofigpath=$rootpath/config
+config_path=$rootpath/config
+config_tpl_path=$config_path/tpl
 toolpath=$rootpath/tools
 
-$toolpath/config_tool/gen_ssl_cert -o $cofigpath/ssl -f
+for tpl_file in $config_tpl_path/*.conf.m4; do
+    filename=$(basename "$tpl_file" .m4)
+    output_file="$config_path/$filename"
+
+    echo "Generating $filename ..."
+
+    m4 -D "PROJECT_ROOT=$rootpath" -I $config_tpl_path "$tpl_file" > "$output_file"
+
+    # 检查生成结果
+    if [ $? -eq 0 ] && [ -s "$output_file" ]; then
+        echo "    Success: $output_file"
+    else
+        echo "    Error generating $output_file"
+        exit 1
+    fi
+done
+
+$toolpath/config_tool/gen_ssl_cert -o $config_path/ssl
+
+add_color "Generate configuration files successfully on $config_path" green

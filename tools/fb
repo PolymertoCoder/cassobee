@@ -2,6 +2,8 @@
 
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
 
+genconf
+
 cd $rootpath/build
 
 cmake ..
