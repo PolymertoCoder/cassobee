@@ -6,7 +6,6 @@
 #include <typeindex>
 #include <memory>
 #include "lock.h"
-#include "types.h"
 
 namespace bee
 {
@@ -53,7 +52,7 @@ private:
 };
 
 // 事件派发器
-class event_dispatcher : public singleton_support<event_dispatcher>
+class event_dispatcher
 {
 public:
     // 注册事件处理器

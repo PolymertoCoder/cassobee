@@ -1,27 +1,26 @@
-#include <format>
+#include "common.h"
+#include <cstdarg>
+#include <string>
+#include <string_view>
+#include <vector>
+#include <filesystem>
+#include <fstream>
+#include <algorithm>
+#include <cctype>
+#include <csignal>
 #include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <sys/times.h>
 #include <sched.h>
-#include <cstring>
-#include <ctime>
-#include <cstdarg>
-#include <csignal>
-#include <algorithm>
-
-#include "common.h"
 
 namespace bee
 {
 
 void set_signal(int signum, SIG_HANDLER handler)
 {
-    struct sigaction act;
-    bzero(&act, sizeof(act));
+    struct sigaction act{};
     act.sa_handler = handler; // 设置信号处理函数
     sigfillset(&act.sa_mask); // 初始化信号屏蔽集
     act.sa_flags |= SA_RESTART; // 由此信号中断的系统调用自动重启动
@@ -35,6 +34,7 @@ void set_signal(int signum, SIG_HANDLER handler)
 int set_nonblocking(int fd, bool nonblocking)
 {
     int flags = fcntl(fd, F_GETFL);
+    if(flags == -1) return -1;
     return fcntl(fd, F_SETFL, nonblocking ? (flags | O_NONBLOCK) : (flags & (~O_NONBLOCK)));
 }
 
@@ -44,13 +44,14 @@ pid_t gettid()
     return tid;
 }
 
+// 获取进程运行时间（秒）
 TIMETYPE get_process_elapse()
 {
-    static struct tms start_tms;
+    static struct tms start_tms{};
     const static long start_time = times(&start_tms);
-    const static long sc_clk_tck = syscall(_SC_CLK_TCK);
-    
-    struct tms now_tms;
+    const static long sc_clk_tck = sysconf(_SC_CLK_TCK);
+
+    struct tms now_tms{};
     long now_time = times(&now_tms);
     // TIMETYPE realtime = (now_time - start_time) / sc_clk_tck;
     // TIMETYPE usertime = (now_tms.tms_utime - start_tms.tms_utime) / sc_clk_tck;
@@ -58,6 +59,7 @@ TIMETYPE get_process_elapse()
     return (now_time - start_time) / sc_clk_tck;
 }
 
+// 绑定当前线程到指定 CPU
 void set_process_affinity(int cpu_num)
 {
     pid_t self = gettid();
@@ -67,6 +69,32 @@ void set_process_affinity(int cpu_num)
     sched_setaffinity(self, sizeof(mask), &mask);
 }
 
+// 查找所有包含指定名称的进程 PID
+std::vector<pid_t> find_pids_by_name(const std::string& name)
+{
+    std::vector<pid_t> pids;
+
+    for(const auto& entry : std::filesystem::directory_iterator("/proc"))
+    {
+        if (!entry.is_directory()) continue;
+
+        const std::string pid_str = entry.path().filename();
+        if (!std::all_of(pid_str.begin(), pid_str.end(), ::isdigit)) continue;
+
+        std::ifstream cmdline_file(entry.path() / "cmdline");
+        std::string cmdline;
+        std::getline(cmdline_file, cmdline);
+
+        if(cmdline.find(name) != std::string::npos)
+        {
+            pids.push_back(std::stoi(pid_str));
+        }
+    }
+
+    return pids;
+}
+
+// 格式化字符串（使用 C++20 std::format）
 std::string format_string(const char* fmt, ...)
 {
     thread_local char buf[1024*4];
@@ -77,19 +105,22 @@ std::string format_string(const char* fmt, ...)
     return buf;
 }
 
-std::string ltrim(const std::string& str, const char* delim)
+// 左裁剪
+std::string ltrim(const std::string& str, std::string_view delim)
 {
     auto begin = str.find_first_not_of(delim);
     return begin != std::string::npos ? str.substr(begin) : "";
 }
 
-std::string rtrim(const std::string& str, const char* delim)
+// 右裁剪
+std::string rtrim(const std::string& str, std::string_view delim)
 {
     auto end = str.find_last_not_of(delim);
-    return end != std::string::npos ? str.substr(0, end) : "";
+    return end != std::string::npos ? str.substr(0, end + 1) : "";
 }
 
-std::string trim(const std::string_view& str, const char* delim)
+// 全裁剪
+std::string trim(std::string_view str, std::string_view delim)
 {
     size_t begin = str.find_first_not_of(delim);
     if(begin == std::string::npos) return "";
@@ -98,37 +129,40 @@ std::string trim(const std::string_view& str, const char* delim)
     return std::string(str.substr(begin, end - begin + 1));
 }
 
-std::vector<std::string> split(const std::string_view& str, const char* delim)
+// 字符串分割
+std::vector<std::string> split(const std::string_view& str, std::string_view delim)
 {
-    thread_local char data[1024*4];
-    str.copy(data, sizeof(data));
-    data[str.size()] = '\0';
     std::vector<std::string> result;
+    size_t start = 0;
+    size_t end;
 
-    char* token = strtok(data, delim);
-    while(token != NULL)
+    while((end = str.find_first_of(delim, start)) != std::string_view::npos)
     {
-        result.push_back(token);
-        token = strtok(NULL, delim);
+        if(end > start)
+        {
+            result.emplace_back(str.substr(start, end - start));
+        }
+        start = end + 1;
     }
+
+    if(start < str.size())
+    {
+        result.emplace_back(str.substr(start));
+    }
+
     return result;
 }
 
+// 前缀判断
 bool startswith(const std::string_view& str, const std::string_view& prefix)
 {
-    if (prefix.size() > str.size()) {
-        return false;
-    }
-    return str.compare(0, prefix.size(), prefix) == 0;
+    return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
 }
 
-// 判断字符串 str 是否以 suffix 结尾
+// 后缀判断
 bool endswith(const std::string_view& str, const std::string_view& suffix)
 {
-    if (suffix.size() > str.size()) {
-        return false;
-    }
-    return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+    return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
 }
 
 } // namespace bee
