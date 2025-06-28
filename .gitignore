@@ -1,6 +1,8 @@
 /build/
 /bin/
 /debug/
+/config/*.conf
+/config/ssl/
 /thirdparty/
 /.cache/*
 /source/protocol/
