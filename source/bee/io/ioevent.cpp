@@ -282,7 +282,7 @@ bool passiveio_event::handle_event(int active_events)
     int clientfd = accept(_fd, (struct sockaddr*)&sock_client, &len);
     if(clientfd < 0)
     {
-        if (errno != EAGAIN && errno != EINTR)
+        if(errno != EAGAIN && errno != EINTR)
         {
             local_log("accept: %s", strerror(errno));
             return false;

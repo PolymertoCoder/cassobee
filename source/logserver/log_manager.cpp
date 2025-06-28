@@ -3,7 +3,7 @@
 #include "logger.h"
 #include "config.h"
 #include "remotelog.h"
-#include "glog.h"
+#include "remoteinfluxlog.h"
 
 namespace bee
 {
@@ -78,6 +78,11 @@ bool log_manager::del_logger(std::string name)
 void remotelog::run()
 {
     log_manager::get_instance()->log((LOG_LEVEL)loglevel, logevent);
+}
+
+void remoteinfluxlog::run()
+{
+    log_manager::get_instance()->influxlog(logevent);
 }
 
 } // namespace bee

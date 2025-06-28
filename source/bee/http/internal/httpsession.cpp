@@ -5,7 +5,6 @@
 #include "log.h"
 #include "httpsession_manager.h"
 #include "session.h"
-#include "systemtime.h"
 
 namespace bee
 {

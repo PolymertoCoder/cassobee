@@ -52,7 +52,7 @@ void httpprotocol::set_body(const std::string& body)
 
 void httpprotocol::set_header(const std::string& key, const std::string& value)
 {
-    if (key.empty() || value.empty())
+    if(key.empty() || value.empty())
     {
         local_log("Header key or value cannot be empty %s %s", key.data(), value.data());
         return;

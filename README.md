@@ -185,8 +185,10 @@ bee::add_timer(true, 1000, -1, [](){
 // Custom servlet example
 class myservlet : public bee::servlet {
 public:
-    void handle(bee::httprequest& req, bee::httpresponse& resp) override {
-        if (req.get_url() == "/hello") {
+    void handle(bee::httprequest& req, bee::httpresponse& resp) override
+    {
+        if(req.get_url() == "/hello")
+        {
             resp.set_body("Hello World");
         }
     }

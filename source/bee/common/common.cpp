@@ -76,10 +76,10 @@ std::vector<pid_t> find_pids_by_name(const std::string& name)
 
     for(const auto& entry : std::filesystem::directory_iterator("/proc"))
     {
-        if (!entry.is_directory()) continue;
+        if(!entry.is_directory()) continue;
 
         const std::string pid_str = entry.path().filename();
-        if (!std::all_of(pid_str.begin(), pid_str.end(), ::isdigit)) continue;
+        if(!std::all_of(pid_str.begin(), pid_str.end(), ::isdigit)) continue;
 
         std::ifstream cmdline_file(entry.path() / "cmdline");
         std::string cmdline;

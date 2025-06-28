@@ -162,7 +162,7 @@ void epoller::wakeup()
     static constexpr eventfd_t value = 1;
     if(write(_wakeup_fd, &value, sizeof(value)) < 0)
     {
-        if (errno != EAGAIN) perror("wakeupfd write failed");
+        if(errno != EAGAIN) perror("wakeupfd write failed");
     }
     // local_log("epoller::wakeup() run success");
 }

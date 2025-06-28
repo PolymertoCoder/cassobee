@@ -30,6 +30,7 @@
 #include "util.h"
 #include "ExampleRPC.h"
 #include "httpserver.h"
+#include "monitor.h"
 
 using namespace bee;
 
@@ -251,6 +252,8 @@ int main(int argc, char* argv[])
     // test_http_encode_decode("%zz"); // 无效十六进制字符
     // test_http_encode_decode("%1"); // 不完整的百分比编码
     // test_http_encode_decode("%%20"); // 双重%开头
+
+    bee::monitor_engine::get_instance()->start();
 
     looper->run();
     timer_thread.join();

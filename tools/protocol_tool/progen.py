@@ -318,9 +318,9 @@ class XMLProcessor:
         codefield_methods += "    void clean_default()\n    {\n"
         for field_name, field_type, default_value in protocol.fields:
             if default_value == "{}":
-                codefield_methods += f"        if ({field_name} == {field_type}()) code &= ~FIELDS_{field_name.upper()};\n"
+                codefield_methods += f"        if({field_name} == {field_type}()) code &= ~FIELDS_{field_name.upper()};\n"
             else:
-                codefield_methods += f"        if ({field_name} == {default_value}) code &= ~FIELDS_{field_name.upper()};\n"
+                codefield_methods += f"        if({field_name} == {default_value}) code &= ~FIELDS_{field_name.upper()};\n"
         codefield_methods += "    }\n"
         return codefield_methods
 
@@ -351,7 +351,7 @@ class XMLProcessor:
         if protocol.codefield:
             pack_method += f"    os << code;\n"
             for idx, (field_name, _, _) in enumerate(protocol.fields):
-                pack_method += f"    if (code & FIELDS_{field_name.upper()}) os << {field_name};\n"
+                pack_method += f"    if(code & FIELDS_{field_name.upper()}) os << {field_name};\n"
         else:
             for field_name, _, _ in protocol.fields:
                 pack_method += f"    os << {field_name};\n"
@@ -364,7 +364,7 @@ class XMLProcessor:
         if protocol.codefield:
             unpack_method += f"    os >> code;\n"
             for idx, (field_name, _, _) in enumerate(protocol.fields):
-                unpack_method += f"    if (code & FIELDS_{field_name.upper()}) os >> {field_name};\n"
+                unpack_method += f"    if(code & FIELDS_{field_name.upper()}) os >> {field_name};\n"
         else:
             for field_name, _, _ in protocol.fields:
                 unpack_method += f"    os >> {field_name};\n"

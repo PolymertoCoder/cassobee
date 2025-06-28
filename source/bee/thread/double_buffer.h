@@ -110,7 +110,7 @@ public:
         std::lock_guard<ticket_spinlock> lock(_write_lock);
         
         buffer_ptr back = _back.load(std::memory_order_relaxed);
-        if (back->ref_count.load(std::memory_order_acquire) > 0)
+        if(back->ref_count.load(std::memory_order_acquire) > 0)
         {
             rotate_buffers();
             back = _back.load(std::memory_order_relaxed);
@@ -140,7 +140,7 @@ public:
         
         try
         {
-            if (front->version.load(std::memory_order_acquire) < current_version)
+            if(front->version.load(std::memory_order_acquire) < current_version)
             {
                 std::atomic_thread_fence(std::memory_order_acquire);
                 func(front->data);

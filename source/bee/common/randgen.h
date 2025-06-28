@@ -217,7 +217,7 @@ public:
         double r = dist(eng);
         
         double cumulative = 0.0;
-        for (size_t i = 0; i < weights.size(); ++i)
+        for(size_t i = 0; i < weights.size(); ++i)
         {
             cumulative += weights[i];
             if(r <= cumulative) 

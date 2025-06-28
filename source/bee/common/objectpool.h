@@ -85,7 +85,7 @@ public:
         bee::spinlock::scoped l(_locker);
 #endif
         auto iter = _obj_map.find(obj);
-        if (iter == _obj_map.end()) return;
+        if(iter == _obj_map.end()) return;
 
         const size_t objidx = iter->second;
         node_type* node = _pool + objidx;

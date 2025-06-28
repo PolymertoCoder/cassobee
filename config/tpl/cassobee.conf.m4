@@ -57,3 +57,8 @@ ssl_server = true
 cert_file = config/ssl/cert.pem
 key_file = config/ssl/key.pem
 keepalive_timeout = 30000
+
+[monitor]
+exporters = influx
+collectors = cpu, memory, disk, process, network,system
+collect_interval = 1000

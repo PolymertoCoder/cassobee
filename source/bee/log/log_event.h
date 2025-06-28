@@ -131,14 +131,14 @@ public:
     void set_all_fields() { code = ALLFIELDS; }
     void clean_default()
     {
-        if (process_name == std::string()) code &= ~FIELDS_PROCESS_NAME;
-        if (filename == std::string()) code &= ~FIELDS_FILENAME;
-        if (line == 0) code &= ~FIELDS_LINE;
-        if (timestamp == 0) code &= ~FIELDS_TIMESTAMP;
-        if (threadid == 0) code &= ~FIELDS_THREADID;
-        if (fiberid == 0) code &= ~FIELDS_FIBERID;
-        if (elapse == std::string()) code &= ~FIELDS_ELAPSE;
-        if (content == std::string()) code &= ~FIELDS_CONTENT;
+        if(process_name == std::string()) code &= ~FIELDS_PROCESS_NAME;
+        if(filename == std::string()) code &= ~FIELDS_FILENAME;
+        if(line == 0) code &= ~FIELDS_LINE;
+        if(timestamp == 0) code &= ~FIELDS_TIMESTAMP;
+        if(threadid == 0) code &= ~FIELDS_THREADID;
+        if(fiberid == 0) code &= ~FIELDS_FIBERID;
+        if(elapse == std::string()) code &= ~FIELDS_ELAPSE;
+        if(content == std::string()) code &= ~FIELDS_CONTENT;
     }
 
 public:

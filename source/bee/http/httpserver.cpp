@@ -110,7 +110,7 @@ void httpserver::handle_request(httprequest* req)
         "sessionid", "token", "username", "password",
         "email", "phone", "address", "city", "state"
     };
-    for (const std::string& key : cookie_keys)
+    for(const std::string& key : cookie_keys)
     {
         if(req->has_cookie(key))
         {
