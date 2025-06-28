@@ -21,7 +21,7 @@ public:
     bool del_appender(const std::string& name);
     void clr_appender();
 
-private:
+protected:
     LOG_LEVEL _loglevel = LOG_LEVEL::DEBUG;
     log_appender* _root_appender = nullptr;
     std::unordered_map<std::string, log_appender*> _appenders;

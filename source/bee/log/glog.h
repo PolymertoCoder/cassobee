@@ -38,6 +38,7 @@ private:
     logger* _console_logger = nullptr;
 };
 
+// common log
 template<LOG_OUTPUT output>
 struct logclient::impl
 {
@@ -95,10 +96,14 @@ struct logclient::impl
     const char* _filename;
 };
 
+// influxdb line protocol log
 template<>
 struct logclient::impl<INFLUX>
 {
-
+    impl(const std::string& measurement, const std::map<std::string, std::string> tags, const std::map<std::string, std::string>& fields, TIMETYPE timestamp/*ns*/)
+    {
+        logclient::get_instance()->influx_log(measurement, tags, fields, timestamp);
+    }
 };
 
 using FILE_GLOG = logclient::impl<LOGFILE>;

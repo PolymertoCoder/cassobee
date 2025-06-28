@@ -41,6 +41,3 @@ enum LOG_LEVEL : unsigned char
 #define WARNLOGF(fmt, ...)  FILE_GLOGF(LOG_LEVEL::WARN,  fmt, ##__VA_ARGS__)
 #define ERRORLOGF(fmt, ...) FILE_GLOGF(LOG_LEVEL::ERROR, fmt, ##__VA_ARGS__)
 #define FATALLOGF(fmt, ...) FILE_GLOGF(LOG_LEVEL::FATAL, fmt, ##__VA_ARGS__)
-
-// InfluxDB Line Protocol Log
-#define INFLUXLOG()

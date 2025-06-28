@@ -90,7 +90,7 @@ void influx_logger::influxlog(const influxlog_event& event)
     // 时间戳 (纳秒)
     line << ' ' << event.timestamp;
 
-    
+    _root_appender->log(line.str());
 }
 
 std::string influx_logger::escape_influx(const std::string& input)
