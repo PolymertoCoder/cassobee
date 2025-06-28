@@ -1,0 +1,63 @@
+# .clang-format
+BasedOnStyle: Google
+Language: Cpp
+Standard: c++20
+
+# 缩进与对齐
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+AlignAfterOpenBracket: Align
+AlignOperands: true
+
+# 大括号风格（Allman 风格）
+BreakBeforeBraces: Allman
+
+# 命名空间
+NamespaceIndentation: None
+
+# 函数、if、while 单行控制
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# 空格控制
+# SpaceBeforeParens: ControlStatements
+SpaceBeforeParens: Never
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpaceInEmptyParentheses: false
+SpaceAfterCStyleCast: true
+# Cpp11BracedListStyle: true
+
+# 注释格式
+CommentPragmas: '^ IWYU pragma:'
+SpacesBeforeTrailingComments: 1
+
+# 成员初始列表格式
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+BreakConstructorInitializers: BeforeComma
+
+# 类成员访问修饰符（public/private）缩进
+IndentAccessModifiers: false
+
+# 指针/引用声明风格
+DerivePointerAlignment: false
+PointerAlignment: Left  # `type* ptr` 风格
+
+# 换行策略
+ColumnLimit: 120
+AlwaysBreakAfterReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 60
+PenaltyBreakBeforeFirstCallParameter: 19
+
+# include 排序控制
+SortIncludes: false
+IncludeBlocks: Preserve
+
+# 其他
+ReflowComments: true
+SortUsingDeclarations: false
+EmptyLineBeforeAccessModifier: Never
+KeepEmptyLinesAtTheStartOfBlocks: false
