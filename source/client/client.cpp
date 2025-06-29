@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
     });
     
 
-    // int timerid = add_timer(1000, [servermgr]()
+    // TIMERID timerid = add_timer(1000, [servermgr]()
     // {
     //     auto rpc = rpc_callback<ExampleRPC>::call({1, 2},
     //         [](rpcdata* argument, rpcdata* result)

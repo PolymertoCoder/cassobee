@@ -60,5 +60,5 @@ keepalive_timeout = 30000
 
 [monitor]
 exporters = influx
-collectors = cpu, memory, disk, process, network,system
-collect_interval = 1000
+collectors = cpu, memory, disk, process, network, system
+interval = 1000

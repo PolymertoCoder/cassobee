@@ -19,7 +19,7 @@ public:
 
 protected:
     rotatable_log_appender* _appender = nullptr;
-    int _check_rotate_timerid = -1;
+    TIMERID _check_rotate_timerid = -1;
     std::string _suffix; // 日志文件名后缀
 };
 

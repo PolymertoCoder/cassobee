@@ -25,8 +25,7 @@ time_log_rotator::~time_log_rotator()
 {
     if(_check_rotate_timerid >= 0)
     {
-        bool ret = timewheel::get_instance()->del_timer(_check_rotate_timerid);
-        CHECK_BUG(ret, printf("remove invalid check rotate timer %d ???", _check_rotate_timerid));
+        del_timer(_check_rotate_timerid);
         _check_rotate_timerid = -1;
     }
 }
@@ -77,8 +76,7 @@ size_log_rotator::~size_log_rotator()
 {
     if(_check_rotate_timerid >= 0)
     {
-        bool ret = timewheel::get_instance()->del_timer(_check_rotate_timerid);
-        CHECK_BUG(ret, printf("remove invalid check rotate timer %d ???", _check_rotate_timerid));
+        del_timer(_check_rotate_timerid);
         _check_rotate_timerid = -1;
     }
 }

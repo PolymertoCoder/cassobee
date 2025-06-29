@@ -1,4 +1,3 @@
-#include <unistd.h>
 #include "glog.h"
 #include "timewheel.h"
 #include "config.h"
@@ -15,7 +14,7 @@ void timewheel::init()
     local_log("timewheel init finished...");
 }
 
-int timewheel::add_timer(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)
+TIMERID timewheel::add_timer(bool delay, TIMETYPE timeout, int repeats, callback handler, void* param)
 {
     if(_stop || !handler) return -1;
     auto [timerid, t] = _timerpool.alloc();
@@ -33,7 +32,7 @@ int timewheel::add_timer(bool delay, TIMETYPE timeout, int repeats, callback han
     return timerid;
 }
 
-bool timewheel::del_timer(int timerid)
+bool timewheel::del_timer(TIMERID timerid)
 {
     if(timer_node* t = _timerpool.find_object(timerid))
     {

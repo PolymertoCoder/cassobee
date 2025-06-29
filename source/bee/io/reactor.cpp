@@ -7,6 +7,7 @@
 #include "glog.h"
 #include "event.h"
 #include "lock.h"
+#include "log.h"
 #include "systemtime.h"
 #include "timewheel.h"
 #include "demultiplexer.h"
@@ -105,7 +106,6 @@ void reactor::run()
         }
         _dispatcher->dispatch(this, timeout);
         handle_timer_event();
-        //local_log("reactor::run end\n");
     }
 }
 
@@ -190,7 +190,7 @@ int reactor::add_event_inner(event* ev)
     if(_dispatcher == nullptr || ev == nullptr) return -1;
 
     int events = ev->get_events();
-    if(events & EVENT_ACCEPT || events & EVENT_RECV || events & EVENT_SEND || events & EVENT_HUP || events & EVENT_WAKEUP)
+    if(is_io_events(events))
     {
         int handle = ev->get_handle();
         if(auto iter = _io_events.find(handle); iter != _io_events.end() && iter->second != ev)
@@ -206,7 +206,7 @@ int reactor::add_event_inner(event* ev)
         }
         //TRACELOG("add_io_event handle=%d events=%d.", ev->get_handle(), events);
     }
-    else if(events & EVENT_TIMER)
+    else if(is_timer_events(events))
     {
         timer_event* tm = dynamic_cast<timer_event*>(ev);
         if(tm == nullptr)
@@ -220,7 +220,7 @@ int reactor::add_event_inner(event* ev)
         _timer_events.insert(std::make_pair(expiretime, ev));
         //local_log("add_timer_event nowtime=%ld delay=%d timeout=%ld expiretime=%ld.", nowtime, tm->_delay, tm->_timeout, expiretime);
     }
-    else if(events & EVENT_SIGNAL)
+    else if(is_signal_events(events))
     {
         _signal_events.emplace(ev->get_handle(), ev);
         //local_log("add_signal_event signum=%d.", ev->get_handle());
@@ -238,15 +238,26 @@ void reactor::del_event_inner(event* ev)
 {
     if(_dispatcher == nullptr || ev == nullptr) return;
 
-    _dispatcher->del_event(ev);
-    
-    int fd = ev->get_handle();
-    if(auto iter = _io_events.find(fd); iter != _io_events.end())
+    if(is_io_events(ev->get_events()))
     {
-        delete iter->second;
-        _io_events.erase(iter);
+        _dispatcher->del_event(ev);
+        
+        int fd = ev->get_handle();
+        if(auto iter = _io_events.find(fd); iter != _io_events.end())
+        {
+            delete iter->second;
+            _io_events.erase(iter);
+        }
+        local_log("reactor del_event fd=%d.", fd);
     }
-    local_log("reactor del_event fd=%d.", fd);
+    else if(is_timer_events(ev->get_events()))
+    {
+        local_log("reactor timer_event %p will be deleted timer when actually run instead of immediately.", ev);
+    }
+    else if(is_signal_events(ev->get_events()))
+    {
+        _signal_events.erase(ev->get_handle());
+    }
 }
 
 bool reactor::handle_signal_event(int signum)
@@ -271,6 +282,13 @@ void reactor::handle_timer_event()
         _timer_events.erase(_timer_events.begin());
         timer_event* tm = static_cast<timer_event*>(ev);
         if(expiretime <= nowtime) break;
+
+        if(tm->get_status() == EVENT_STATUS_DEL)
+        {
+            delete tm;
+            local_log("handle_timer_event delete timer event.");
+            continue;
+        }
         if(tm->handle_event(EVENT_TIMER))
         {
             add_event(tm);
@@ -315,17 +333,17 @@ std::thread start_threadpool_and_timer()
     return {};
 }
 
-int add_timer(TIMETYPE timeout, std::function<bool()> handler)
+TIMERID add_timer(TIMETYPE timeout, std::function<bool()> handler)
 {
     return add_timer(true, timeout, -1, [handler](void*){ return handler(); }, nullptr);
 }
 
-int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool()> handler)
+TIMERID add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool()> handler)
 {
     return add_timer(delay, timeout, repeats, [handler](void*){ return handler(); }, nullptr);
 }
 
-int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool(void*)> handler, void* param)
+TIMERID add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool(void*)> handler, void* param)
 {
     if(reactor::get_instance()->use_timer_thread())
     {
@@ -333,8 +351,22 @@ int add_timer(bool delay, TIMETYPE timeout, int repeats, std::function<bool(void
     }
     else
     {
-        reactor::get_instance()->add_event(new timer_event(delay, timeout, repeats, handler, param));
-        return 0;
+        auto* tm = new timer_event(delay, timeout, repeats, handler, param);
+        reactor::get_instance()->add_event(tm);
+        return reinterpret_cast<TIMERID>(tm);
+    }
+}
+
+void del_timer(TIMERID timerid)
+{
+    if(reactor::get_instance()->use_timer_thread())
+    {
+        timewheel::get_instance()->del_timer(timerid);
+    }
+    else
+    {
+        if(timerid <= 0) return;
+        reactor::get_instance()->del_event(reinterpret_cast<event*>(timerid));
     }
 }
 

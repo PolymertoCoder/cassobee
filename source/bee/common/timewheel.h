@@ -40,7 +40,7 @@ struct timer_node : public light_object_base<bee::spinlock>
         _next = nullptr;
     }
 
-    uint64_t _id = 0;
+    TIMERID  _id = 0;
     TIMETYPE _timeout = 0;
     TIMETYPE _nexttime = 0;
     callback _handler = {};
@@ -113,8 +113,8 @@ class timewheel : public singleton_support<timewheel>
 {
 public:
     void init();
-    int  add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, callback handler, void* param);
-    bool del_timer(int timerid);
+    auto add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, callback handler, void* param) -> TIMERID;
+    bool del_timer(TIMERID timerid);
     void run();
     void stop();
 

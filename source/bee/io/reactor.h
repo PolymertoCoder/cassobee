@@ -40,6 +40,20 @@ public:
     FORCE_INLINE bool use_timer_thread() const { return _use_timer_thread; }
     FORCE_INLINE bool is_main_reactor() const { return this == get_instance(); }
 
+    FORCE_INLINE bool is_io_events(int events)
+    {
+        return events & EVENT_ACCEPT || events & EVENT_RECV   || events & EVENT_SEND ||
+               events & EVENT_HUP    || events & EVENT_WAKEUP;
+    }
+    FORCE_INLINE bool is_timer_events(int events)
+    {
+        return events & EVENT_TIMER;
+    }
+    FORCE_INLINE bool is_signal_events(int events)
+    {
+        return events & EVENT_SIGNAL;
+    }
+
 private:
     friend struct sigio_event;
     void load_event();
@@ -82,8 +96,10 @@ private:
 
 std::thread start_threadpool_and_timer();
 
-int add_timer(TIMETYPE timeout/*ms*/, std::function<bool()> handler);
-int add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, std::function<bool()> handler);
-int add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, std::function<bool(void*)> handler, void* param);
+TIMERID add_timer(TIMETYPE timeout/*ms*/, std::function<bool()> handler);
+TIMERID add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, std::function<bool()> handler);
+TIMERID add_timer(bool delay, TIMETYPE timeout/*ms*/, int repeats, std::function<bool(void*)> handler, void* param);
+
+void del_timer(TIMERID timerid);
 
 } // namespace bee

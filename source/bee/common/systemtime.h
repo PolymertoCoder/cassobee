@@ -50,6 +50,13 @@ public:
         clock_gettime(CLOCK_MONOTONIC, &ts);
         return static_cast<TIMETYPE>(ts.tv_sec) * 1000000000ULL + ts.tv_nsec;
     }
+    static std::pair<TIMETYPE, TIMETYPE> get_mill_nano_seconds()
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return {static_cast<TIMETYPE>(ts.tv_sec) * 1000 + ts.tv_nsec / 1000000,
+                static_cast<TIMETYPE>(ts.tv_sec) * 1000000000ULL + ts.tv_nsec};
+    }
     static std::string format_time(TIMETYPE now = INVALID_TIME, const char* fmt = "%Y-%m-%d %H:%M:%S")
     {
         thread_local char timestr[20];

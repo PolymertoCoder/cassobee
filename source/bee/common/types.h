@@ -8,6 +8,7 @@ namespace bee
 {
 
 using TIMETYPE = int64_t;
+using TIMERID = int64_t;
 using SID = uint64_t;
 using PROTOCOLID = uint32_t;
 using TRACEID = uint64_t;
