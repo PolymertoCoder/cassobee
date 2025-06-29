@@ -11,6 +11,10 @@
 #include "glog.h"
 #include "config.h"
 #include "common.h"
+#include "reactor.h"
+#ifdef _REENTRANT
+#include "threadpool.h"
+#endif
 
 namespace bee
 {
@@ -62,12 +66,29 @@ void monitor_engine::start()
     }
     assert(_exporters.size());
 
+    TIMETYPE interval = cfg->get<TIMETYPE>("monitor", "interval", 1000); // ms
+    _timerid = add_timer(interval, [this]()
+    {
+    #ifdef _REENTRANT
+        threadpool::get_instance()->add_task(thread_group_idx(), this);
+    #else
+        run();
+    #endif
+        return true;
+    });
+
     local_log("monitor engine started.");
 }
 
 void monitor_engine::stop()
 {
+    del_timer(_timerid);
+}
 
+void monitor_engine::run()
+{
+    collect_all();
+    export_all();
 }
 
 void monitor_engine::register_collector(metric_collector* collector)
@@ -135,6 +156,7 @@ void monitor_engine::export_to(metric_exporter* exporter)
     {
         metric->export_to(*exporter);
     }
+    _metrics.clear();
 }
 
 // 导出所有指标到所有导出器
@@ -148,18 +170,16 @@ void monitor_engine::export_all()
             metric->export_to(*exporter);
         }
     }
+    _metrics.clear();
 }
 
 // 收集所有指标
 void monitor_engine::collect_all()
 {
     bee::mutex::scoped l(_locker);
-    for(auto& kv : _collectors)
+    for(auto& [_, collector] : _collectors)
     {
-        for(auto metric : _metrics)
-        {
-            kv.second->collect(*metric);
-        }
+        
     }
 }
 

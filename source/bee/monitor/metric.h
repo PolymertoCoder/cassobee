@@ -20,7 +20,7 @@ public:
         : _name(name), _timestamp(systemtime::get_nanoseconds()) {}
 
     metric(const std::string& name, monitor_engine* pmonitor_engine)
-        : _name(name), _timestamp(systemtime::get_nanoseconds()), _monitor_engine(pmonitor_engine)
+        : _name(name), _timestamp(systemtime::get_nanoseconds())
     {
         ASSERT(pmonitor_engine);
         pmonitor_engine->register_metric(this);
@@ -43,7 +43,6 @@ public:
 protected:
     const std::string _name;
     TIMETYPE _timestamp;
-    monitor_engine* _monitor_engine = nullptr;
 };
 
 // InfluxDB 格式指标

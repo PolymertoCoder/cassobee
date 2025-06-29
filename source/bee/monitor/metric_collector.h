@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include "monitor.h"
+#include "systemtime.h"
 #include "types.h"
 #include "metric.h"
 
@@ -27,16 +28,21 @@ public:
     virtual ~metric_collector() = default;
 
     // 收集数据到指标
-    virtual void collect(metric& metric) final
+    void collect(metric& metric)
     {
+        auto [millseconds, nanoseconds] = systemtime::get_mill_nano_seconds();
+        if(millseconds < _last_collect_time + _interval) return;
+
         if(auto* influx_metric = dynamic_cast<bee::influx_metric*>(&metric))
         {
+            influx_metric->set_timestamp(nanoseconds);
             collect_impl(*influx_metric);
         }
         else if(auto* prom_metric = dynamic_cast<bee::prometheus_metric*>(&metric))
         {
             collect_impl(*prom_metric);
         }
+        _last_collect_time = millseconds;
     }
     
     // 获取收集器名称
@@ -71,6 +77,7 @@ protected:
 protected:
     const std::string _name;
     TIMETYPE _interval = 0;
+    TIMETYPE _last_collect_time = 0; // ms
     monitor_engine* _monitor_engine = nullptr;
     std::map<std::string, std::function<void()>> _event_handlers;
 };
