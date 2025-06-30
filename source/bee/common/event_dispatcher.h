@@ -1,10 +1,9 @@
 #pragma once
+#include <algorithm>
 #include <functional>
-#include <unordered_map>
 #include <vector>
-#include <memory>
-#include "lock.h"
 #include "glog.h"
+#include "types.h"
 
 namespace bee
 {
@@ -17,104 +16,93 @@ enum EVENT_HANDLE_RESULT : int
     EVENT_HANDLE_NOT_REGISTERED
 };
 
+enum EVENT_LISTENER_PRIORITY : int
+{
+    LOW = 0,
+    NORMAL = 100,
+    HIGH = 200,
+    CRITICAL = 300
+};
+
 // 事件基类
 class event_base
 {
 public:
     virtual ~event_base() = default;
+    int get_type() const noexcept { return _event_type; }
 
-    // 编译期类型ID生成器
-    template <typename T>
-    static size_t type_id() noexcept
-    {
-        static char unique_id;
-        return reinterpret_cast<size_t>(&unique_id);
-    }
-
-    virtual size_t get_type_id() const noexcept = 0;
+protected:
+    int _event_type;
 };
 
 // 事件处理器接口
-class event_handler_interface
+class event_listener
 {
 public:
-    virtual ~event_handler_interface() = default;
-    virtual int handle_event(const event_base& event) = 0;
-};
+    using HANDLER = std::function<int(const event_base*)>;
 
-// 具体事件处理器
-template <typename EventType>
-class event_handler : public event_handler_interface
-{
-public:
-    using callback = std::function<int(const EventType&)>;
+    event_listener(int event_type, int priority, HANDLER handler)
+        : _event_type(event_type), _priority(priority), _handler(handler) {}
 
-    explicit event_handler(callback cb) : _callback(std::move(cb)) {}
-
-    int handle_event(const event_base& event) override
+    FORCE_INLINE int handle_event(const event_base* event)
     {
-        if(_callback)
+        if(_handler)
         {
-            // 安全的类型转换
-            if(event.get_type_id() == event_base::type_id<EventType>())
-            {
-                return _callback(static_cast<const EventType&>(event));
-            }
+            return _handler(event);
         }
         return EVENT_HANDLE_NOT_REGISTERED;
     }
+
+    FORCE_INLINE int get_event_type() const noexcept { return _event_type; }
+    FORCE_INLINE int get_priority() const noexcept { return _priority; }
+
 private:
-    callback _callback;
+    int16_t _event_type = -1;
+    int16_t _priority = NORMAL;
+    HANDLER _handler;
 };
 
 // 事件派发器
 class event_dispatcher
 {
 public:
-    // 注册事件处理器
-    template <typename EventType>
-    void register_handler(std::function<int(const EventType&)> handler)
-    {
-        const size_t type_id = event_base::type_id<EventType>();
-        auto handler_ptr = std::make_unique<event_handler<EventType>>(std::move(handler));
+    event_dispatcher();
+    ~event_dispatcher();
 
-        bee::mutex::scoped l(_locker);
-        _handlers[type_id].push_back(std::move(handler_ptr));
+    // 注册事件处理器
+    void register_handler(int event_type, std::function<int(const event_base*)> handler, int priority = EVENT_LISTENER_PRIORITY::NORMAL)
+    {
+        if(_listeners.size() <= event_type)
+        {
+            _listeners.resize(event_type + 1);
+        }
+
+        auto& listeners = _listeners[event_type];
+        listeners.emplace_back(new event_listener(event_type, priority, handler));
+        std::ranges::sort(listeners, [](const event_listener* l, const event_listener* r) { return l->get_priority() > r->get_priority(); });
     }
 
     // 派发事件
     void dispatch(const event_base& event)
     {
-        const size_t type_id = event.get_type_id();
-        std::vector<event_handler_interface*> handlers;
-
+        int event_type = event.get_type();
+        if(event_type < 0 || event_type >= _listeners.size())
         {
-            bee::mutex::scoped l(_locker);
-            auto it = _handlers.find(type_id);
-            if(it != _handlers.end())
-            {
-                handlers.reserve(it->second.size());
-                for(auto& handler : it->second)
-                {
-                    handlers.push_back(handler.get());
-                }
-            }
+            local_log("event_type is invalid or has no handler:%d.", event_type);
+            return;
         }
 
-        for(auto handler : handlers)
+        for(auto& listener : _listeners[event_type])
         {
-            int result = handler->handle_event(event);
-            if(result != EVENT_HANDLE_SUCCESS)
+            if(listener->handle_event(&event) == EVENT_HANDLE_INTERRUPT)
             {
-                local_log("event handle failed, type: %zu, result: %d", type_id, result);
-                if(result == EVENT_HANDLE_INTERRUPT)
-                    break;
+                break;
             }
         }
     }
+
 private:
-    std::unordered_map<size_t, std::vector<std::unique_ptr<event_handler_interface>>> _handlers;
-    bee::mutex _locker;
+    std::vector<std::vector<event_listener*>> _listeners;
 };
 
 } // namespace bee
