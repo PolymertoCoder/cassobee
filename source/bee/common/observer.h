@@ -1,7 +1,6 @@
 #pragma once
 #include <functional>
 #include <vector>
-#include <atomic>
 #include <unordered_map>
 #include <memory>
 #include <algorithm>
@@ -38,7 +37,7 @@ public:
     {
         if(_subject)
         {
-            _subject->Unregister(_id);
+            _subject->unregister_observer(_id);
         }
     }
 

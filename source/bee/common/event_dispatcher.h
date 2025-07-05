@@ -94,10 +94,8 @@ public:
 
         for(auto& listener : _listeners[event_type])
         {
-            if(listener->handle_event(&event) == EVENT_HANDLE_INTERRUPT)
-            {
-                break;
-            }
+            if(listener->get_event_type() != event_type) continue;
+            if(listener->handle_event(&event) == EVENT_HANDLE_INTERRUPT) break;
         }
     }
 
