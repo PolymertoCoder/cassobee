@@ -46,4 +46,4 @@ fi
 source ~/.bash_profile
 
 # 创建telegraf的30天数据保留策略
-influx -execute "CREATE RETENTION POLICY \"30d\" ON \"telegraf\" DURATION 30d REPLICATION 1 DEFAULT"
+influx -execute "CREATE RETENTION POLICY \"7d\" ON \"telegraf\" DURATION 30d REPLICATION 1 DEFAULT"
