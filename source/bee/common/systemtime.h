@@ -26,6 +26,13 @@ public:
         localtime_r(&t, &tm);
         return tm;
     }
+    static struct tm get_local_time(TIMETYPE timestamp)
+    {
+        time_t t = timestamp;
+        struct tm tm;
+        localtime_r(&t, &tm);
+        return tm;
+    }
     static TIMETYPE get_seconds()
     {
         struct timespec ts;
@@ -59,7 +66,7 @@ public:
     }
     static std::string format_time(TIMETYPE now = INVALID_TIME, const char* fmt = "%Y-%m-%d %H:%M:%S")
     {
-        thread_local char timestr[20];
+        thread_local char timestr[32];
         if(now == INVALID_TIME) now = time(NULL);
         struct tm tm;
         localtime_r(&now, &tm);

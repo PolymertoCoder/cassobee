@@ -49,6 +49,7 @@ public:
     rotatable_log_appender(log_rotator* rotator);
     virtual ~rotatable_log_appender();
     virtual bool rotate() = 0;
+    std::string get_pre_suffix();
     std::string get_suffix();
 
 private:
@@ -68,13 +69,22 @@ public:
     FORCE_INLINE std::string get_filepath() const { return _filepath; }
 
 protected:
-    bool reopen();
+    virtual bool reopen();
 
 protected:
     std::string  _filedir;
     std::string  _filename;
     std::string  _filepath;
     std::fstream _filestream;
+};
+
+class influxlog_appender : public file_appender
+{
+public:
+    influxlog_appender(std::string logdir, std::string filename);
+
+protected:
+    virtual bool reopen() override;
 };
 
 // 异步日志输出器

@@ -253,7 +253,9 @@ int main(int argc, char* argv[])
     // test_http_encode_decode("%1"); // 不完整的百分比编码
     // test_http_encode_decode("%%20"); // 双重%开头
 
-    bee::monitor_engine::get_instance()->start();
+    auto monitor = bee::monitor_engine::get_instance();
+    monitor->init();
+    monitor->start();
 
     looper->run();
     timer_thread.join();

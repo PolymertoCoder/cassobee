@@ -194,6 +194,26 @@ private:
     std::mutex _locker;
 };
 
+class resursive_mutex : public lock_support<resursive_mutex>
+{
+public:
+    FORCE_INLINE void lock()
+    {
+        _locker.lock();
+    }
+    FORCE_INLINE bool try_lock()
+    {
+        return _locker.try_lock();
+    }
+    FORCE_INLINE void unlock()
+    {
+        _locker.unlock();
+    }
+
+private:
+    std::recursive_mutex _locker;
+};
+
 class rwlock : public rwlock_support<rwlock>
 {
 public:

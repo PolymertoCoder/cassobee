@@ -59,6 +59,6 @@ key_file = config/ssl/key.pem
 keepalive_timeout = 30000
 
 [monitor]
-exporters = influx
+exporter = influx
 collectors = cpu, memory, disk, process, network, system
 interval = 1000

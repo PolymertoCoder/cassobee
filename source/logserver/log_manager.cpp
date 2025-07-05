@@ -30,7 +30,7 @@ void log_manager::init()
     {
         std::string logdir   = cfg->get("influxlog", "dir");
         std::string filename = cfg->get("influxlog", "filename");
-        _influx_logger = new influx_logger(new file_appender(logdir, filename));
+        _influx_logger = new influx_logger(new influxlog_appender(logdir, filename));
     }   
 }
 

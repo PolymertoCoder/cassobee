@@ -15,11 +15,13 @@ public:
         : _appender(appender) {}
     virtual ~log_rotator() = default;
     virtual bool check_rotate() = 0;
-    virtual std::string get_suffix() { return _suffix; }
+    virtual std::string get_pre_suffix() const { return _pre_suffix; }
+    virtual std::string get_suffix() const { return _suffix; }
 
 protected:
     rotatable_log_appender* _appender = nullptr;
     TIMERID _check_rotate_timerid = -1;
+    std::string _pre_suffix; // 上一次日志文件名后缀
     std::string _suffix; // 日志文件名后缀
 };
 

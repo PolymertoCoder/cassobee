@@ -22,7 +22,7 @@ threshold = 4096
 
 [influxlog]
 dir = INFLUXLOG_DIR
-filename = influx
+filename = influxdb
 pattern = %m%n
 asynclog = false
 

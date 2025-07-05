@@ -17,10 +17,10 @@ class metric
 {
 public:
     metric(const std::string& name)
-        : _name(name), _timestamp(systemtime::get_nanoseconds()) {}
+        : _name(name) {}
 
     metric(const std::string& name, monitor_engine* pmonitor_engine)
-        : _name(name), _timestamp(systemtime::get_nanoseconds())
+        : _name(name)
     {
         ASSERT(pmonitor_engine);
         pmonitor_engine->register_metric(this);

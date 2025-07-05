@@ -17,8 +17,9 @@ class monitor_engine : public static_runnable, public singleton_support<monitor_
 {
 public:
     monitor_engine() = default;
-    ~monitor_engine() = default;
+    ~monitor_engine();
 
+    void init();
     void start();
     void stop();
 
@@ -31,7 +32,6 @@ public:
     metric_collector* find_collector(const std::string& name) const;
     
     void register_metric(metric* metric);
-    void register_exporter(metric_exporter* exporter);
 
     void clear();
     
@@ -45,13 +45,11 @@ public:
     void collect_all();
 
 protected:
-
-protected:
     mutable bee::mutex _locker;
     TIMERID _timerid = -1;
     std::unordered_map<std::string, metric_collector*> _collectors;
     std::vector<metric*> _metrics;
-    std::vector<metric_exporter*> _exporters;
+    metric_exporter* _exporter;
 };
 
 } // namespace bee

@@ -48,6 +48,11 @@ rotatable_log_appender::~rotatable_log_appender()
     }
 }
 
+std::string rotatable_log_appender::get_pre_suffix()
+{
+    return _rotator ? _rotator->get_pre_suffix() : "";
+}
+
 std::string rotatable_log_appender::get_suffix()
 {
     return _rotator ? _rotator->get_suffix() : "";
@@ -108,6 +113,22 @@ bool file_appender::reopen() // no lock
     if(_filestream.is_open())
     {
         _filestream.close();
+    }
+    _filestream.open(_filepath, std::fstream::out | std::fstream::app);
+    printf("open filestream %s\n", _filepath.data());
+    return true;
+}
+
+influxlog_appender::influxlog_appender(std::string logdir, std::string filename)
+    : file_appender(logdir, filename) {}
+
+bool influxlog_appender::reopen()
+{
+    _filepath = _filedir + format_string("/%s.log", _filename.data());
+    if(_filestream.is_open())
+    {
+        _filestream.close();
+        std::filesystem::rename(_filepath, format_string("/%s.%s.log", _filename.data(), get_pre_suffix().data()));
     }
     _filestream.open(_filepath, std::fstream::out | std::fstream::app);
     printf("open filestream %s\n", _filepath.data());

@@ -11,7 +11,15 @@ namespace bee
 class metric_exporter
 {
 public:
+    enum TYPE
+    {
+        INFLUX,
+        PROMETHEUS,
+        COUNT
+    };
+
     virtual ~metric_exporter() = default;
+    virtual int get_type() const = 0;
     virtual void write(const metric* metric) = 0;
 };
 
@@ -21,10 +29,12 @@ public:
     influx_exporter() = default;
     virtual ~influx_exporter() = default;
 
+    virtual int get_type() const override { return TYPE::INFLUX; }
+
     virtual void write(const metric* metric) override
     {
         const auto* infl_metric = dynamic_cast<const influx_metric*>(metric);
-        ASSERT(infl_metric);
+        if(!infl_metric) return;
 
         logclient::get_instance()->influx_log(
             infl_metric->measurement(), 
@@ -87,10 +97,12 @@ public:
                              const std::string& value, 
                              TIMETYPE timestamp = 0) = 0;
 
+    virtual int get_type() const override { return TYPE::PROMETHEUS; }
+
     virtual void write(const metric* metric) override
     {
         const auto* prom_metric = dynamic_cast<const prometheus_metric*>(metric);
-        ASSERT(prom_metric);
+        if(!prom_metric) return;
         
         // 写入头部信息
         write_header(*prom_metric);

@@ -1,7 +1,6 @@
 #include "log_rotator.h"
 #include "log_appender.h"
 #include "reactor.h"
-#include "timewheel.h"
 #include <filesystem>
 
 namespace bee
@@ -35,25 +34,35 @@ bool time_log_rotator::check_rotate()
     TIMETYPE curtime = systemtime::get_time();
     if(curtime < _next_rotate_time) return false;
 
-    tm tm_val = systemtime::get_local_time();
-    char suffix[16];
     switch(_rotate_type)
     {
         case ROTATE_TYPE_HOUR:
         {
             // 按小时分割日志并命名 yyyymmddhh
-            std::snprintf(suffix, sizeof(suffix), "%04d%02d%02d%02d", 
-                    tm_val.tm_year + 1900, tm_val.tm_mon + 1, tm_val.tm_mday, tm_val.tm_hour);
-            _suffix = suffix;
+            if(_suffix.size())
+            {
+                _pre_suffix = _suffix;
+            }
+            else
+            {
+                _pre_suffix = systemtime::format_time(curtime - ONEHOUR, "%Y%m%d%H");
+            }
+            _suffix = systemtime::format_time(curtime, "%Y%m%d%H");
             _next_rotate_time = systemtime::get_nexthour_start(curtime);
             break;
         }
         case ROTATE_TYPE_DAY:
         {
             // 按自然日分割日志并命名 yyyymmdd
-            std::snprintf(suffix, sizeof(suffix), "%04d%02d%02d",
-                    tm_val.tm_year + 1900, tm_val.tm_mon + 1, tm_val.tm_mday);
-            _suffix = suffix;
+            if(_suffix.size())
+            {
+                _pre_suffix = _suffix;
+            }
+            else
+            {
+                _pre_suffix = systemtime::format_time(curtime - ONEDAY, "%Y%m%d");
+            }
+            _suffix = systemtime::format_time(curtime, "%Y%m%d");
             _next_rotate_time = systemtime::get_nextday_start(curtime);
             break;
         }
@@ -88,7 +97,20 @@ bool size_log_rotator::check_rotate()
         std::string filepath = appender->get_filepath();
         if(std::filesystem::exists(filepath) && std::filesystem::is_regular_file(filepath))
         {
-            return std::filesystem::file_size(filepath) >= _threshold;
+            if(std::filesystem::file_size(filepath) >= _threshold)
+            {
+                TIMETYPE curtime = systemtime::get_time();
+                if(_suffix.size())
+                {
+                    _pre_suffix = _suffix;
+                }
+                else
+                {
+                    _pre_suffix = systemtime::format_time(curtime - ONEHOUR, "%Y%m%d%H%M%S");
+                }
+                _suffix = systemtime::format_time(curtime, "%Y%m%d%H%M%S");
+                return true;
+            }
         }
     }
     return false;
