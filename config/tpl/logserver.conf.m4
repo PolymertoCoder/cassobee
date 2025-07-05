@@ -13,7 +13,7 @@ timeout = 1000
 
 [log]
 loglevel = 0
-dir = /home/qinchao/cassobee/debug/logdir
+dir = LOG_DIR
 filename = trace
 pattern = LOG_PATTERN
 asynclog = false
@@ -22,7 +22,7 @@ threshold = 4096
 
 [influxlog]
 dir = INFLUXLOG_DIR
-filename = influxlog
+filename = influx
 pattern = %m%n
 asynclog = false
 

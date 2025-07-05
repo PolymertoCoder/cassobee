@@ -1,0 +1,171 @@
+{
+  "id": null,
+  "title": "Telegraf 系统监控面板",
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "CPU 使用率（5分钟平均）",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "measurement": "cpu",
+          "refId": "A",
+          "groupBy": [
+            { "type": "time", "params": ["5m"] },
+            { "type": "tag", "params": ["host"] }
+          ],
+          "select": [
+            [
+              { "type": "field", "params": ["mean_usage_user"] },
+              { "type": "mean", "params": [] }
+            ]
+          ],
+          "orderByTime": "ASC",
+          "policy": "autogen",
+          "alias": "{{host}}"
+        }
+      ],
+      "datasource": "InfluxDB",
+      "lines": true,
+      "fill": 1,
+      "linewidth": 2,
+      "legend": { "show": true }
+    },
+    {
+      "type": "gauge",
+      "title": "内存使用率",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 8 },
+      "targets": [
+        {
+          "measurement": "mem",
+          "refId": "B",
+          "select": [
+            [
+              { "type": "field", "params": ["used_percent"] },
+              { "type": "last", "params": [] }
+            ]
+          ],
+          "groupBy": [
+            { "type": "tag", "params": ["host"] }
+          ],
+          "orderByTime": "DESC"
+        }
+      ],
+      "datasource": "InfluxDB",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "percent"
+        }
+      }
+    },
+    {
+      "type": "graph",
+      "title": "磁盘使用率",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "measurement": "disk",
+          "refId": "C",
+          "select": [
+            [
+              { "type": "field", "params": ["used_percent"] },
+              { "type": "mean", "params": [] }
+            ]
+          ],
+          "groupBy": [
+            { "type": "time", "params": ["1m"] },
+            { "type": "tag", "params": ["host"] },
+            { "type": "tag", "params": ["path"] }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "datasource": "InfluxDB",
+      "lines": true,
+      "legend": { "show": true }
+    },
+    {
+      "type": "graph",
+      "title": "网络吞吐量（bytes/sec）",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "measurement": "nstat",
+          "refId": "D",
+          "select": [
+            [
+              { "type": "field", "params": ["bytes_recv"] },
+              { "type": "derivative", "params": ["1s"] },
+              { "type": "mean", "params": [] }
+            ]
+          ],
+          "groupBy": [
+            { "type": "time", "params": ["1m"] },
+            { "type": "tag", "params": ["interface"] }
+          ],
+          "orderByTime": "ASC"
+        },
+        {
+          "measurement": "nstat",
+          "refId": "E",
+          "select": [
+            [
+              { "type": "field", "params": ["bytes_sent"] },
+              { "type": "derivative", "params": ["1s"] },
+              { "type": "mean", "params": [] }
+            ]
+          ],
+          "groupBy": [
+            { "type": "time", "params": ["1m"] },
+            { "type": "tag", "params": ["interface"] }
+          ],
+          "orderByTime": "ASC"
+        }
+      ],
+      "datasource": "InfluxDB",
+      "lines": true,
+      "legend": { "show": true }
+    },
+    {
+      "type": "stat",
+      "title": "系统负载（1分钟）",
+      "gridPos": { "x": 12, "y": 8, "w": 6, "h": 8 },
+      "targets": [
+        {
+          "measurement": "system",
+          "refId": "F",
+          "select": [
+            [
+              { "type": "field", "params": ["load1"] },
+              { "type": "last", "params": [] }
+            ]
+          ],
+          "groupBy": [
+            { "type": "tag", "params": ["host"] }
+          ],
+          "orderByTime": "DESC"
+        }
+      ],
+      "datasource": "InfluxDB"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "host",
+        "type": "query",
+        "datasource": "InfluxDB",
+        "refresh": 1,
+        "query": "SHOW TAG VALUES FROM cpu WITH KEY = \"host\"",
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  }
+}

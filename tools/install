@@ -1,10 +1,11 @@
 #!/bin/bash
 
 rootpath=$(cd $(dirname $0) && cd ..; pwd)
+config_path="${rootpath}/config"
 
 echo ${rootpath}
 
-mkdir ${rootpath}/bin
+mkdir -e ${rootpath}/bin
 
 PROJECT_PATH="${rootpath}/tools:${rootpath}/build_tool"
 PROJECT_LD_LIBRARY_PATH="${rootpath}/debug/libs"
@@ -43,3 +44,6 @@ if ! grep -Fxq "source ~/.cassobee_config" ~/.bash_profile; then
 fi
 
 source ~/.bash_profile
+
+# 创建telegraf的30天数据保留策略
+influx -execute "CREATE RETENTION POLICY \"30d\" ON \"telegraf\" DURATION 30d REPLICATION 1 DEFAULT"
