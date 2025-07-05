@@ -27,8 +27,6 @@ monitor_engine::~monitor_engine()
 
 void monitor_engine::init()
 {
-    bee::mutex::scoped l(_locker);
-
     auto* cfg = bee::config::get_instance();
 
     std::string exporter_name = cfg->get("monitor", "exporter");
@@ -217,4 +215,4 @@ void monitor_engine::collect_all()
     }
 }
 
-} // bee
+} // namespace bee

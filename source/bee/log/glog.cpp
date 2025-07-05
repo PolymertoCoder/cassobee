@@ -38,6 +38,7 @@ void logclient::glog(LOG_LEVEL level, const char* filename, int line, std::strin
 
 void logclient::console_log(LOG_LEVEL level, const char* filename, int line, std::string content)
 {
+    if(!_console_logger) return;
     g_logevent.set_process_name(_process_name);
     g_logevent.set_filename(filename);
     g_logevent.set_line(line);
@@ -75,6 +76,7 @@ ATTR_WEAK void logclient::set_logserver(logserver_manager* logserver)
 
 ATTR_WEAK void logclient::commit_log(LOG_LEVEL level, const log_event& event)
 {
+    if(!_console_logger) return;
     _console_logger->log(level, event);
 }
 

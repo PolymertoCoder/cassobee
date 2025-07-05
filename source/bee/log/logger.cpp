@@ -88,7 +88,7 @@ void influx_logger::influxlog(const influxlog_event& event)
     }
 
     // 时间戳 (纳秒)
-    line << ' ' << event.timestamp;
+    line << ' ' << event.timestamp << '\n';
 
     _root_appender->log(line.str());
 }

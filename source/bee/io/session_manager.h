@@ -28,7 +28,7 @@ enum SESSION_TYPE
 class session_manager
 {
 public:
-    session_manager() = default;
+    session_manager();
     virtual ~session_manager();
     virtual void init();
     FORCE_INLINE virtual const char* identity() const { return "session_manager"; }

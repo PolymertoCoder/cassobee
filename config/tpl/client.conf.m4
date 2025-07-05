@@ -35,7 +35,7 @@ write_buffer_size = WRITE_BUFFER_SIZE
 [httpclient]
 socktype = tcp
 version = 4
-uri = http://LOCAL_IP:443
+uri = http://LOCAL_IP:8443
 read_buffer_size = READ_BUFFER_SIZE
 write_buffer_size = WRITE_BUFFER_SIZE
 ssl_enabled = false

@@ -407,7 +407,7 @@ int streamio_event::handle_read()
         }
 
         char* recv_ptr = rbuffer.end();
-        int len = recv(_fd, recv_ptr, free_space, 0);
+        int len = recv(_fd, recv_ptr, free_space, MSG_NOSIGNAL);
         if(len > 0)
         {
             rbuffer.fast_resize(len);
@@ -454,7 +454,7 @@ int streamio_event::handle_write()
     int total_send = 0;
     while(true)
     {
-        int len = send(_fd, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset, 0);
+        int len = send(_fd, wbuffer->data() + _ses->_write_offset, wbuffer->size() - _ses->_write_offset, MSG_NOSIGNAL);
         if(len > 0)
         {
             //local_log("send data:%s", std::string(wbuffer.peek(0), len).data());

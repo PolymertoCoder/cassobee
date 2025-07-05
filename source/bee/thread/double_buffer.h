@@ -36,7 +36,7 @@ public:
         std::atomic_thread_fence(std::memory_order_acquire);
         auto& read_buf = _buffer[old_writeidx];
         func(read_buf);
-        // printf("one_reader_double_buffer read _readidx=%d read size=%zu\n", old_writeidx, read_buf.size());
+        printf("one_reader_double_buffer read _readidx=%d read size=%zu\n", old_writeidx, read_buf.size());
         read_buf.clear();
     }
 
@@ -46,7 +46,7 @@ public:
         auto& write_buf = _buffer[_writeidx];
         write_buf.insert(std::cend(write_buf), value);
         std::atomic_thread_fence(std::memory_order_release);
-        // printf("one_reader_double_buffer write _writeidx=%d write size=%zu\n", _writeidx, write_buf.size());
+        printf("one_reader_double_buffer write _writeidx=%d write size=%zu\n", _writeidx, write_buf.size());
     }
 
 private:

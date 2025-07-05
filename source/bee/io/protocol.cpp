@@ -82,13 +82,13 @@ protocol* protocol::decode(octetsstream& os, session* ses)
             os >> octetsstream::ROLLBACK;
             return nullptr;
         }
-        //local_log("id:%d decode size:%zu", id, size);
+        local_log("id:%d decode size:%zu", id, size);
 
-        if(!check_policy(id, size, ses->get_manager()))
-        {
-            local_log("protocol check_policy failed, id=%d size=%zu.", id, size);
-            ASSERT(false);
-        }
+        // if(!check_policy(id, size, ses->get_manager()))
+        // {
+        //     local_log("protocol check_policy failed, id=%d size=%zu.", id, size);
+        //     ASSERT(false);
+        // }
 
         if(protocol* temp = get_protocol(id))
         {

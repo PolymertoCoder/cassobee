@@ -6,6 +6,7 @@
 
 #include "log_appender.h"
 #include "config.h"
+#include "log.h"
 #include "log_formatter.h"
 #include "log_rotator.h"
 #include "common.h"
@@ -128,7 +129,17 @@ bool influxlog_appender::reopen()
     if(_filestream.is_open())
     {
         _filestream.close();
-        std::filesystem::rename(_filepath, format_string("/%s.%s.log", _filename.data(), get_pre_suffix().data()));
+        std::string from = _filepath;
+        std::string to = format_string("/%s.%s.log", _filename.data(), get_pre_suffix().data());
+        if(std::filesystem::exists(from) && !std::filesystem::exists(to))
+        {
+            std::filesystem::rename(from, to);
+        }
+        else
+        {
+            ASSERT(false);
+            local_log_f("influxlog_appender reopen failed, file not exist, filepath:{}", from);
+        }
     }
     _filestream.open(_filepath, std::fstream::out | std::fstream::app);
     printf("open filestream %s\n", _filepath.data());

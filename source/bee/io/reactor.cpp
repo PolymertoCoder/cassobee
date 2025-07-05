@@ -122,11 +122,11 @@ void reactor::wakeup()
 
 void reactor::add_event(event* ev, bool dispatch)
 {
-    if(dispatch)
-    {
+    // if(dispatch)
+    // {
 
-        return;
-    }
+    //     return;
+    // }
     _changelist.write(ev);
     wakeup();
 }

@@ -38,7 +38,7 @@ void logclient::commit_log(LOG_LEVEL level, const log_event& event)
             g_remotelog.logevent = event;
             _logserver->send(g_remotelog);
         }
-        else
+        else if(_console_logger)
         {
             _console_logger->log(level, event);
         }
@@ -61,7 +61,7 @@ void logclient::commit_influxlog(const influxlog_event& event)
         if(_logserver && _logserver->is_connect())
         {
             g_influxremotelog.logevent = event;
-            _logserver->send(g_remotelog);
+            _logserver->send(g_influxremotelog);
         }
     }
 }

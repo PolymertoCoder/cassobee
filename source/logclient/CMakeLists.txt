@@ -15,7 +15,7 @@ set(LOGCLIENT_PRIVATE_INCLUDES ${SOURCE_PATH}/protocol
                                ${SOURCE_PATH}/protocol/include
 )
 
-target_include_directories(logclient   PUBLIC   ${LOGCLIENT_PUBLIC_INCLUDES} PRIVATE ${LOGCLIENT_PRIVATE_INCLUDES})
+target_include_directories(logclient   PUBLIC ${LOGCLIENT_PUBLIC_INCLUDES} PRIVATE ${LOGCLIENT_PRIVATE_INCLUDES})
 target_include_directories(logclient_r PUBLIC ${LOGCLIENT_PUBLIC_INCLUDES} PRIVATE ${LOGCLIENT_PRIVATE_INCLUDES})
 
 target_link_libraries(logclient   PRIVATE bee)

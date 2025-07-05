@@ -145,11 +145,11 @@ int main(int argc, char* argv[])
     // add_timer(false, 5000, 10, [](void*){ local_log("timer2 nowtime2: %ld.", systemtime::get_time()); return true; }, nullptr);
     // add_timer(false, 5000, -1, [](void*){ local_log("timer3 nowtime3: %ld.", systemtime::get_time()); return false; }, nullptr);
 
-    // add_timer(1000, [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
-    // add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
-    // add_timer(1500, [](){ WARNLOG("WARN=%d", 10);   return true; });
-    // add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
-    // add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
+    add_timer(1000, [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
+    add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
+    add_timer(1500, [](){ WARNLOG("WARN=%d", 10);   return true; });
+    add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
+    add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
 
     // std::thread testlog_thread([]()
     // {

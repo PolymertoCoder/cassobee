@@ -23,8 +23,6 @@ threshold = 4096
 [influxlog]
 dir = INFLUXLOG_DIR
 filename = influxdb
-pattern = %m%n
-asynclog = false
 
 [logclient]
 socktype = tcp

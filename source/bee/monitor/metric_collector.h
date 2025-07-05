@@ -13,13 +13,10 @@ class metric_collector
 {
 public:
     metric_collector(const std::string& name)
-        : _name(name)
-    {
-        monitor_engine::get_instance()->register_collector(this);
-    }
+        : _name(name) {}
 
     metric_collector(const std::string& name, monitor_engine* pmonitor_engine)
-        : _name(name), _monitor_engine(pmonitor_engine)
+        : _name(name)
     {
         ASSERT(pmonitor_engine);
         pmonitor_engine->register_collector(this);
@@ -78,7 +75,6 @@ protected:
     const std::string _name;
     TIMETYPE _interval = 0;
     TIMETYPE _last_collect_time = 0; // ms
-    monitor_engine* _monitor_engine = nullptr;
     std::map<std::string, std::function<void()>> _event_handlers;
 };
 

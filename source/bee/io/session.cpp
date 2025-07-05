@@ -17,8 +17,8 @@ session::session(session_manager* manager)
 {
     clear();
 
-    _peer = _manager->get_addr()->dup();
     _manager = manager;
+    _peer = _manager->get_addr()->dup();
 
     _reados.reserve(_manager->_read_buffer_size);
     _readbuf.reserve(_manager->_read_buffer_size);

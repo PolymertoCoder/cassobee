@@ -4,7 +4,7 @@ add_executable(logserver ${LOGSERVER_SRC})
 
 target_include_directories(logserver PRIVATE ${SOURCE_PATH}/logserver/network)
 
-target_link_libraries(logserver PRIVATE pthread bee_r prot_r logclient_r)
+target_link_libraries(logserver PRIVATE pthread bee_r logclient_r prot_r)
 
 gen_startup_script(logserver)
 

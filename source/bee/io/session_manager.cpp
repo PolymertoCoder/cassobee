@@ -15,6 +15,10 @@
 namespace bee
 {
 
+session_manager::session_manager()
+{
+}
+
 session_manager::~session_manager()
 {
     delete _addr;
@@ -99,6 +103,7 @@ void session_manager::check_timeouts()
     bee::rwlock::rdscoped l(_locker);
     for(const auto& [sid, ses] : _sessions)
     {
+        bee::rwlock::wrscoped sesl(ses->_locker);
         if(ses->is_timeout(_keepalive_timeout))
         {
             ses->set_close(SESSION_CLOSE_REASON_TIMEOUT);
@@ -186,6 +191,7 @@ void session_manager::add_session_nolock(SID sid, session* ses)
 {
     if(!ses) return;
     // assert(_sessions.bucket_count() > 0 && "sessions map is not initialized");
+    local_log("Bucket count before add: %zu", _sessions.bucket_count());
     if(_sessions.emplace(sid, ses).second)
     {
         on_add_session(sid);

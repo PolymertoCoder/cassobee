@@ -37,10 +37,10 @@ public:
         if(!infl_metric) return;
 
         logclient::get_instance()->influx_log(
-            infl_metric->measurement(), 
+            infl_metric->measurement(),
+            infl_metric->tags(),
             infl_metric->fields(), 
-            infl_metric->tags(), 
-            systemtime::get_nanoseconds()
+            metric->timestamp()
         );
     }
 };

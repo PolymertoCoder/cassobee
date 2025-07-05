@@ -102,26 +102,26 @@ int main(int argc, char* argv[])
     });
     
 
-    // TIMERID timerid = add_timer(1000, [servermgr]()
-    // {
-    //     auto rpc = rpc_callback<ExampleRPC>::call({1, 2},
-    //         [](rpcdata* argument, rpcdata* result)
-    //         {
-    //             auto arg = (ExampleRPCArg*)argument;
-    //             auto res = (EmptyRpcRes*)result;
+    TIMERID timerid = add_timer(1000, [servermgr]()
+    {
+        auto rpc = rpc_callback<ExampleRPC>::call({1, 2},
+            [](rpcdata* argument, rpcdata* result)
+            {
+                auto arg = (ExampleRPCArg*)argument;
+                auto res = (EmptyRpcRes*)result;
 
-    //             local_log_f("rpc callback received: param1:{} param2:{}, result:{}", arg->param1, arg->param2, res->sum);
-    //         },
-    //         [](rpcdata* argument)
-    //         {
-    //             auto arg = (ExampleRPCArg*)argument;
-    //             local_log_f("rpc timeout for: param1:{} param2:{}", arg->param1, arg->param2);
-    //         }
-    //     );
-    //     servermgr->send(*rpc);
-    //     return true;
-    // });
-    // local_log("timerid: %d", timerid);
+                local_log_f("rpc callback received: param1:{} param2:{}, result:{}", arg->param1, arg->param2, res->sum);
+            },
+            [](rpcdata* argument)
+            {
+                auto arg = (ExampleRPCArg*)argument;
+                local_log_f("rpc timeout for: param1:{} param2:{}", arg->param1, arg->param2);
+            }
+        );
+        servermgr->send(*rpc);
+        return true;
+    });
+    local_log("timerid: %lu", timerid);
 
     looper->run();
     timer_thread.join();
