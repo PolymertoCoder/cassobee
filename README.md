@@ -1,7 +1,7 @@
 # cassobee 项目说明
 
 ## 项目简介
-cassobee 是一个 Linux 高性能 C++ 服务器开发框架，支持事件驱动、HTTP服务器/客户端、日志、数据库、协议扩展、命令行工具、监控等功能，适合构建高并发网络服务和 Web 应用。
+cassobee 是一个 Linux 高性能 C++ 服务器开发框架，支持事件驱动、HTTP服务器/客户端、日志、定时器、线程池、对象池、数据库、缓存、协议扩展、命令行工具、监控等功能，适合构建高并发网络服务和 Web 应用。
 
 ## 目录结构
 ```
@@ -66,28 +66,23 @@ cmake .. -DCMAKE_BUILD_TYPE=Release # whatever Release or Debug
 mk # 编译
 ```
 
-## 脚本
-**更新脚本：**
-```bash
-up
-```
-
+## 脚本说明
 - **install**：一键设置环境变量、依赖、常用目录别名、自动补全，初始化 telegraf 数据保留策略。
 - **build_thirdparty**：自动编译所有第三方依赖库。
+- **ca/ss/tt/uu/cfg/pp**：快速跳转到项目根目录/source/tools/bee/config/progen/目录下。
 - **mk**：自动生成配置、进入 build 目录并编译主项目。
+- **up**：更新项目代码、第三方库。
 - **genconf**：根据 config/tpl 下模板生成所有配置文件，并自动生成 SSL 证书。
 - **pg**：协议代码生成（将 progen/*.xml 自动生成到 source/protocol/）。
 - **rs/ks/rsall/ksall**：服务管理脚本，支持单服务/全部服务的优雅重启与关闭。
 - **psall**：彩色显示所有 cassobee 相关服务进程信息。
 - **monitor_proc**：采集指定进程的 oncpu/offcpu 性能数据并生成火焰图。
 
+---
+
 ## 各程序启动与用法
 
 ### cassobee 服务端测试程序
-```bash
-rsall # 重启所有服务
-ksall # 友好关闭所有服务
-```
 
 **主要流程（main.cpp 摘要）：**
 ```cpp
