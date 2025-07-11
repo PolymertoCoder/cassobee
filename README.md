@@ -264,7 +264,7 @@ add_timer(1000, [](){ DEBUGLOG("定时器触发"); return true; });
 ```cpp
 bee::lockfree_objectpool<MyObj> pool(1000);
 auto [idx, obj] = pool.alloc();
-if(obj) { pool.free(obj); }
+if(obj) { /*使用obj*/ pool.free(obj); }
 ```
 
 ### 5. Reactor 事件循环
@@ -299,20 +299,20 @@ http_client->get("/test/hello", [](int status, httprequest* req, httpresponse* r
 
 ### 8. 协议与序列化、codefield机制
 - 协议定义在 `progen/*.xml`，通过 `tools/pg` 生成 C++ 协议类。
-- 发送：通过 `session->send(protocol_obj)` 或 `servermgr->send(protocol_obj)`。
-- 处理：在 manager/handler 注册回调，收到协议后自动分发。
-- 支持 codefield 位图机制：字段未设置时用默认值，序列化时自动忽略，节省空间。
-- 协议类和 rpcdata 支持自动序列化/反序列化，底层用 octetsstream。
+- 发送：通过 `session->send(protocol_obj)` 或 `session_manager->send(protocol_obj)`。
+- 处理：在解包后将协议任务放入线程池等待处理，处理时会调用协议对应的run()方法
+- 支持 codefield 位图机制：字段未设置时用默认值，序列化时自动忽略；小整数使用varint/zigzag编码，节省空间。
+- 协议类和 rpcdata 支持自动序列化/反序列化，底层用 octetsstream（字节流）。
 ```cpp
 // 发送
 ExampleProtocol proto;
 proto.set_field1(123); // field2未设置，序列化时不输出
 session->send(proto);
 
-// 处理注册
-server_manager::get_instance()->register_handler<ExampleProtocol>([](const ExampleProtocol& proto, session* sess){
-    // 处理逻辑
-});
+// 协议处理
+void ExampleProtocol::run(){
+    printf("field1:%d field2:%f\n", field1, field2);
+}
 
 // 序列化/反序列化
 bee::octetsstream os;
@@ -336,9 +336,10 @@ servermgr->send(*rpc);
 
 ### 10. 委托（Delegate）
 ```cpp
-bee::delegate<void(int)> on_event;
-on_event += [](int v){ printf("event: %d\n", v); };
-on_event(42);
+MULTICAST_DELEGATE_DECLEAR(on_event, int);
+on_event.bind([](int v){ printf("event: %d\n", v); });
+on_event += [](int v){ printf("event: %d\n", v + 1); };
+on_event.broadcast(42);
 ```
 
 ### 11. CLI 命令扩展
@@ -356,8 +357,12 @@ cli->add_command("mycmd", new mycmd("mycmd", "自定义命令"));
 
 ### 12. random 库
 ```cpp
-int r = bee::random::rand(0, 100);
-double d = bee::random::rand_double();
+int r = bee::random::range(0, 100);
+double d = bee::random::generate<double>();
+std::vector<int> candidates{0, 1, 2, 3, 4, 5};
+int candidate = bee::random::choice(candidates);
+std::vector<int> final_candidate = bee::random::select(candidates, 2);
+bee::random::shuffle(candidates);
 ```
 
 ### 13. bee::ostringstream 字符串拼接
@@ -376,40 +381,6 @@ monitor->start(); // 由定时器定期搜集数据并输出
 
 ---
 
-## bee/common 模块详解
-
-### bee/common/config 配置管理
-- 支持分节、类型安全的配置读取，支持 reload。
-- 用法见基础用法。
-- 扩展：可通过 reload() 动态重载配置。
-
-### bee/common/objectpool 对象池
-- 高性能对象池，支持线程安全和无锁两种实现。
-- 用法见基础用法。
-- 扩展：支持 find_object、free by idx、LAZY/EAGER 初始化等。
-
-### bee/common/event_dispatcher 事件派发
-- 支持事件注册、优先级、派发与中断，适合复杂业务解耦。
-- 用法见基础用法。
-- 扩展：支持多优先级、事件中断、动态注册。
-
-### bee/common/observer 观察者模式
-- 线程安全的观察者/订阅-通知机制，支持自动注销。
-- 用法见基础用法。
-- 扩展：支持多参数、observer_count、手动注销。
-
-### bee/common/randgen 随机数
-- 高性能、线程安全的随机数生成，支持多分布、容器操作、UUID等。
-- 用法见基础用法。
-- 扩展：支持权重选择、打乱、概率判断、随机日期/颜色/字节流等。
-
-### bee/common/timewheel 定时器
-- 高性能时间轮定时器，支持单次/周期/多定时器，毫秒级精度。
-- 用法见基础用法。
-- 扩展：支持动态增删、定时器池、回调参数、定时器状态查询。
-
----
-
 ## 配置文件说明
 - `config/cassobee.conf`：主服务配置（端口、线程数、数据库等）
 - `config/logserver.conf`：日志服务配置
@@ -418,14 +389,6 @@ monitor->start(); // 由定时器定期搜集数据并输出
 
 ---
 
-## tools 脚本工具说明
-- `install`：自动安装依赖
-- `build_thirdparty`：编译第三方库
-- `mk`：快速编译主项目
-- `pg`：协议代码生成（根据 progen/*.xml 自动生成协议头/源文件）
-- 其余脚本详见 tools 目录注释或直接运行 `./脚本名 --help`
-
----
 
 ## FAQ/常见问题
 
@@ -435,31 +398,33 @@ monitor->start(); // 由定时器定期搜集数据并输出
 
 ### 协议与序列化
 - **Q: 如何自定义协议？**  
-  A: 在 `progen/` 下新增 xml，运行 `tools/pg` 自动生成协议代码。
+  A: 在 `progen/` 下新增 xml，在xml中定义协议名、协议号、字段类型、默认值等，运行 `pg` 自动生成协议代码。
 - **Q: 协议的 codefield 机制如何节省空间？**  
-  A: 未设置的字段不会被序列化，反序列化时自动赋默认值，适合大协议和稀疏字段。
+  A: 未设置的字段不会被序列化，反序列化时自动赋默认值，适合大协议和稀疏字段。另外，对小整数，会进行varint/zigzag编码节省空间。
 
-### 日志与监控
+### 日志
 - **Q: 日志无法输出？**  
   A: 检查 `config/logserver.conf` 配置和日志服务是否启动。
-- **Q: 如何扩展监控指标？**  
-  A: 通过 `monitor::add_metric`、`inc`、`report` 等接口自定义和上报监控数据。
 
-### HTTP/事件/对象池
+### 监控
+- **Q: 如何扩展监控指标？**  
+  A: 通过 `monitor::add_metric`等接口自定义和上报监控数据。
+
+### HTTP
 - **Q: 如何扩展 HTTP 服务？**  
   A: 继承 `bee::servlet`，实现 `handle` 方法，并注册到对应 `httpserver::servlet_dispatcher`。
+
+### 事件
 - **Q: 如何实现事件派发和观察者模式？**  
   A: 使用 `event_dispatcher`，支持多观察者订阅和事件分发。
-- **Q: bee::lockfree_objectpool 有什么优势？**  
-  A: 支持高并发下对象复用，减少内存分配和碎片化。
 
-### CLI/委托/random
+### CLI
 - **Q: 如何添加自定义 CLI 命令？**  
   A: 继承 `bee::command`，实现 execute 方法，并通过 `command_line::add_command` 注册。
+
+### 委托
 - **Q: 委托(delegate)和事件派发有何区别？**  
   A: delegate 适合单一事件多回调，event_dispatcher 适合多类型事件多观察者。
-- **Q: 如何生成高性能随机数？**  
-  A: 使用 `bee::random::rand`、`rand_double` 等接口。
 
 ---
 

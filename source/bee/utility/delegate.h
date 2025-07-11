@@ -174,6 +174,18 @@ public:
         base_storage::del(id);
     }
 
+    auto& operator +=(std::function<void(param_types...)>&& executor)
+    {
+        bind(std::move(executor));
+        return *this;
+    }
+
+    auto& operator -=(id_type id)
+    {
+        unbind(id);
+        return *this;
+    }
+
     bool isbound()
     {
         lock_guard l(this);
