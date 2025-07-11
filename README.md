@@ -255,21 +255,28 @@ ERRORLOGF("Error occurred: {}.", error_msg);
 add_timer(1000, [](){ DEBUGLOG("定时器触发"); return true; });
 ```
 
-### 4. 对象池
+### 4. 线程池
+```cpp
+threadpool::get_instance()->add_task(0/*thread group idx*/, [](int i){
+    local_log_f("threadpool task run: {}", i);
+});
+```
+
+### 5. 对象池
 ```cpp
 bee::lockfree_objectpool<MyObj> pool(1000);
 auto [idx, obj] = pool.alloc();
 if(obj) { /*使用obj*/ pool.free(obj); }
 ```
 
-### 5. Reactor 事件循环
+### 6. Reactor 事件循环
 ```cpp
 auto* looper = bee::reactor::get_instance();
 looper->init();
 looper->run();
 ```
 
-### 6. 事件派发与观察者
+### 7. 事件派发与观察者
 ```cpp
 bee::event_dispatcher<int> dispatcher;
 dispatcher.subscribe([](int v){ printf("observer1: %d\n", v); });
@@ -277,7 +284,7 @@ dispatcher.subscribe([](int v){ printf("observer2: %d\n", v); });
 dispatcher.emit(100);
 ```
 
-### 7. HTTP 客户端/服务端
+### 8. HTTP 客户端/服务端
 ```cpp
 // 服务端
 auto http_server = std::make_unique<httpserver>();
@@ -292,7 +299,7 @@ http_client->get("/test/hello", [](int status, httprequest* req, httpresponse* r
 });
 ```
 
-### 8. 协议与序列化、codefield机制
+### 9. 协议与序列化、codefield机制
 - 协议定义在 `progen/*.xml`，通过 `tools/pg` 生成 C++ 协议类。
 - 发送：通过 `session->send(protocol_obj)` 或 `session_manager->send(protocol_obj)`。
 - 处理：在解包后将协议任务放入线程池等待处理，处理时会调用协议对应的run()方法
@@ -316,7 +323,7 @@ ExampleProtocol proto2;
 os >> proto2;
 ```
 
-### 9. RPC 调用
+### 10. RPC 调用
 ```cpp
 auto rpc = rpc_callback<ExampleRPC>::call({/*arg...*/},
     [](rpcdata* argument, rpcdata* result){
@@ -329,7 +336,7 @@ auto rpc = rpc_callback<ExampleRPC>::call({/*arg...*/},
 servermgr->send(*rpc);
 ```
 
-### 10. 委托（Delegate）
+### 11. 委托（Delegate）
 ```cpp
 MULTICAST_DELEGATE_DECLEAR(on_event, int);
 on_event.bind([](int v){ printf("event: %d\n", v); });
@@ -337,7 +344,7 @@ on_event += [](int v){ printf("event: %d\n", v + 1); };
 on_event.broadcast(42);
 ```
 
-### 11. CLI 命令扩展
+### 12. CLI 命令扩展
 ```cpp
 class mycmd : public bee::command {
 public:
@@ -350,7 +357,7 @@ auto cli = bee::command_line::get_instance();
 cli->add_command("mycmd", new mycmd("mycmd", "自定义命令"));
 ```
 
-### 12. random 库
+### 13. random 库
 ```cpp
 int r = bee::random::range(0, 100);
 double d = bee::random::generate<double>();
@@ -360,14 +367,14 @@ std::vector<int> final_candidate = bee::random::select(candidates, 2);
 bee::random::shuffle(candidates);
 ```
 
-### 13. bee::ostringstream 字符串拼接
+### 14. bee::ostringstream 字符串拼接
 ```cpp
 bee::ostringstream oss;
 oss << "value=" << 123 << ", str=" << "abc";
 std::string s = oss.str();
 ```
 
-### 14. 监控
+### 15. 监控
 ```cpp
 auto monitor = bee::monitor::get_instance();
 monitor->init();
