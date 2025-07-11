@@ -106,9 +106,9 @@ struct logclient::impl<INFLUX>
     }
 };
 
-using FILE_GLOG = logclient::impl<LOGFILE>;
+using FILE_GLOG    = logclient::impl<LOGFILE>;
 using CONSOLE_GLOG = logclient::impl<CONSOLE>;
-using INFLUX_GLOG = logclient::impl<INFLUX>;
+using INFLUX_GLOG  = logclient::impl<INFLUX>;
 
 #define FILE_GLOGF(loglevel, fmt, ...) \
     FILE_GLOG(loglevel, __FILENAME__, __LINE__)(std::format(fmt, ##__VA_ARGS__))

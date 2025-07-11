@@ -1,18 +1,45 @@
-# CassoBee 项目说明
+# cassobee 项目说明
 
 ## 项目简介
-CassoBee 是一个 Linux 高性能 C++ 服务器开发框架，支持事件驱动、HTTP服务器/客户端、日志、数据库、协议扩展、命令行工具等功能，适合构建高并发网络服务和 Web 应用。
+cassobee 是一个 Linux 高性能 C++ 服务器开发框架，支持事件驱动、HTTP服务器/客户端、日志、数据库、协议扩展、命令行工具、监控等功能，适合构建高并发网络服务和 Web 应用。
 
 ## 目录结构
 ```
-source/
+bin/           # 启动脚本
+build/         # 编译中间产物
+config/        # 配置文件
+debug/         # 调试目录（可执行程序/库文件）
+  logdir/      # 日志文件目录
+  libs/        # 依赖库文件
+  可执行程序...
+doc/           # 文档
+progen/        # 协议定义
+source/        # 源代码目录
   bee/         # 主功能库
+    cache/     # 缓存模块（TODO）
+    cli/       # 命令行模块
+    common/    # 公共模块
+    database/  # 数据库模块
+    format/    # 格式化、字符流模块
+    http/      # HTTP模块
+    io/        # 网络IO模块
+    log/       # 日志模块
+    lua/       # Lua脚本引擎模块（TODO）
+    meta/      # 反射模块（TODO）
+    monitor/   # 监控模块
+    security/  # 安全模块
+    thread/    # 多线程模块
+    traits/    # 元编程、concept
+    utility/   # 通用工具模块
   casso/       # cassobee主程序（主服务/演示）
   client/      # client测试程序
   logserver/   # 日志服务端
-  ...
-config/        # 配置文件
-progen/        # 协议定义
+  protocol/    # 生成的协议文件
+    include/   # 协议头文件
+    source/    # 协议源文件
+    state/     # 各服务间注册的协议状态文件
+thirdparty/    # 第三方库目录
+tools/         # 工具脚本
 ```
 
 ## 依赖与编译
@@ -27,27 +54,39 @@ cd cassobee
 ```bash
 cd tools
 ./install
-./build_thirdparty
+up # 更新
+build_thirdparty # 编译第三方库
 cd ..
 ```
 
 ### 3. 编译
 ```bash
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-../tools/mk
+cmake .. -DCMAKE_BUILD_TYPE=Release # whatever Release or Debug
+mk # 编译
 ```
 
----
+## 脚本
+**更新脚本：**
+```bash
+up
+```
+
+- **install**：一键设置环境变量、依赖、常用目录别名、自动补全，初始化 telegraf 数据保留策略。
+- **build_thirdparty**：自动编译所有第三方依赖库。
+- **mk**：自动生成配置、进入 build 目录并编译主项目。
+- **genconf**：根据 config/tpl 下模板生成所有配置文件，并自动生成 SSL 证书。
+- **pg**：协议代码生成（将 progen/*.xml 自动生成到 source/protocol/）。
+- **rs/ks/rsall/ksall**：服务管理脚本，支持单服务/全部服务的优雅重启与关闭。
+- **psall**：彩色显示所有 cassobee 相关服务进程信息。
+- **monitor_proc**：采集指定进程的 oncpu/offcpu 性能数据并生成火焰图。
 
 ## 各程序启动与用法
 
-### 1. cassobee 主程序
-
-**启动命令：**
+### cassobee 服务端测试程序
 ```bash
-cd source/casso
-./cassobee --config ../../config/cassobee.conf
+rsall # 重启所有服务
+ksall # 友好关闭所有服务
 ```
 
 **主要流程（main.cpp 摘要）：**
@@ -78,10 +117,9 @@ http_server->listen();
 
 // 4. 各种定时器/日志演示
 add_timer(1000, [](){ DEBUGLOG("DEBUG=%d", 10); return true; });
-add_timer(2000, [](){ INFOLOG("INFO=%d", 10);   return true; });
-add_timer(1500, [](){ WARNLOG("WARN=%d", 10);   return true; });
-add_timer(2000, [](){ ERRORLOG("ERROR=%d", 10); return true; });
-add_timer(2500, [](){ FATALLOG("FATAL=%d", 10); return true; });
+add_timer(2000, [](){ ERRORLOGF("ERROR={}", 20); return false; });
+DEBUGLOG << "DEBUG=" << 10;
+ERRORLOG << "ERROR=" << 20;
 
 // 5. 启动主事件循环
 reactor::get_instance()->run();
@@ -100,10 +138,9 @@ reactor::get_instance()->add_signal(SIGUSR1, sigusr1_handler);
 
 **启动命令：**
 ```bash
-cd source/client
-./client --config ../../config/client.conf
+rs client
 # 或带命令行交互
-./client -with-cmd --config ../../config/client.conf
+./client -with-cmd
 ```
 
 **主要流程（client.cpp 摘要）：**
@@ -145,11 +182,13 @@ add_timer(1000, [http_client](){
 // 6. 定时发起 RPC 请求
 add_timer(1000, [servermgr](){
     auto rpc = rpc_callback<ExampleRPC>::call({1, 2},
+        // 回调函数
         [](rpcdata* argument, rpcdata* result){
             auto arg = (ExampleRPCArg*)argument;
             auto res = (EmptyRpcRes*)result;
             local_log_f("rpc callback received: param1:{} param2:{}, result:{}", arg->param1, arg->param2, res->sum);
         },
+        // 超时回调
         [](rpcdata* argument){
             auto arg = (ExampleRPCArg*)argument;
             local_log_f("rpc timeout for: param1:{} param2:{}", arg->param1, arg->param2);
@@ -170,8 +209,7 @@ timer_thread.join();
 
 **启动命令：**
 ```bash
-cd source/logserver
-./logserver --config ../../config/logserver.conf
+rs logserver
 ```
 
 **主要流程（logserver.cpp 摘要）：**
@@ -195,22 +233,20 @@ logclient_manager::get_instance()->listen();
 
 // 4. 启动主事件循环
 reactor::get_instance()->run();
-timer_thread.join();
 ```
 
 ---
 
 ## bee 库常用 API 及用法
 
-### 1. 配置与监控
+### 1. 配置
 ```cpp
+#include "config.h"
 auto cfg = bee::config::get_instance();
 cfg->init("config/cassobee.conf");
-
-// 监控数据拓展
-bee::monitor::get_instance()->add_metric("custom_metric", 0);
-bee::monitor::get_instance()->inc("custom_metric");
-bee::monitor::get_instance()->report();
+std::string host = cfg->get<std::string>("server", "host");
+int port = cfg->get<int>("server", "port");
+...
 ```
 
 ### 2. 日志
@@ -228,7 +264,7 @@ add_timer(1000, [](){ DEBUGLOG("定时器触发"); return true; });
 ```cpp
 bee::lockfree_objectpool<MyObj> pool(1000);
 auto [idx, obj] = pool.alloc();
-if(obj) { /* 使用obj */ pool.free(obj); }
+if(obj) { pool.free(obj); }
 ```
 
 ### 5. Reactor 事件循环
@@ -287,18 +323,15 @@ os >> proto2;
 
 ### 9. RPC 调用
 ```cpp
-add_timer(1000, [servermgr](){
-    auto rpc = rpc_callback<ExampleRPC>::call({1, 2},
-        [](rpcdata* argument, rpcdata* result){
-            // 处理回调
-        },
-        [](rpcdata* argument){
-            // 超时处理
-        }
-    );
-    servermgr->send(*rpc);
-    return true;
-});
+auto rpc = rpc_callback<ExampleRPC>::call({/*arg...*/},
+    [](rpcdata* argument, rpcdata* result){
+        // 处理回调
+    },
+    [](rpcdata* argument){
+        // 超时处理
+    }
+);
+servermgr->send(*rpc);
 ```
 
 ### 10. 委托（Delegate）
@@ -333,6 +366,47 @@ bee::ostringstream oss;
 oss << "value=" << 123 << ", str=" << "abc";
 std::string s = oss.str();
 ```
+
+### 14. 监控
+```cpp
+auto monitor = bee::monitor::get_instance();
+monitor->init();
+monitor->start(); // 由定时器定期搜集数据并输出
+```
+
+---
+
+## bee/common 模块详解
+
+### bee/common/config 配置管理
+- 支持分节、类型安全的配置读取，支持 reload。
+- 用法见基础用法。
+- 扩展：可通过 reload() 动态重载配置。
+
+### bee/common/objectpool 对象池
+- 高性能对象池，支持线程安全和无锁两种实现。
+- 用法见基础用法。
+- 扩展：支持 find_object、free by idx、LAZY/EAGER 初始化等。
+
+### bee/common/event_dispatcher 事件派发
+- 支持事件注册、优先级、派发与中断，适合复杂业务解耦。
+- 用法见基础用法。
+- 扩展：支持多优先级、事件中断、动态注册。
+
+### bee/common/observer 观察者模式
+- 线程安全的观察者/订阅-通知机制，支持自动注销。
+- 用法见基础用法。
+- 扩展：支持多参数、observer_count、手动注销。
+
+### bee/common/randgen 随机数
+- 高性能、线程安全的随机数生成，支持多分布、容器操作、UUID等。
+- 用法见基础用法。
+- 扩展：支持权重选择、打乱、概率判断、随机日期/颜色/字节流等。
+
+### bee/common/timewheel 定时器
+- 高性能时间轮定时器，支持单次/周期/多定时器，毫秒级精度。
+- 用法见基础用法。
+- 扩展：支持动态增删、定时器池、回调参数、定时器状态查询。
 
 ---
 

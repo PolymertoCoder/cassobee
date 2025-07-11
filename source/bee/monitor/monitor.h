@@ -31,7 +31,7 @@ public:
     void unregister_collector(metric_collector* collector);
     metric_collector* find_collector(const std::string& name) const;
     
-    void register_metric(metric* metric);
+    void add_metric(metric* metric);
 
     void clear();
     

@@ -23,7 +23,7 @@ public:
         : _name(name)
     {
         ASSERT(pmonitor_engine);
-        pmonitor_engine->register_metric(this);
+        pmonitor_engine->add_metric(this);
     }
 
     virtual ~metric() = default;

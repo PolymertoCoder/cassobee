@@ -135,7 +135,7 @@ metric_collector* monitor_engine::find_collector(const std::string& name) const
 }
 
 // 注册指标
-void monitor_engine::register_metric(metric* metric)
+void monitor_engine::add_metric(metric* metric)
 {
     bee::mutex::scoped l(_locker);
     _metrics.push_back(metric);
