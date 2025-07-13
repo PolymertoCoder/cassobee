@@ -1,12 +1,14 @@
 # cassobee 项目说明
 
 ## 项目简介
-cassobee 是一个 Linux 高性能 C++ 服务器开发框架，支持事件驱动、HTTP服务器/客户端、日志、定时器、线程池、对象池、数据库、缓存、协议扩展、命令行工具、监控等功能，适合构建高并发网络服务和 Web 应用。
+cassobee 是一个 Linux 高性能 C++ 服务器开发框架，支持事件驱动、日志、定时器、线程池、对象池、数据库、HTTP服务器/客户端、缓存、协议扩展、命令行工具、监控等功能，适合构建高并发网络服务。
 
 ## 目录结构
 ```
 bin/           # 启动脚本
 build/         # 编译中间产物
+cmake/         # cmake 脚本
+  fastbuild_gen.cmake # 根据CMakeLists.txt生成FastBuild编译过程文件
 config/        # 配置文件
 debug/         # 调试目录（可执行程序/库文件）
   logdir/      # 日志文件目录
@@ -388,6 +390,10 @@ monitor->start(); // 由定时器定期搜集数据并输出
 - `config/logserver.conf`：日志服务配置
 - `config/client.conf`：测试程序配置
 - `config/tabledef.xml`：数据库表结构定义
+- `config/tpl/*.conf.m4`：数据模板配置，通过genconf在config/下生成对应的.conf配置文件
+- `config/grafana/system_dashboard.json`：Grafana系统监控面板配置
+- `config/ssl/*.pem`：SSL证书文件
+- `config/telegraf/telegraf.conf`：telegraf配置
 
 ---
 
