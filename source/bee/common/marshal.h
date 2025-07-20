@@ -62,15 +62,15 @@ public:
     FORCE_INLINE size_t capacity() const { return _data.capacity(); }
 
 public:
-    // 标准布局类型 push & pop
-    template<bee::trivially_copyable T> octetsstream& push(const T& val)
+    // pod类型 push & pop
+    template<bee::pod T> octetsstream& push(const T& val)
     {
         T temp = hostToNetwork(val);
         _data.append((char*)&temp, sizeof(T));
         return *this;
     }
 
-    template<bee::trivially_copyable T> octetsstream& pop(T& val)
+    template<bee::pod T> octetsstream& pop(T& val)
     {
         size_t len = sizeof(val);
         if(_pos + len > _data.size())
