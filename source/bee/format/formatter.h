@@ -1,5 +1,6 @@
 #pragma once
 #include <format>
+#include "marshal.h"
 #include "stringfy.h"
 
 namespace std
@@ -37,6 +38,16 @@ template <typename... Args> struct formatter<std::tuple<Args...>>
         return format_to(ctx.out(), "{}", bee::to_string(t));
     }
 };
-    
+
+// compact_int
+template <std::integral T> struct formatter<bee::compact_int<T>>
+{
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    auto format(const bee::compact_int<T>& t, format_context& ctx) const
+    {
+        return format_to(ctx.out(), "{}", t.get());
+    }
+};
 
 } // namespace std

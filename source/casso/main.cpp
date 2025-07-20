@@ -1,12 +1,15 @@
 #include <csignal>
 #include <cstring>
 #include <stdio.h>
+#include <sstream>
+#include <string>
 #include <type_traits>
 #include <unistd.h>
 #include <functional>
 #include <thread>
 #include <ranges>
 #include <memory>
+#include <unordered_map>
 
 #include "config.h"
 #include "marshal.h"
@@ -228,13 +231,24 @@ int main(int argc, char* argv[])
     // map.clear();
     // printf("empty:%d\n", map.empty());
 
-    // octetsstream os;
+    octetsstream os;
     // bee::remotelog prot(123, {});
     // prot.logevent.set_all_fields();
     // prot.encode(os);
     // auto temp = protocol::decode(os, nullptr);
     // auto prot2 = dynamic_cast<bee::remotelog*>(temp);
-    // printf("prot2 loglevel:%d\n", prot2->loglevel),
+    // printf("prot2 loglevel:%d\n", prot2->loglevel);
+    static_assert(bee::pod<std::array<uint64_t, 5>>);
+    std::array<uint64_t, 5> arr = {1, 2, 3, 4, 5};
+    std::vector<uint64_t> vec(arr.begin(), arr.end());
+    std::string str = bee::to_string(vec);
+    std::map<std::string, std::string> map = {{"key1", "value1"}, {"key2", "value2"}};
+    std::multimap<std::string, std::string> mmap = {{"key1", "value1"}, {"key2", "value2"}, {"key1", "value3"}};
+    std::unordered_map<std::string, std::string> uomap = {{"key1", "value1"}, {"key2", "value2"}};
+    std::unordered_multimap<std::string, std::string> uommap = {{"key1", "value1"}, {"key2", "value2"}, {"key1", "value3"}};
+    os << arr << vec << str << map << mmap << uomap << uommap;
+    os >> arr >> vec >> str >> map >> mmap >> uomap >> uommap;
+    printf("arr:%s, vec:%s, str:%s, map:%s, mmap:%s, uomap:%s, uommap:%s\n", bee::to_string(arr).data(), bee::to_string(vec).data(), str.data(), bee::to_string(map).data(), bee::to_string(mmap).data(), bee::to_string(uomap).data(), bee::to_string(uommap).data());
 
     // auto test_http_encode_decode = [](const std::string& str)
     // {

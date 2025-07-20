@@ -1,4 +1,5 @@
 #pragma once
+#include "concept.h"
 #include <cstdint>
 #include <cstring>
 #include <endian.h>
@@ -24,6 +25,22 @@ inline uint64_t ntohll(uint64_t net)
 
 template<typename T>
 T hostToNetwork(T value);
+
+template<bee::pod T>
+T hostToNetwork(T value)
+{
+#if BYTE_ORDER == LITTLE_ENDIAN
+    size_t size = sizeof(T);
+    char* data = (char*)&value;
+    for(size_t i = 0; i < size / 2; i++)
+    {
+        char temp = data[i];
+        data[i] = data[size - i - 1];
+        data[size - i - 1] = temp;
+    }
+#endif
+    return value;
+}
 
 template<>
 inline uint64_t hostToNetwork<uint64_t>(uint64_t host64)
@@ -103,6 +120,22 @@ inline double hostToNetwork<double>(double host)
 
 template<typename T>
 T networkToHost(T value);
+
+template<bee::pod T>
+T networkToHost(T value)
+{
+#if BYTE_ORDER == LITTLE_ENDIAN
+    size_t size = sizeof(T);
+    char* data = (char*)&value;
+    for(size_t i = 0; i < size / 2; i++)
+    {
+        char temp = data[i];
+        data[i] = data[size - i - 1];
+        data[size - i - 1] = temp;
+    }
+#endif
+    return value;
+}
 
 template<>
 inline uint64_t networkToHost<uint64_t>(uint64_t host64)
