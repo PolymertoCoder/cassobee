@@ -123,6 +123,8 @@ public:
 
     ~left_right()
     {
+        _left_inst->~T();
+        _right_inst->~T();
         delete _left_inst;
         delete _right_inst;
     }
